@@ -1,6 +1,6 @@
 <?php
 /**
- * Schedule API
+ * Schedule API - FIXED VERSION
  * TrackSite Construction Management System
  * 
  * Handles all schedule-related AJAX requests
@@ -37,97 +37,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
     try {
         switch ($action) {
-            case 'archive':
-                // Require super admin access
-                if (!isSuperAdmin()) {
-                    http_response_code(403);
-                    jsonError('Unauthorized access. Admin privileges required.');
-                }
-                
-                $schedule_id = isset($_POST['id']) ? intval($_POST['id']) : 0;
-                
-                if ($schedule_id <= 0) {
-                    http_response_code(400);
-                    jsonError('Invalid schedule ID');
-                }
-                
-                // Get schedule details before archiving
-                $stmt = $db->prepare("SELECT s.*, w.first_name, w.last_name, w.worker_code 
-                                     FROM schedules s 
-                                     JOIN workers w ON s.worker_id = w.worker_id 
-                                     WHERE s.schedule_id = ?");
-                $stmt->execute([$schedule_id]);
-                $schedule = $stmt->fetch();
-                
-                if (!$schedule) {
-                    http_response_code(404);
-                    jsonError('Schedule not found');
-                }
-                
-                // Archive the schedule (set to inactive)
-                $stmt = $db->prepare("UPDATE schedules 
-                                     SET is_active = FALSE, 
-                                         updated_at = NOW() 
-                                     WHERE schedule_id = ?");
-                $stmt->execute([$schedule_id]);
-                
-                // Log activity
-                $worker_name = $schedule['first_name'] . ' ' . $schedule['last_name'];
-                logActivity($db, $user_id, 'archive_schedule', 'schedules', $schedule_id,
-                           "Archived schedule for {$worker_name} on " . ucfirst($schedule['day_of_week']));
-                
-                http_response_code(200);
-                jsonSuccess('Schedule archived successfully', [
-                    'schedule_id' => $schedule_id,
-                    'worker_name' => $worker_name
-                ]);
-                break;
-                
-            case 'restore':
-                // Require super admin access
-                if (!isSuperAdmin()) {
-                    http_response_code(403);
-                    jsonError('Unauthorized access. Admin privileges required.');
-                }
-                
-                $schedule_id = isset($_POST['id']) ? intval($_POST['id']) : 0;
-                
-                if ($schedule_id <= 0) {
-                    http_response_code(400);
-                    jsonError('Invalid schedule ID');
-                }
-                
-                // Get schedule details
-                $stmt = $db->prepare("SELECT s.*, w.first_name, w.last_name, w.worker_code 
-                                     FROM schedules s 
-                                     JOIN workers w ON s.worker_id = w.worker_id 
-                                     WHERE s.schedule_id = ?");
-                $stmt->execute([$schedule_id]);
-                $schedule = $stmt->fetch();
-                
-                if (!$schedule) {
-                    http_response_code(404);
-                    jsonError('Schedule not found');
-                }
-                
-                // Restore the schedule (set to active)
-                $stmt = $db->prepare("UPDATE schedules 
-                                     SET is_active = TRUE, 
-                                         updated_at = NOW() 
-                                     WHERE schedule_id = ?");
-                $stmt->execute([$schedule_id]);
-                
-                // Log activity
-                $worker_name = $schedule['first_name'] . ' ' . $schedule['last_name'];
-                logActivity($db, $user_id, 'restore_schedule', 'schedules', $schedule_id,
-                           "Restored schedule for {$worker_name}");
-                
-                http_response_code(200);
-                jsonSuccess('Schedule restored successfully', [
-                    'schedule_id' => $schedule_id
-                ]);
-                break;
-                
             case 'delete':
                 // Require super admin access
                 if (!isSuperAdmin()) {
@@ -155,17 +64,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     jsonError('Schedule not found');
                 }
                 
-                // Permanently delete the schedule
+                // Delete the schedule
                 $stmt = $db->prepare("DELETE FROM schedules WHERE schedule_id = ?");
                 $stmt->execute([$schedule_id]);
                 
                 // Log activity
                 $worker_name = $schedule['first_name'] . ' ' . $schedule['last_name'];
                 logActivity($db, $user_id, 'delete_schedule', 'schedules', $schedule_id,
-                           "Permanently deleted schedule for {$worker_name}");
+                           "Deleted schedule for {$worker_name} on " . ucfirst($schedule['day_of_week']));
                 
                 http_response_code(200);
-                jsonSuccess('Schedule deleted permanently', [
+                jsonSuccess('Schedule deleted successfully', [
                     'schedule_id' => $schedule_id
                 ]);
                 break;

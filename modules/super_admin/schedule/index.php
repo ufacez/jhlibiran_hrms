@@ -1,7 +1,10 @@
 <?php
 /**
- * Schedule Management - Main Page
+ * Schedule Management - Main Page (FIXED)
  * TrackSite Construction Management System
+ * 
+ * REMOVED: Archive and Restore functionality
+ * KEPT: Edit and Delete only
  */
 
 define('TRACKSITE_INCLUDED', true);
@@ -124,7 +127,7 @@ try {
                 
                 <div class="page-header">
                     <div class="header-left">
-                        <h1><i class="fas fa-calendar-alt"></i> Schedule Management</h1>
+                        <h1>Worker Schedule</h1>
                         <p class="subtitle">Manage worker schedules and working hours</p>
                     </div>
                     <div class="header-actions">
@@ -315,19 +318,6 @@ try {
                                                         title="Edit">
                                                     <i class="fas fa-edit"></i>
                                                 </button>
-                                                <?php if ($schedule['is_active']): ?>
-                                                <button class="action-btn btn-archive" 
-                                                        onclick="archiveSchedule(<?php echo $schedule['schedule_id']; ?>, '<?php echo htmlspecialchars($schedule['first_name'] . ' ' . $schedule['last_name']); ?>')"
-                                                        title="Archive">
-                                                    <i class="fas fa-archive"></i>
-                                                </button>
-                                                <?php else: ?>
-                                                <button class="action-btn btn-restore" 
-                                                        onclick="restoreSchedule(<?php echo $schedule['schedule_id']; ?>)"
-                                                        title="Restore">
-                                                    <i class="fas fa-undo"></i>
-                                                </button>
-                                                <?php endif; ?>
                                                 <button class="action-btn btn-delete" 
                                                         onclick="deleteSchedule(<?php echo $schedule['schedule_id']; ?>, '<?php echo htmlspecialchars($schedule['first_name'] . ' ' . $schedule['last_name']); ?>')"
                                                         title="Delete">
