@@ -1,6 +1,6 @@
 <?php
 /**
- * Payroll Management - Main Page
+ * Payroll Management - UPDATED with Stackable Deductions Support
  * TrackSite Construction Management System
  */
 
@@ -35,7 +35,7 @@ if ($day_of_month <= 15) {
     $period_end = $current_date->format('Y-m-t');
 }
 
-// Build query for payroll
+// Build query for payroll with STACKABLE deductions support
 $sql = "SELECT 
     w.worker_id,
     w.worker_code,
@@ -66,6 +66,11 @@ $sql = "SELECT
         WHERE worker_id = w.worker_id 
         AND deduction_date BETWEEN ? AND ?
         AND status = 'applied'), 0) as total_deductions,
+    COALESCE((SELECT COUNT(*) 
+        FROM deductions 
+        WHERE worker_id = w.worker_id 
+        AND deduction_date BETWEEN ? AND ?
+        AND status = 'applied'), 0) as deduction_count,
     COALESCE(p.payment_status, 'unpaid') as payment_status,
     p.payroll_id
 FROM workers w
@@ -82,6 +87,7 @@ $params = [
     $period_start, $period_end,  // total_hours
     $period_start, $period_end,  // gross_pay
     $period_start, $period_end,  // total_deductions
+    $period_start, $period_end,  // deduction_count
     $period_start, $period_end   // payroll join
 ];
 
@@ -179,10 +185,13 @@ try {
                 
                 <div class="page-header">
                     <div class="header-left">
-                        <h1> Payroll Management</h1>
+                        <h1><i class="fas fa-money-check-edit-alt"></i> Payroll Management</h1>
                         <p class="subtitle">Manage worker payroll for <?php echo date('M d', strtotime($period_start)); ?> - <?php echo date('M d, Y', strtotime($period_end)); ?></p>
                     </div>
                     <div class="header-actions">
+                        <button class="btn btn-secondary" onclick="window.location.href='../deductions/add.php'">
+                            <i class="fas fa-minus-circle"></i> Add Deduction
+                        </button>
                         <button class="btn btn-secondary" onclick="window.location.href='generate.php?start=<?php echo $period_start; ?>&end=<?php echo $period_end; ?>'">
                             <i class="fas fa-calculator"></i> Generate Payroll
                         </button>
@@ -225,7 +234,7 @@ try {
                         <div class="stat-info">
                             <div class="stat-label">Total Deductions</div>
                             <div class="stat-value">₱<?php echo number_format($total_deductions, 2); ?></div>
-                            <div class="stat-sublabel">SSS, PhilHealth, Pag-IBIG</div>
+                            <div class="stat-sublabel">All Deductions Applied</div>
                         </div>
                     </div>
                     
@@ -366,7 +375,14 @@ try {
                                             <small style="display: block; color: #666;">₱<?php echo number_format($record['daily_rate'], 2); ?>/day</small>
                                         </td>
                                         <td><strong>₱<?php echo number_format($record['gross_pay'], 2); ?></strong></td>
-                                        <td><span style="color: #dc3545;">₱<?php echo number_format($record['total_deductions'], 2); ?></span></td>
+                                        <td>
+                                            <span style="color: #dc3545;">₱<?php echo number_format($record['total_deductions'], 2); ?></span>
+                                            <?php if ($record['deduction_count'] > 0): ?>
+                                                <small style="display: block; color: #666;">
+                                                    <i class="fas fa-layer-group"></i> <?php echo $record['deduction_count']; ?> item(s)
+                                                </small>
+                                            <?php endif; ?>
+                                        </td>
                                         <td><strong style="color: #28a745;">₱<?php echo number_format($net_pay, 2); ?></strong></td>
                                         <td>
                                             <?php
@@ -509,6 +525,19 @@ try {
                 menu.classList.remove('show');
             }
         });
+        
+        function closeAlert(id) {
+            const alert = document.getElementById(id);
+            if (alert) {
+                alert.style.animation = 'slideUp 0.3s ease-in';
+                setTimeout(() => alert.remove(), 300);
+            }
+        }
+        
+        setTimeout(() => {
+            const flashMessage = document.getElementById('flashMessage');
+            if (flashMessage) closeAlert('flashMessage');
+        }, 5000);
     </script>
 </body>
 </html>

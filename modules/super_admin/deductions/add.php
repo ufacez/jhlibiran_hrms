@@ -1,6 +1,6 @@
 <?php
 /**
- * Add Deduction - Deductions Module
+ * Add Deduction - ENHANCED VERSION with Date Range
  * TrackSite Construction Management System
  */
 
@@ -36,8 +36,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_deduction'])) {
     $deduction_type = isset($_POST['deduction_type']) ? sanitizeString($_POST['deduction_type']) : '';
     $amount = isset($_POST['amount']) ? floatval($_POST['amount']) : 0;
     $description = isset($_POST['description']) ? sanitizeString($_POST['description']) : '';
-    $deduction_date = isset($_POST['deduction_date']) ? sanitizeString($_POST['deduction_date']) : '';
     $status = isset($_POST['status']) ? sanitizeString($_POST['status']) : 'applied';
+    
+    // NEW: Date range support
+    $use_date_range = isset($_POST['use_date_range']) && $_POST['use_date_range'] === '1';
+    $single_date = isset($_POST['deduction_date']) ? sanitizeString($_POST['deduction_date']) : '';
+    $date_from = isset($_POST['date_from']) ? sanitizeString($_POST['date_from']) : '';
+    $date_to = isset($_POST['date_to']) ? sanitizeString($_POST['date_to']) : '';
     
     // Validation
     if ($worker_id <= 0) {
@@ -52,40 +57,89 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_deduction'])) {
         $errors[] = 'Amount must be greater than zero';
     }
     
-    if (empty($deduction_date)) {
+    if (!$use_date_range && empty($single_date)) {
         $errors[] = 'Please select deduction date';
+    }
+    
+    if ($use_date_range && (empty($date_from) || empty($date_to))) {
+        $errors[] = 'Please select date range (from and to)';
     }
     
     if (empty($errors)) {
         try {
-            $stmt = $db->prepare("INSERT INTO deductions 
-                (worker_id, deduction_type, amount, description, deduction_date, status, created_by)
-                VALUES (?, ?, ?, ?, ?, ?, ?)");
+            $db->beginTransaction();
             
-            $stmt->execute([
-                $worker_id,
-                $deduction_type,
-                $amount,
-                $description,
-                $deduction_date,
-                $status,
-                getCurrentUserId()
-            ]);
+            $dates_to_insert = [];
             
-            $deduction_id = $db->lastInsertId();
+            if ($use_date_range) {
+                // Generate array of dates in range
+                $start = new DateTime($date_from);
+                $end = new DateTime($date_to);
+                $end = $end->modify('+1 day'); // Include end date
+                
+                $interval = new DateInterval('P1D');
+                $daterange = new DatePeriod($start, $interval, $end);
+                
+                foreach ($daterange as $date) {
+                    $dates_to_insert[] = $date->format('Y-m-d');
+                }
+            } else {
+                $dates_to_insert[] = $single_date;
+            }
             
             // Get worker name for activity log
             $stmt = $db->prepare("SELECT first_name, last_name FROM workers WHERE worker_id = ?");
             $stmt->execute([$worker_id]);
             $worker = $stmt->fetch();
             
-            logActivity($db, getCurrentUserId(), 'add_deduction', 'deductions', $deduction_id,
-                "Added {$deduction_type} deduction for {$worker['first_name']} {$worker['last_name']} - ₱" . number_format($amount, 2));
+            $inserted_count = 0;
             
-            setFlashMessage('Deduction added successfully!', 'success');
+            // Insert deduction for each date
+            $stmt = $db->prepare("INSERT INTO deductions 
+                (worker_id, deduction_type, amount, description, deduction_date, status, created_by)
+                VALUES (?, ?, ?, ?, ?, ?, ?)");
+            
+            foreach ($dates_to_insert as $date) {
+                // Check if deduction already exists for this date
+                $check_stmt = $db->prepare("SELECT deduction_id FROM deductions 
+                                           WHERE worker_id = ? 
+                                           AND deduction_type = ? 
+                                           AND deduction_date = ?");
+                $check_stmt->execute([$worker_id, $deduction_type, $date]);
+                
+                if (!$check_stmt->fetch()) {
+                    $stmt->execute([
+                        $worker_id,
+                        $deduction_type,
+                        $amount,
+                        $description,
+                        $date,
+                        $status,
+                        getCurrentUserId()
+                    ]);
+                    $inserted_count++;
+                }
+            }
+            
+            // Log activity
+            $date_desc = $use_date_range 
+                ? "from {$date_from} to {$date_to} ({$inserted_count} dates)" 
+                : "on {$single_date}";
+            
+            logActivity($db, getCurrentUserId(), 'add_deduction', 'deductions', null,
+                "Added {$deduction_type} deduction for {$worker['first_name']} {$worker['last_name']} {$date_desc} - ₱" . number_format($amount, 2));
+            
+            $db->commit();
+            
+            $message = $inserted_count > 0 
+                ? "Successfully added {$inserted_count} deduction record(s)!" 
+                : "No new deductions added (records already exist)";
+            
+            setFlashMessage($message, 'success');
             redirect(BASE_URL . '/modules/super_admin/deductions/index.php');
             
         } catch (PDOException $e) {
+            $db->rollBack();
             error_log("Add Deduction Error: " . $e->getMessage());
             $errors[] = 'Failed to add deduction. Please try again.';
         }
@@ -144,8 +198,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_deduction'])) {
                     <div class="info-banner-content">
                         <i class="fas fa-info-circle"></i>
                         <div>
-                            <strong>About Deductions:</strong>
-                            <p>Deductions are automatically applied to payroll. Make sure to verify all details before saving.</p>
+                            <strong>New Feature: Stackable Deductions with Date Range</strong>
+                            <p>You can now apply deductions to multiple dates at once, and multiple deductions can be applied to the same worker on the same date. All deductions are automatically included in payroll calculations.</p>
                         </div>
                     </div>
                 </div>
@@ -196,6 +250,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_deduction'])) {
                                         <option value="pagibig">Pag-IBIG Fund</option>
                                         <option value="tax">Withholding Tax</option>
                                         <option value="loan">Loan Repayment</option>
+                                        <option value="cashadvance">Cash Advance Deduction</option>
+                                        <option value="uniform">Uniform Deduction</option>
+                                        <option value="tools">Tools Deduction</option>
+                                        <option value="damage">Damage/Breakage</option>
+                                        <option value="absence">Absence Deduction</option>
                                         <option value="other">Other</option>
                                     </select>
                                 </div>
@@ -214,13 +273,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_deduction'])) {
                                     </div>
                                 </div>
                                 
-                                <div class="form-group">
+                                <div class="form-group full-width">
+                                    <label>
+                                        <input type="checkbox" 
+                                               name="use_date_range" 
+                                               id="use_date_range" 
+                                               value="1"
+                                               onchange="toggleDateRange()">
+                                        Apply to Date Range (Multiple Days)
+                                    </label>
+                                    <small>Check this to apply the same deduction to multiple consecutive dates</small>
+                                </div>
+                                
+                                <!-- Single Date (default) -->
+                                <div class="form-group" id="single_date_group">
                                     <label for="deduction_date">Deduction Date *</label>
                                     <input type="date" 
                                            name="deduction_date" 
                                            id="deduction_date" 
-                                           value="<?php echo date('Y-m-d'); ?>"
-                                           required>
+                                           value="<?php echo date('Y-m-d'); ?>">
+                                </div>
+                                
+                                <!-- Date Range (hidden by default) -->
+                                <div class="form-group" id="date_from_group" style="display: none;">
+                                    <label for="date_from">From Date *</label>
+                                    <input type="date" 
+                                           name="date_from" 
+                                           id="date_from">
+                                </div>
+                                
+                                <div class="form-group" id="date_to_group" style="display: none;">
+                                    <label for="date_to">To Date *</label>
+                                    <input type="date" 
+                                           name="date_to" 
+                                           id="date_to">
                                 </div>
                                 
                                 <div class="form-group">
@@ -271,6 +357,48 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_deduction'])) {
             } else {
                 document.getElementById('display_code').value = '';
                 document.getElementById('display_position').value = '';
+            }
+        }
+        
+        function toggleDateRange() {
+            const useRange = document.getElementById('use_date_range').checked;
+            const singleGroup = document.getElementById('single_date_group');
+            const fromGroup = document.getElementById('date_from_group');
+            const toGroup = document.getElementById('date_to_group');
+            const singleInput = document.getElementById('deduction_date');
+            const fromInput = document.getElementById('date_from');
+            const toInput = document.getElementById('date_to');
+            
+            if (useRange) {
+                singleGroup.style.display = 'none';
+                fromGroup.style.display = 'block';
+                toGroup.style.display = 'block';
+                singleInput.removeAttribute('required');
+                fromInput.setAttribute('required', 'required');
+                toInput.setAttribute('required', 'required');
+                
+                // Set default date range (current pay period)
+                const today = new Date();
+                const day = today.getDate();
+                let startDate, endDate;
+                
+                if (day <= 15) {
+                    startDate = new Date(today.getFullYear(), today.getMonth(), 1);
+                    endDate = new Date(today.getFullYear(), today.getMonth(), 15);
+                } else {
+                    startDate = new Date(today.getFullYear(), today.getMonth(), 16);
+                    endDate = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+                }
+                
+                fromInput.value = startDate.toISOString().split('T')[0];
+                toInput.value = endDate.toISOString().split('T')[0];
+            } else {
+                singleGroup.style.display = 'block';
+                fromGroup.style.display = 'none';
+                toGroup.style.display = 'none';
+                singleInput.setAttribute('required', 'required');
+                fromInput.removeAttribute('required');
+                toInput.removeAttribute('required');
             }
         }
         
@@ -393,6 +521,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_deduction'])) {
         .form-group input[readonly] {
             background: #f5f5f5;
             color: #666;
+        }
+        
+        .form-group input[type="checkbox"] {
+            width: auto;
+            margin-right: 8px;
+        }
+        
+        .form-group label:has(input[type="checkbox"]) {
+            flex-direction: row;
+            align-items: center;
+            font-weight: 400;
         }
         
         .input-with-prefix {
