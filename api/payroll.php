@@ -1,6 +1,6 @@
 <?php
 /**
- * Payroll API
+ * Payroll API - FIXED VERSION
  * TrackSite Construction Management System
  * 
  * Handles all payroll-related AJAX requests
@@ -147,7 +147,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         WHEN status IN ('present', 'late', 'overtime') 
                         THEN attendance_date 
                     END) as days_worked,
-                    SUM(hours_worked) as total_hours
+                    SUM(hours_worked) as total_hours,
+                    SUM(overtime_hours) as overtime_hours
                     FROM attendance 
                     WHERE worker_id = ? 
                     AND attendance_date BETWEEN ? AND ?
@@ -158,15 +159,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // Calculate pay
                 $days_worked = $attendance['days_worked'] ?? 0;
                 $total_hours = $attendance['total_hours'] ?? 0;
+                $overtime_hours = $attendance['overtime_hours'] ?? 0;
                 $gross_pay = $worker['daily_rate'] * $days_worked;
                 
-                // Get deductions
+                // Get deductions - FIXED: Get active deductions
                 $stmt = $db->prepare("SELECT * FROM deductions 
                                      WHERE worker_id = ? 
-                                     AND deduction_date BETWEEN ? AND ?
+                                     AND is_active = 1
                                      AND status = 'applied'
-                                     ORDER BY deduction_date");
-                $stmt->execute([$worker_id, $period_start, $period_end]);
+                                     AND (
+                                         frequency = 'per_payroll'
+                                         OR (frequency = 'one_time' AND applied_count = 0)
+                                     )
+                                     ORDER BY deduction_type");
+                $stmt->execute([$worker_id]);
                 $deductions = $stmt->fetchAll();
                 
                 $total_deductions = 0;
@@ -175,7 +181,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
                 
                 // Get payment status
-                $stmt = $db->prepare("SELECT payment_status FROM payroll 
+                $stmt = $db->prepare("SELECT payment_status, payment_date, notes FROM payroll 
                                      WHERE worker_id = ? AND pay_period_start = ? AND pay_period_end = ?");
                 $stmt->execute([$worker_id, $period_start, $period_end]);
                 $payroll = $stmt->fetch();
@@ -191,11 +197,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'period_end' => $period_end,
                     'days_worked' => $days_worked,
                     'total_hours' => $total_hours,
+                    'overtime_hours' => $overtime_hours,
                     'gross_pay' => $gross_pay,
                     'deductions' => $deductions,
                     'total_deductions' => $total_deductions,
                     'net_pay' => $gross_pay - $total_deductions,
-                    'payment_status' => $payroll['payment_status'] ?? 'unpaid'
+                    'payment_status' => $payroll['payment_status'] ?? 'unpaid',
+                    'payment_date' => $payroll['payment_date'] ?? null,
+                    'notes' => $payroll['notes'] ?? ''
                 ];
                 
                 http_response_code(200);
