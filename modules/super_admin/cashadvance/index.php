@@ -150,6 +150,7 @@ try {
     <title>Cash Advance Management - <?php echo SYSTEM_NAME; ?></title>
     <link rel="stylesheet" href="https://pro.fontawesome.com/releases/v5.10.0/css/all.css"/>
     <link rel="stylesheet" href="<?php echo CSS_URL; ?>/dashboard.css">
+    <link rel="stylesheet" href="<?php echo CSS_URL; ?>/cashadvance.css">
     <link rel="stylesheet" href="<?php echo CSS_URL; ?>/workers.css">
 </head>
 <body>
@@ -159,7 +160,7 @@ try {
         <div class="main">
             <?php include __DIR__ . '/../../../includes/topbar.php'; ?>
             
-            <div class="workers-content">
+            <div class="cashadvance-content">
                 
                 <?php if ($flash): ?>
                 <div class="alert alert-<?php echo $flash['type']; ?>" id="flashMessage">
