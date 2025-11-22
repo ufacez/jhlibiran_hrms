@@ -1,9 +1,7 @@
 <?php
 /**
- * Cash Advance Management - Main Page
+ * Cash Advance Management - Index
  * TrackSite Construction Management System
- * 
- * FILE: modules/super_admin/cashadvance/index.php
  */
 
 define('TRACKSITE_INCLUDED', true);
@@ -24,58 +22,43 @@ $status_filter = isset($_GET['status']) ? sanitizeString($_GET['status']) : '';
 $worker_filter = isset($_GET['worker']) ? intval($_GET['worker']) : 0;
 $search_query = isset($_GET['search']) ? sanitizeString($_GET['search']) : '';
 
-// Handle actions
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+// Handle approve/reject actions
+if (isset($_POST['action']) && isset($_POST['advance_id'])) {
+    $advance_id = intval($_POST['advance_id']);
+    $action = sanitizeString($_POST['action']);
+    
     try {
-        if (isset($_POST['approve_advance'])) {
-            $advance_id = intval($_POST['advance_id']);
-            
+        if ($action === 'approve') {
             $stmt = $db->prepare("UPDATE cash_advances SET 
                 status = 'approved',
                 approved_by = ?,
                 approval_date = NOW(),
-                updated_at = NOW()
+                balance = amount
                 WHERE advance_id = ?");
             $stmt->execute([getCurrentUserId(), $advance_id]);
             
             logActivity($db, getCurrentUserId(), 'approve_cash_advance', 'cash_advances', $advance_id, 'Approved cash advance');
-            setFlashMessage('Cash advance approved successfully', 'success');
-            redirect($_SERVER['PHP_SELF']);
-        }
-        
-        if (isset($_POST['reject_advance'])) {
-            $advance_id = intval($_POST['advance_id']);
-            $rejection_reason = sanitizeString($_POST['rejection_reason'] ?? '');
+            setFlashMessage('Cash advance approved successfully!', 'success');
             
+        } elseif ($action === 'reject') {
+            $reason = isset($_POST['reason']) ? sanitizeString($_POST['reason']) : 'Rejected by admin';
             $stmt = $db->prepare("UPDATE cash_advances SET 
                 status = 'rejected',
                 approved_by = ?,
                 approval_date = NOW(),
-                notes = CONCAT(COALESCE(notes, ''), '\nRejection: ', ?),
-                updated_at = NOW()
+                notes = ?
                 WHERE advance_id = ?");
-            $stmt->execute([getCurrentUserId(), $rejection_reason, $advance_id]);
+            $stmt->execute([getCurrentUserId(), $reason, $advance_id]);
             
             logActivity($db, getCurrentUserId(), 'reject_cash_advance', 'cash_advances', $advance_id, 'Rejected cash advance');
-            setFlashMessage('Cash advance rejected', 'success');
-            redirect($_SERVER['PHP_SELF']);
+            setFlashMessage('Cash advance rejected.', 'success');
         }
-        
-        if (isset($_POST['delete_advance'])) {
-            $advance_id = intval($_POST['advance_id']);
-            
-            $stmt = $db->prepare("DELETE FROM cash_advances WHERE advance_id = ?");
-            $stmt->execute([$advance_id]);
-            
-            logActivity($db, getCurrentUserId(), 'delete_cash_advance', 'cash_advances', $advance_id, 'Deleted cash advance');
-            setFlashMessage('Cash advance deleted successfully', 'success');
-            redirect($_SERVER['PHP_SELF']);
-        }
-        
     } catch (PDOException $e) {
         error_log("Cash Advance Action Error: " . $e->getMessage());
-        setFlashMessage('Failed to process action', 'error');
+        setFlashMessage('Failed to process request', 'error');
     }
+    
+    redirect($_SERVER['PHP_SELF']);
 }
 
 // Build query
@@ -121,17 +104,19 @@ try {
 // Calculate statistics
 $total_pending = 0;
 $total_approved = 0;
+$total_repaying = 0;
 $total_amount = 0;
 $total_balance = 0;
 
 foreach ($advances as $adv) {
     if ($adv['status'] === 'pending') $total_pending++;
     if ($adv['status'] === 'approved') $total_approved++;
+    if ($adv['status'] === 'repaying') $total_repaying++;
     $total_amount += $adv['amount'];
     $total_balance += $adv['balance'];
 }
 
-// Get all workers for filter
+// Get all active workers for filter
 try {
     $stmt = $db->query("SELECT worker_id, worker_code, first_name, last_name 
                         FROM workers 
@@ -150,8 +135,317 @@ try {
     <title>Cash Advance Management - <?php echo SYSTEM_NAME; ?></title>
     <link rel="stylesheet" href="https://pro.fontawesome.com/releases/v5.10.0/css/all.css"/>
     <link rel="stylesheet" href="<?php echo CSS_URL; ?>/dashboard.css">
-    <link rel="stylesheet" href="<?php echo CSS_URL; ?>/cashadvance.css">
-    <link rel="stylesheet" href="<?php echo CSS_URL; ?>/workers.css">
+    
+    <style>
+        .cashadvance-content {
+            padding: 30px;
+        }
+        
+        .stats-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .filter-card {
+            background: #fff;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+            margin-bottom: 30px;
+        }
+        
+        .filter-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            align-items: end;
+        }
+        
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .filter-group label {
+            font-size: 12px;
+            color: #666;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        
+        .filter-group input,
+        .filter-group select {
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+        
+        .filter-group input:focus,
+        .filter-group select:focus {
+            border-color: #DAA520;
+        }
+        
+        .advances-table-card {
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+            overflow: hidden;
+        }
+        
+        .table-header-row {
+            padding: 20px;
+            border-bottom: 2px solid #f0f0f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .table-wrapper {
+            overflow-x: auto;
+        }
+        
+        .advances-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .advances-table thead th {
+            background: #1a1a1a;
+            color: #fff;
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .advances-table tbody td {
+            padding: 15px;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 14px;
+        }
+        
+        .advances-table tbody tr:hover {
+            background: #f8f9fa;
+        }
+        
+        .worker-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .worker-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #DAA520, #B8860B);
+            color: #1a1a1a;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 14px;
+        }
+        
+        .worker-name {
+            font-weight: 600;
+            color: #1a1a1a;
+        }
+        
+        .worker-code {
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        
+        .status-pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .status-approved {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .status-rejected {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .status-repaying {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+        
+        .status-completed {
+            background: #e2e3e5;
+            color: #383d41;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .action-btn {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .btn-view {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+        
+        .btn-view:hover {
+            background: #1976d2;
+            color: #fff;
+        }
+        
+        .btn-approve {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .btn-approve:hover {
+            background: #155724;
+            color: #fff;
+        }
+        
+        .btn-reject {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .btn-reject:hover {
+            background: #721c24;
+            color: #fff;
+        }
+        
+        .btn-repay {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+        
+        .btn-repay:hover {
+            background: #0c5460;
+            color: #fff;
+        }
+        
+        .no-data {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+        
+        .no-data i {
+            font-size: 48px;
+            margin-bottom: 15px;
+            display: block;
+        }
+        
+        .no-data p {
+            margin: 10px 0;
+        }
+        
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 10000;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal.show {
+            display: flex;
+        }
+        
+        .modal-content {
+            background: #fff;
+            border-radius: 12px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        
+        .modal-header {
+            padding: 20px;
+            border-bottom: 2px solid #f0f0f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .modal-header h2 {
+            margin: 0;
+            font-size: 18px;
+        }
+        
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            color: #666;
+        }
+        
+        .modal-body {
+            padding: 20px;
+        }
+        
+        .modal-footer {
+            padding: 20px;
+            border-top: 2px solid #f0f0f0;
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+        
+        @media (max-width: 768px) {
+            .filter-row {
+                grid-template-columns: 1fr;
+            }
+            
+            .stats-cards {
+                grid-template-columns: 1fr;
+            }
+            
+            .table-wrapper {
+                overflow-x: scroll;
+            }
+        }
+    </style>
 </head>
 <body>
     <div class="container">
@@ -175,7 +469,7 @@ try {
                 <div class="page-header">
                     <div class="header-left">
                         <h1><i class="fas fa-dollar-sign"></i> Cash Advance Management</h1>
-                        <p class="subtitle">Manage worker cash advance requests and repayments</p>
+                        <p class="subtitle">Manage worker cash advance requests</p>
                     </div>
                     <div class="header-actions">
                         <button class="btn btn-primary" onclick="window.location.href='request.php'">
@@ -185,8 +479,8 @@ try {
                 </div>
                 
                 <!-- Statistics Cards -->
-                <div class="stats-cards" style="grid-template-columns: repeat(4, 1fr); margin-bottom: 30px;">
-                    <div class="stat-card card-blue">
+                <div class="stats-cards">
+                    <div class="stat-card card-orange">
                         <div class="card-content">
                             <div class="card-value"><?php echo $total_pending; ?></div>
                             <div class="card-label">Pending Requests</div>
@@ -206,23 +500,23 @@ try {
                         </div>
                     </div>
                     
-                    <div class="stat-card card-orange">
+                    <div class="stat-card card-blue">
                         <div class="card-content">
-                            <div class="card-value">₱<?php echo number_format($total_amount, 2); ?></div>
-                            <div class="card-label">Total Amount</div>
+                            <div class="card-value"><?php echo $total_repaying; ?></div>
+                            <div class="card-label">Being Repaid</div>
                         </div>
                         <div class="card-icon">
-                            <i class="fas fa-money-bill-wave"></i>
+                            <i class="fas fa-sync-alt"></i>
                         </div>
                     </div>
                     
                     <div class="stat-card card-purple">
                         <div class="card-content">
                             <div class="card-value">₱<?php echo number_format($total_balance, 2); ?></div>
-                            <div class="card-label">Outstanding Balance</div>
+                            <div class="card-label">Total Outstanding</div>
                         </div>
                         <div class="card-icon">
-                            <i class="fas fa-balance-scale"></i>
+                            <i class="fas fa-money-bill-wave"></i>
                         </div>
                     </div>
                 </div>
@@ -232,17 +526,7 @@ try {
                     <form method="GET" action="" id="filterForm">
                         <div class="filter-row">
                             <div class="filter-group">
-                                <select name="status" onchange="document.getElementById('filterForm').submit()">
-                                    <option value="">All Status</option>
-                                    <option value="pending" <?php echo $status_filter === 'pending' ? 'selected' : ''; ?>>Pending</option>
-                                    <option value="approved" <?php echo $status_filter === 'approved' ? 'selected' : ''; ?>>Approved</option>
-                                    <option value="rejected" <?php echo $status_filter === 'rejected' ? 'selected' : ''; ?>>Rejected</option>
-                                    <option value="repaying" <?php echo $status_filter === 'repaying' ? 'selected' : ''; ?>>Repaying</option>
-                                    <option value="completed" <?php echo $status_filter === 'completed' ? 'selected' : ''; ?>>Completed</option>
-                                </select>
-                            </div>
-                            
-                            <div class="filter-group">
+                                <label>Worker</label>
                                 <select name="worker" onchange="document.getElementById('filterForm').submit()">
                                     <option value="0">All Workers</option>
                                     <?php foreach ($workers as $w): ?>
@@ -254,11 +538,24 @@ try {
                                 </select>
                             </div>
                             
+                            <div class="filter-group">
+                                <label>Status</label>
+                                <select name="status" onchange="document.getElementById('filterForm').submit()">
+                                    <option value="">All Status</option>
+                                    <option value="pending" <?php echo $status_filter === 'pending' ? 'selected' : ''; ?>>Pending</option>
+                                    <option value="approved" <?php echo $status_filter === 'approved' ? 'selected' : ''; ?>>Approved</option>
+                                    <option value="rejected" <?php echo $status_filter === 'rejected' ? 'selected' : ''; ?>>Rejected</option>
+                                    <option value="repaying" <?php echo $status_filter === 'repaying' ? 'selected' : ''; ?>>Repaying</option>
+                                    <option value="completed" <?php echo $status_filter === 'completed' ? 'selected' : ''; ?>>Completed</option>
+                                </select>
+                            </div>
+                            
                             <div class="filter-group" style="flex: 2;">
+                                <label>Search</label>
                                 <input type="text" 
                                        name="search" 
                                        value="<?php echo htmlspecialchars($search_query); ?>"
-                                       placeholder="Search cash advances...">
+                                       placeholder="Search advances...">
                             </div>
                             
                             <button type="submit" class="btn btn-filter">
@@ -276,21 +573,22 @@ try {
                     </form>
                 </div>
                 
-                <!-- Cash Advance Table -->
-                <div class="workers-table-card">
-                    <div class="table-info">
-                        <span>Showing <?php echo count($advances); ?> cash advance(s)</span>
+                <!-- Advances Table -->
+                <div class="advances-table-card">
+                    <div class="table-header-row">
+                        <div class="table-info">
+                            <span>Showing <?php echo count($advances); ?> cash advance(s)</span>
+                        </div>
                     </div>
                     
                     <div class="table-wrapper">
-                        <table class="workers-table">
+                        <table class="advances-table">
                             <thead>
                                 <tr>
                                     <th>Worker</th>
                                     <th>Request Date</th>
                                     <th>Amount</th>
                                     <th>Balance</th>
-                                    <th>Reason</th>
                                     <th>Status</th>
                                     <th>Actions</th>
                                 </tr>
@@ -298,11 +596,11 @@ try {
                             <tbody>
                                 <?php if (empty($advances)): ?>
                                 <tr>
-                                    <td colspan="7" class="no-data">
+                                    <td colspan="6" class="no-data">
                                         <i class="fas fa-dollar-sign"></i>
                                         <p>No cash advance requests found</p>
                                         <button class="btn btn-sm btn-primary" onclick="window.location.href='request.php'">
-                                            <i class="fas fa-plus"></i> New Request
+                                            <i class="fas fa-plus"></i> Create New Request
                                         </button>
                                     </td>
                                 </tr>
@@ -326,54 +624,42 @@ try {
                                         </td>
                                         <td><?php echo date('M d, Y', strtotime($adv['request_date'])); ?></td>
                                         <td><strong>₱<?php echo number_format($adv['amount'], 2); ?></strong></td>
+                                        <td><strong style="color: #dc3545;">₱<?php echo number_format($adv['balance'], 2); ?></strong></td>
                                         <td>
-                                            <?php if ($adv['balance'] > 0): ?>
-                                                <span style="color: #dc3545; font-weight: 600;">₱<?php echo number_format($adv['balance'], 2); ?></span>
-                                            <?php else: ?>
-                                                <span style="color: #28a745; font-weight: 600;">Paid</span>
-                                            <?php endif; ?>
-                                        </td>
-                                        <td><small><?php echo htmlspecialchars(truncateText($adv['reason'] ?? 'No reason provided', 50)); ?></small></td>
-                                        <td>
-                                            <?php
-                                            $status_class = 'status-' . $adv['status'];
-                                            ?>
-                                            <span class="status-badge <?php echo $status_class; ?>">
+                                            <span class="status-badge status-<?php echo $adv['status']; ?>">
                                                 <?php echo ucfirst($adv['status']); ?>
                                             </span>
                                         </td>
                                         <td>
                                             <div class="action-buttons">
-                                                <?php if ($adv['status'] === 'pending'): ?>
-                                                <form method="POST" style="display: inline;">
-                                                    <input type="hidden" name="advance_id" value="<?php echo $adv['advance_id']; ?>">
-                                                    <button type="submit" 
-                                                            name="approve_advance"
-                                                            class="action-btn btn-success" 
-                                                            title="Approve"
-                                                            onclick="return confirm('Approve this cash advance request?')">
-                                                        <i class="fas fa-check"></i>
-                                                    </button>
-                                                </form>
-                                                <button class="action-btn btn-danger" 
-                                                        onclick="showRejectModal(<?php echo $adv['advance_id']; ?>)"
-                                                        title="Reject">
-                                                    <i class="fas fa-times"></i>
-                                                </button>
-                                                <?php endif; ?>
-                                                
                                                 <button class="action-btn btn-view" 
                                                         onclick="viewAdvance(<?php echo $adv['advance_id']; ?>)"
                                                         title="View Details">
                                                     <i class="fas fa-eye"></i>
                                                 </button>
                                                 
+                                                <?php if ($adv['status'] === 'pending'): ?>
+                                                    <form method="POST" style="display: inline;" onsubmit="return confirm('Approve this cash advance request?')">
+                                                        <input type="hidden" name="advance_id" value="<?php echo $adv['advance_id']; ?>">
+                                                        <input type="hidden" name="action" value="approve">
+                                                        <button type="submit" class="action-btn btn-approve" title="Approve">
+                                                            <i class="fas fa-check"></i>
+                                                        </button>
+                                                    </form>
+                                                    
+                                                    <button class="action-btn btn-reject" 
+                                                            onclick="showRejectModal(<?php echo $adv['advance_id']; ?>)"
+                                                            title="Reject">
+                                                        <i class="fas fa-times"></i>
+                                                    </button>
+                                                <?php endif; ?>
+                                                
                                                 <?php if ($adv['status'] === 'approved' || $adv['status'] === 'repaying'): ?>
-                                                <button class="action-btn btn-primary" 
-                                                        onclick="window.location.href='repayment.php?id=<?php echo $adv['advance_id']; ?>'"
-                                                        title="Add Repayment">
-                                                    <i class="fas fa-money-bill"></i>
-                                                </button>
+                                                    <button class="action-btn btn-repay" 
+                                                            onclick="window.location.href='repayment.php?id=<?php echo $adv['advance_id']; ?>'"
+                                                            title="Record Repayment">
+                                                        <i class="fas fa-money-bill"></i>
+                                                    </button>
                                                 <?php endif; ?>
                                                 
                                                 <button class="action-btn btn-edit" 
@@ -381,19 +667,6 @@ try {
                                                         title="Edit">
                                                     <i class="fas fa-edit"></i>
                                                 </button>
-                                                
-                                                <?php if ($adv['status'] === 'pending' || $adv['status'] === 'rejected'): ?>
-                                                <form method="POST" style="display: inline;" 
-                                                      onsubmit="return confirm('Delete this cash advance request? This action cannot be undone.')">
-                                                    <input type="hidden" name="advance_id" value="<?php echo $adv['advance_id']; ?>">
-                                                    <button type="submit" 
-                                                            name="delete_advance"
-                                                            class="action-btn btn-delete" 
-                                                            title="Delete">
-                                                        <i class="fas fa-trash"></i>
-                                                    </button>
-                                                </form>
-                                                <?php endif; ?>
                                             </div>
                                         </td>
                                     </tr>
@@ -408,38 +681,6 @@ try {
         </div>
     </div>
     
-    <!-- Reject Modal -->
-    <div id="rejectModal" class="modal">
-        <div class="modal-content" style="max-width: 500px;">
-            <div class="modal-header">
-                <h2>Reject Cash Advance</h2>
-                <button class="modal-close" onclick="closeModal('rejectModal')">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            <form method="POST">
-                <div class="modal-body">
-                    <input type="hidden" name="advance_id" id="reject_advance_id">
-                    <div class="form-group">
-                        <label>Rejection Reason *</label>
-                        <textarea name="rejection_reason" 
-                                  rows="4" 
-                                  placeholder="Please provide a reason for rejection..."
-                                  required></textarea>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" onclick="closeModal('rejectModal')">
-                        Cancel
-                    </button>
-                    <button type="submit" name="reject_advance" class="btn btn-danger">
-                        <i class="fas fa-times"></i> Reject Request
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-    
     <!-- View Modal -->
     <div id="viewModal" class="modal">
         <div class="modal-content">
@@ -449,51 +690,70 @@ try {
                     <i class="fas fa-times"></i>
                 </button>
             </div>
-            <div class="modal-body" id="modalBody">
+            <div class="modal-body" id="viewModalBody">
                 <div style="text-align: center; padding: 40px;">
                     <i class="fas fa-spinner fa-spin" style="font-size: 32px; color: #DAA520;"></i>
-                    <p style="margin-top: 15px; color: #666;">Loading details...</p>
                 </div>
             </div>
         </div>
     </div>
     
+    <!-- Reject Modal -->
+    <div id="rejectModal" class="modal">
+        <div class="modal-content">
+            <form method="POST">
+                <div class="modal-header">
+                    <h2>Reject Cash Advance</h2>
+                    <button type="button" class="modal-close" onclick="closeModal('rejectModal')">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" name="advance_id" id="rejectAdvanceId">
+                    <input type="hidden" name="action" value="reject">
+                    <div class="form-group">
+                        <label>Reason for Rejection</label>
+                        <textarea name="reason" rows="4" placeholder="Enter reason..." required></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('rejectModal')">
+                        Cancel
+                    </button>
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-times"></i> Reject Request
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
     <script src="<?php echo JS_URL; ?>/dashboard.js"></script>
+    
     <script>
-        function showRejectModal(advanceId) {
-            document.getElementById('reject_advance_id').value = advanceId;
-            document.getElementById('rejectModal').classList.add('show');
-        }
-        
-        function closeModal(modalId) {
-            document.getElementById(modalId).classList.remove('show');
-        }
-        
-        function viewAdvance(advanceId) {
+        function viewAdvance(id) {
             const modal = document.getElementById('viewModal');
-            const modalBody = document.getElementById('modalBody');
+            const modalBody = document.getElementById('viewModalBody');
             
             modal.classList.add('show');
-            modalBody.innerHTML = `
-                <div style="text-align: center; padding: 40px;">
-                    <i class="fas fa-spinner fa-spin" style="font-size: 32px; color: #DAA520;"></i>
-                    <p style="margin-top: 15px; color: #666;">Loading details...</p>
-                </div>
-            `;
             
-            fetch(`view.php?id=${advanceId}`)
+            fetch('view.php?id=' + id)
                 .then(response => response.text())
                 .then(html => {
                     modalBody.innerHTML = html;
                 })
                 .catch(error => {
-                    modalBody.innerHTML = `
-                        <div style="text-align: center; padding: 40px;">
-                            <i class="fas fa-exclamation-circle" style="font-size: 48px; color: #dc3545;"></i>
-                            <p style="margin-top: 15px; color: #666;">Failed to load details</p>
-                        </div>
-                    `;
+                    modalBody.innerHTML = '<div style="text-align: center; padding: 40px; color: #dc3545;"><i class="fas fa-exclamation-circle" style="font-size: 48px;"></i><p>Failed to load details</p></div>';
                 });
+        }
+        
+        function showRejectModal(id) {
+            document.getElementById('rejectAdvanceId').value = id;
+            document.getElementById('rejectModal').classList.add('show');
+        }
+        
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('show');
         }
         
         function closeAlert(id) {
@@ -508,117 +768,13 @@ try {
             const flashMessage = document.getElementById('flashMessage');
             if (flashMessage) closeAlert('flashMessage');
         }, 5000);
+        
+        // Close modals when clicking outside
+        window.onclick = function(event) {
+            if (event.target.classList.contains('modal')) {
+                event.target.classList.remove('show');
+            }
+        }
     </script>
-    
-    <style>
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.7);
-            z-index: 9999;
-            align-items: center;
-            justify-content: center;
-        }
-        
-        .modal.show {
-            display: flex;
-        }
-        
-        .modal-content {
-            background: #fff;
-            border-radius: 12px;
-            width: 90%;
-            max-width: 800px;
-            max-height: 90vh;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-        }
-        
-        .modal-header {
-            padding: 20px 30px;
-            border-bottom: 2px solid #f0f0f0;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .modal-header h2 {
-            margin: 0;
-            font-size: 20px;
-            color: #1a1a1a;
-        }
-        
-        .modal-close {
-            background: none;
-            border: none;
-            font-size: 24px;
-            color: #999;
-            cursor: pointer;
-            padding: 0;
-            width: 32px;
-            height: 32px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 50%;
-            transition: all 0.3s ease;
-        }
-        
-        .modal-close:hover {
-            background: #f0f0f0;
-            color: #1a1a1a;
-        }
-        
-        .modal-body {
-            padding: 30px;
-            overflow-y: auto;
-            flex: 1;
-        }
-        
-        .modal-footer {
-            padding: 20px 30px;
-            border-top: 2px solid #f0f0f0;
-            display: flex;
-            gap: 15px;
-            justify-content: flex-end;
-        }
-        
-        .form-group {
-            margin-bottom: 20px;
-        }
-        
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
-            font-size: 13px;
-            color: #666;
-            font-weight: 600;
-        }
-        
-        .form-group textarea {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            font-size: 14px;
-            font-family: inherit;
-            resize: vertical;
-        }
-        
-        .form-group textarea:focus {
-            outline: none;
-            border-color: #DAA520;
-        }
-        
-        @keyframes slideUp {
-            from { opacity: 1; transform: translateY(0); }
-            to { opacity: 0; transform: translateY(-20px); }
-        }
-    </style>
 </body>
 </html>
