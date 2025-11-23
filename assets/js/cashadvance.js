@@ -1,5 +1,5 @@
 /**
- * Cash Advance JavaScript Functions
+ * Fixed Cash Advance View Function
  * TrackSite Construction Management System
  */
 
@@ -7,7 +7,7 @@
 const baseUrl = window.location.origin + window.location.pathname.substring(0, window.location.pathname.indexOf('/modules/'));
 
 /**
- * View Cash Advance Details
+ * View Cash Advance Details - FIXED VERSION
  */
 function viewCashAdvance(advanceId) {
     const modal = document.getElementById('viewModal');
@@ -47,20 +47,22 @@ function viewCashAdvance(advanceId) {
 }
 
 /**
- * Display Cash Advance Details in Modal
+ * Display Cash Advance Details in Modal - FIXED VERSION
  */
 function displayCashAdvanceDetails(advance) {
     const modalBody = document.getElementById('modalBody');
     const initials = (advance.first_name.charAt(0) + advance.last_name.charAt(0)).toUpperCase();
     const progress = advance.amount > 0 ? ((advance.amount - advance.balance) / advance.amount * 100).toFixed(0) : 0;
     
+    // Build repayments HTML
     let repaymentsHtml = '';
     if (advance.repayments && advance.repayments.length > 0) {
         repaymentsHtml = advance.repayments.map(rep => `
             <div class="repayment-item">
                 <div>
                     <div class="repayment-date">${formatDate(rep.repayment_date)}</div>
-                    <div class="repayment-method">${rep.payment_method.replace('_', ' ')}</div>
+                    <div class="repayment-method">${rep.payment_method.replace('_', ' ').toUpperCase()}</div>
+                    ${rep.notes ? `<div class="repayment-notes">${escapeHtml(rep.notes)}</div>` : ''}
                 </div>
                 <div class="repayment-amount">₱${parseFloat(rep.amount).toLocaleString('en-US', {minimumFractionDigits: 2})}</div>
             </div>
@@ -69,216 +71,363 @@ function displayCashAdvanceDetails(advance) {
         repaymentsHtml = '<p style="text-align: center; color: #999; padding: 20px;">No repayment records yet</p>';
     }
     
+    // Status badge color
+    const statusColors = {
+        'pending': 'warning',
+        'approved': 'info',
+        'repaying': 'primary',
+        'completed': 'success',
+        'rejected': 'danger',
+        'cancelled': 'secondary'
+    };
+    const statusColor = statusColors[advance.status] || 'secondary';
+    
     modalBody.innerHTML = `
-        <div style="display: grid; grid-template-columns: 250px 1fr; gap: 25px;">
-            <div style="background: linear-gradient(135deg, #DAA520, #B8860B); border-radius: 12px; padding: 25px; text-align: center; color: #1a1a1a;">
-                <div style="width: 100px; height: 100px; border-radius: 50%; background: rgba(255,255,255,0.3); display: flex; align-items: center; justify-content: center; font-size: 36px; font-weight: 700; margin: 0 auto 15px;">
-                    ${initials}
+        <style>
+            .cashadvance-details-grid {
+                display: grid;
+                grid-template-columns: 280px 1fr;
+                gap: 25px;
+            }
+            
+            .worker-profile-section {
+                background: linear-gradient(135deg, #DAA520, #B8860B);
+                border-radius: 12px;
+                padding: 25px;
+                text-align: center;
+                color: #1a1a1a;
+            }
+            
+            .worker-profile-avatar {
+                width: 100px;
+                height: 100px;
+                border-radius: 50%;
+                background: rgba(255, 255, 255, 0.3);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 36px;
+                font-weight: 700;
+                margin: 0 auto 15px;
+                border: 3px solid rgba(255, 255, 255, 0.5);
+            }
+            
+            .worker-profile-name {
+                font-size: 18px;
+                font-weight: 700;
+                margin-bottom: 5px;
+            }
+            
+            .worker-profile-code {
+                font-size: 13px;
+                opacity: 0.9;
+                margin-bottom: 10px;
+            }
+            
+            .worker-profile-position {
+                display: inline-block;
+                padding: 6px 15px;
+                background: rgba(255, 255, 255, 0.9);
+                border-radius: 20px;
+                font-size: 13px;
+                font-weight: 500;
+                margin-top: 10px;
+            }
+            
+            .info-section {
+                background: #f8f9fa;
+                border-radius: 12px;
+                padding: 20px;
+                margin-bottom: 20px;
+            }
+            
+            .info-section:last-child {
+                margin-bottom: 0;
+            }
+            
+            .info-section h3 {
+                margin: 0 0 15px 0;
+                font-size: 14px;
+                color: #1a1a1a;
+                font-weight: 600;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+            }
+            
+            .info-row {
+                display: grid;
+                grid-template-columns: repeat(2, 1fr);
+                gap: 15px;
+                margin-bottom: 15px;
+            }
+            
+            .info-row:last-child {
+                margin-bottom: 0;
+            }
+            
+            .info-item {
+                display: flex;
+                flex-direction: column;
+                gap: 5px;
+            }
+            
+            .info-label {
+                font-size: 11px;
+                color: #666;
+                text-transform: uppercase;
+                font-weight: 600;
+                letter-spacing: 0.5px;
+            }
+            
+            .info-value {
+                font-size: 14px;
+                color: #1a1a1a;
+                font-weight: 500;
+            }
+            
+            .info-value.amount {
+                font-size: 24px;
+                font-weight: 700;
+                color: #DAA520;
+            }
+            
+            .info-value.balance {
+                font-size: 24px;
+                font-weight: 700;
+                color: #dc3545;
+            }
+            
+            .progress-section {
+                margin-top: 15px;
+            }
+            
+            .progress-bar-container {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                margin-top: 10px;
+            }
+            
+            .progress-bar {
+                flex: 1;
+                height: 10px;
+                background: #e0e0e0;
+                border-radius: 10px;
+                overflow: hidden;
+            }
+            
+            .progress-fill {
+                height: 100%;
+                background: linear-gradient(90deg, #27ae60, #2ecc71);
+                border-radius: 10px;
+                transition: width 0.5s ease;
+            }
+            
+            .progress-text {
+                font-weight: 600;
+                color: #666;
+                min-width: 45px;
+                text-align: right;
+            }
+            
+            .repayment-list {
+                max-height: 350px;
+                overflow-y: auto;
+            }
+            
+            .repayment-item {
+                display: flex;
+                justify-content: space-between;
+                align-items: flex-start;
+                padding: 15px;
+                background: #fff;
+                border-radius: 8px;
+                margin-bottom: 10px;
+                border-left: 4px solid #28a745;
+                box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            }
+            
+            .repayment-item:last-child {
+                margin-bottom: 0;
+            }
+            
+            .repayment-date {
+                font-size: 14px;
+                color: #1a1a1a;
+                font-weight: 600;
+                margin-bottom: 4px;
+            }
+            
+            .repayment-method {
+                font-size: 12px;
+                color: #666;
+                margin-bottom: 4px;
+            }
+            
+            .repayment-notes {
+                font-size: 11px;
+                color: #999;
+                font-style: italic;
+                margin-top: 5px;
+            }
+            
+            .repayment-amount {
+                font-size: 18px;
+                font-weight: 700;
+                color: #28a745;
+                white-space: nowrap;
+            }
+            
+            .status-badge {
+                padding: 6px 14px;
+                border-radius: 20px;
+                font-size: 12px;
+                font-weight: 600;
+                display: inline-block;
+                text-transform: uppercase;
+            }
+            
+            .status-pending {
+                background: #fff3cd;
+                color: #856404;
+            }
+            
+            .status-approved {
+                background: #d1ecf1;
+                color: #0c5460;
+            }
+            
+            .status-repaying {
+                background: #e3f2fd;
+                color: #1976d2;
+            }
+            
+            .status-completed {
+                background: #d4edda;
+                color: #155724;
+            }
+            
+            .status-rejected {
+                background: #f8d7da;
+                color: #721c24;
+            }
+            
+            .status-cancelled {
+                background: #e2e3e5;
+                color: #383d41;
+            }
+            
+            @media (max-width: 768px) {
+                .cashadvance-details-grid {
+                    grid-template-columns: 1fr;
+                }
+                
+                .info-row {
+                    grid-template-columns: 1fr;
+                }
+            }
+        </style>
+        
+        <div class="cashadvance-details-grid">
+            <!-- Worker Profile -->
+            <div class="worker-profile-section">
+                <div class="worker-profile-avatar">${initials}</div>
+                <div class="worker-profile-name">
+                    ${escapeHtml(advance.first_name)} ${escapeHtml(advance.last_name)}
                 </div>
-                <div style="font-size: 18px; font-weight: 700; margin-bottom: 5px;">
-                    ${advance.first_name} ${advance.last_name}
-                </div>
-                <div style="font-size: 13px; opacity: 0.8; margin-bottom: 10px;">
-                    ${advance.worker_code}
-                </div>
-                <div style="display: inline-block; padding: 5px 15px; background: #fff; border-radius: 20px; font-size: 13px; color: #666; font-weight: 500;">
-                    ${advance.position}
-                </div>
+                <div class="worker-profile-code">${escapeHtml(advance.worker_code)}</div>
+                <div class="worker-profile-position">${escapeHtml(advance.position)}</div>
             </div>
             
+            <!-- Details Section -->
             <div>
-                <div style="background: #f8f9fa; border-radius: 10px; padding: 20px; margin-bottom: 20px;">
-                    <h3 style="margin: 0 0 15px 0; font-size: 14px; display: flex; align-items: center; gap: 8px;">
-                        <i class="fas fa-info-circle"></i> CASH ADVANCE INFORMATION
-                    </h3>
-                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;">
-                        <div>
-                            <div style="font-size: 11px; color: #666; font-weight: 600; margin-bottom: 5px;">REQUEST DATE</div>
-                            <div style="font-size: 14px; color: #1a1a1a; font-weight: 500;">${formatDate(advance.request_date)}</div>
+                <!-- Cash Advance Information -->
+                <div class="info-section">
+                    <h3><i class="fas fa-dollar-sign"></i> Cash Advance Information</h3>
+                    <div class="info-row">
+                        <div class="info-item">
+                            <span class="info-label">Request Date</span>
+                            <span class="info-value">${formatDate(advance.request_date)}</span>
                         </div>
-                        <div>
-                            <div style="font-size: 11px; color: #666; font-weight: 600; margin-bottom: 5px;">STATUS</div>
-                            <span class="status-badge status-${advance.status}">${advance.status.charAt(0).toUpperCase() + advance.status.slice(1)}</span>
-                        </div>
-                        <div>
-                            <div style="font-size: 11px; color: #666; font-weight: 600; margin-bottom: 5px;">AMOUNT</div>
-                            <div style="font-size: 20px; color: #1a1a1a; font-weight: 700;">₱${parseFloat(advance.amount).toLocaleString('en-US', {minimumFractionDigits: 2})}</div>
-                        </div>
-                        <div>
-                            <div style="font-size: 11px; color: #666; font-weight: 600; margin-bottom: 5px;">BALANCE</div>
-                            <div style="font-size: 20px; font-weight: 700; color: ${advance.balance > 0 ? '#dc3545' : '#28a745'};">₱${parseFloat(advance.balance).toLocaleString('en-US', {minimumFractionDigits: 2})}</div>
+                        <div class="info-item">
+                            <span class="info-label">Status</span>
+                            <span class="status-badge status-${advance.status}">
+                                ${advance.status.charAt(0).toUpperCase() + advance.status.slice(1)}
+                            </span>
                         </div>
                     </div>
-                    <div style="margin-top: 15px;">
-                        <div style="font-size: 11px; color: #666; font-weight: 600; margin-bottom: 5px;">REPAYMENT PROGRESS</div>
-                        <div style="display: flex; align-items: center; gap: 10px;">
-                            <div style="flex: 1; height: 10px; background: #e0e0e0; border-radius: 10px; overflow: hidden;">
-                                <div style="height: 100%; width: ${progress}%; background: linear-gradient(90deg, #27ae60, #2ecc71); transition: width 0.5s ease;"></div>
+                    <div class="info-row">
+                        <div class="info-item">
+                            <span class="info-label">Original Amount</span>
+                            <span class="info-value amount">₱${parseFloat(advance.amount).toLocaleString('en-US', {minimumFractionDigits: 2})}</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Remaining Balance</span>
+                            <span class="info-value balance">₱${parseFloat(advance.balance).toLocaleString('en-US', {minimumFractionDigits: 2})}</span>
+                        </div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-item">
+                            <span class="info-label">Total Paid</span>
+                            <span class="info-value" style="color: #28a745;">₱${parseFloat(advance.amount - advance.balance).toLocaleString('en-US', {minimumFractionDigits: 2})}</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Payment Progress</span>
+                            <span class="info-value">${progress}% Complete</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Progress Bar -->
+                    <div class="progress-section">
+                        <div class="info-label">Repayment Progress</div>
+                        <div class="progress-bar-container">
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: ${progress}%"></div>
                             </div>
-                            <span style="font-weight: 600; color: #666;">${progress}%</span>
+                            <span class="progress-text">${progress}%</span>
                         </div>
                     </div>
+                    
                     ${advance.reason ? `
-                    <div style="margin-top: 15px;">
-                        <div style="font-size: 11px; color: #666; font-weight: 600; margin-bottom: 5px;">REASON</div>
-                        <div style="font-size: 14px; color: #1a1a1a;">${advance.reason}</div>
+                    <div class="info-row" style="margin-top: 15px;">
+                        <div class="info-item" style="grid-column: 1 / -1;">
+                            <span class="info-label">Reason</span>
+                            <span class="info-value">${escapeHtml(advance.reason)}</span>
+                        </div>
                     </div>
                     ` : ''}
                 </div>
                 
+                <!-- Approval Details -->
                 ${advance.approved_by ? `
-                <div style="background: #f8f9fa; border-radius: 10px; padding: 20px; margin-bottom: 20px;">
-                    <h3 style="margin: 0 0 15px 0; font-size: 14px; display: flex; align-items: center; gap: 8px;">
-                        <i class="fas fa-check-circle"></i> APPROVAL DETAILS
-                    </h3>
-                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;">
-                        <div>
-                            <div style="font-size: 11px; color: #666; font-weight: 600; margin-bottom: 5px;">APPROVED BY</div>
-                            <div style="font-size: 14px; color: #1a1a1a; font-weight: 500;">${advance.approved_by_name || 'N/A'}</div>
+                <div class="info-section">
+                    <h3><i class="fas fa-check-circle"></i> Approval Details</h3>
+                    <div class="info-row">
+                        <div class="info-item">
+                            <span class="info-label">Approved By</span>
+                            <span class="info-value">${escapeHtml(advance.approved_by_name || 'N/A')}</span>
                         </div>
-                        <div>
-                            <div style="font-size: 11px; color: #666; font-weight: 600; margin-bottom: 5px;">APPROVAL DATE</div>
-                            <div style="font-size: 14px; color: #1a1a1a; font-weight: 500;">${advance.approval_date ? formatDate(advance.approval_date) : 'N/A'}</div>
+                        <div class="info-item">
+                            <span class="info-label">Approval Date</span>
+                            <span class="info-value">${advance.approval_date ? formatDate(advance.approval_date) : 'N/A'}</span>
                         </div>
                     </div>
                 </div>
                 ` : ''}
                 
-                <div style="background: #f8f9fa; border-radius: 10px; padding: 20px;">
-                    <h3 style="margin: 0 0 15px 0; font-size: 14px; display: flex; align-items: center; gap: 8px;">
-                        <i class="fas fa-history"></i> REPAYMENT HISTORY
-                    </h3>
-                    <div class="repayment-list" style="max-height: 300px; overflow-y: auto;">
+                <!-- Repayment History -->
+                <div class="info-section">
+                    <h3><i class="fas fa-history"></i> Repayment History (${advance.repayments ? advance.repayments.length : 0} Payment${advance.repayments && advance.repayments.length !== 1 ? 's' : ''})</h3>
+                    <div class="repayment-list">
                         ${repaymentsHtml}
                     </div>
                 </div>
             </div>
         </div>
     `;
-}
-
-//**Approve Cash Advance */
-function approveAdvance(advanceId) {
-    // First, get the advance amount and ask for installments
-    const installments = prompt('Enter number of installments (payroll periods) for repayment:\n\nExample: Enter 4 for 4 payroll periods', '2');
-    
-    if (installments === null) {
-        return; // User cancelled
-    }
-    
-    const installmentNum = parseInt(installments);
-    
-    if (isNaN(installmentNum) || installmentNum < 1) {
-        showAlert('Please enter a valid number of installments (minimum 1)', 'error');
-        return;
-    }
-    
-    if (!confirm(`Approve this cash advance?\n\nRepayment will be set to ${installmentNum} installment(s).\nA deduction will be automatically created.`)) {
-        return;
-    }
-    
-    const formData = new FormData();
-    formData.append('action', 'approve');
-    formData.append('id', advanceId);
-    formData.append('installments', installmentNum);
-    
-    fetch(`${baseUrl}/api/cashadvance.php`, {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showAlert(data.message + '\n\nDeduction of ₱' + data.data.installment_amount.toFixed(2) + ' per payroll has been created.', 'success');
-            setTimeout(() => window.location.reload(), 2000);
-        } else {
-            showAlert(data.message || 'Failed to approve', 'error');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showAlert('Failed to approve cash advance', 'error');
-    });
-}
-
-/**
- * Reject Cash Advance
- */
-function rejectAdvance(advanceId) {
-    const notes = prompt('Enter rejection reason:');
-    if (notes === null) return;
-    
-    const formData = new FormData();
-    formData.append('action', 'reject');
-    formData.append('id', advanceId);
-    formData.append('notes', notes);
-    
-    fetch(`${baseUrl}/api/cashadvance.php`, {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showAlert(data.message, 'success');
-            setTimeout(() => window.location.reload(), 1000);
-        } else {
-            showAlert(data.message || 'Failed to reject', 'error');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showAlert('Failed to reject cash advance', 'error');
-    });
-}
-
-/**
- * Close Modal
- */
-function closeModal(modalId) {
-    document.getElementById(modalId).style.display = 'none';
-}
-
-/**
- * Show Alert
- */
-function showAlert(message, type) {
-    const existingAlert = document.querySelector('.alert');
-    if (existingAlert) {
-        existingAlert.remove();
-    }
-    
-    const alertDiv = document.createElement('div');
-    alertDiv.className = `alert alert-${type}`;
-    alertDiv.style.animation = 'slideDown 0.3s ease-out';
-    alertDiv.innerHTML = `
-        <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i>
-        <span>${message}</span>
-        <button class="alert-close" onclick="this.parentElement.remove()">
-            <i class="fas fa-times"></i>
-        </button>
-    `;
-    
-    const content = document.querySelector('.cashadvance-content');
-    content.insertBefore(alertDiv, content.firstChild);
-    
-    setTimeout(() => {
-        if (alertDiv.parentElement) {
-            alertDiv.style.animation = 'slideUp 0.3s ease-in';
-            setTimeout(() => alertDiv.remove(), 300);
-        }
-    }, 5000);
-}
-
-/**
- * Close Alert
- */
-function closeAlert(id) {
-    const alert = document.getElementById(id);
-    if (alert) {
-        alert.style.animation = 'slideUp 0.3s ease-in';
-        setTimeout(() => alert.remove(), 300);
-    }
 }
 
 /**
@@ -294,43 +443,20 @@ function formatDate(dateString) {
 }
 
 /**
- * Update Worker Info on Select
+ * Escape HTML to prevent XSS
  */
-function updateWorkerInfo() {
-    const select = document.getElementById('worker_id');
-    if (!select) return;
-    
-    const option = select.options[select.selectedIndex];
-    
-    if (option.value) {
-        document.getElementById('display_code').value = option.dataset.code || '';
-        document.getElementById('display_position').value = option.dataset.position || '';
-        document.getElementById('display_rate').value = '₱' + (parseFloat(option.dataset.rate || 0).toLocaleString('en-US', {minimumFractionDigits: 2}));
-    } else {
-        document.getElementById('display_code').value = '';
-        document.getElementById('display_position').value = '';
-        document.getElementById('display_rate').value = '';
-    }
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
 }
 
 /**
- * Calculate Installment
+ * Close Modal
  */
-function calculateInstallment() {
-    const amount = parseFloat(document.getElementById('amount').value) || 0;
-    const installments = parseInt(document.getElementById('installments').value) || 1;
-    
-    if (amount > 0 && installments > 0) {
-        const installmentAmount = amount / installments;
-        document.getElementById('installment_amount').value = installmentAmount.toFixed(2);
-    }
+function closeModal(modalId) {
+    document.getElementById(modalId).style.display = 'none';
 }
-
-// Auto-dismiss flash messages
-setTimeout(() => {
-    const flashMessage = document.getElementById('flashMessage');
-    if (flashMessage) closeAlert('flashMessage');
-}, 5000);
 
 // Close modal when clicking outside
 window.onclick = function(event) {
@@ -339,3 +465,7 @@ window.onclick = function(event) {
         modal.style.display = 'none';
     }
 }
+
+// Make functions globally available
+window.viewCashAdvance = viewCashAdvance;
+window.closeModal = closeModal;
