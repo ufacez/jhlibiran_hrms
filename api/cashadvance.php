@@ -1,6 +1,6 @@
 <?php
 /**
- * Cash Advance API - COMPLETE FIXED VERSION
+ * Cash Advance API - FULLY FIXED VERSION
  * TrackSite Construction Management System
  */
 
@@ -17,18 +17,16 @@ header('Content-Type: application/json');
 
 // Check authentication
 if (!isLoggedIn()) {
+    http_response_code(401);
     echo json_encode(['success' => false, 'message' => 'Unauthorized access']);
     exit;
 }
 
-// Check for super admin (approve/reject requires admin)
-$action = isset($_REQUEST['action']) ? sanitizeString($_REQUEST['action']) : '';
-$requiresAdmin = in_array($action, ['approve', 'reject', 'record_payment']);
+// Get current user
+$user_id = getCurrentUserId();
 
-if ($requiresAdmin && !isSuperAdmin()) {
-    echo json_encode(['success' => false, 'message' => 'Admin privileges required']);
-    exit;
-}
+// Get action
+$action = isset($_REQUEST['action']) ? sanitizeString($_REQUEST['action']) : '';
 
 try {
     switch ($action) {
@@ -38,6 +36,7 @@ try {
             $id = isset($_GET['id']) ? intval($_GET['id']) : 0;
             
             if ($id <= 0) {
+                http_response_code(400);
                 echo json_encode(['success' => false, 'message' => 'Invalid ID']);
                 exit;
             }
@@ -53,6 +52,7 @@ try {
             $advance = $stmt->fetch();
             
             if (!$advance) {
+                http_response_code(404);
                 echo json_encode(['success' => false, 'message' => 'Cash advance not found']);
                 exit;
             }
@@ -68,15 +68,24 @@ try {
             break;
             
         case 'approve':
+            // Check admin access
+            if (!isSuperAdmin()) {
+                http_response_code(403);
+                echo json_encode(['success' => false, 'message' => 'Admin privileges required']);
+                exit;
+            }
+            
             $id = isset($_POST['id']) ? intval($_POST['id']) : 0;
-            $installments = isset($_POST['installments']) ? intval($_POST['installments']) : 0;
+            $installments = isset($_POST['installments']) ? intval($_POST['installments']) : 1;
             
             if ($id <= 0) {
+                http_response_code(400);
                 echo json_encode(['success' => false, 'message' => 'Invalid ID']);
                 exit;
             }
             
             if ($installments < 1) {
+                http_response_code(400);
                 echo json_encode(['success' => false, 'message' => 'Invalid number of installments']);
                 exit;
             }
@@ -90,11 +99,13 @@ try {
             $advance = $stmt->fetch();
             
             if (!$advance) {
+                http_response_code(404);
                 echo json_encode(['success' => false, 'message' => 'Cash advance not found']);
                 exit;
             }
             
             if ($advance['status'] !== 'pending') {
+                http_response_code(400);
                 echo json_encode(['success' => false, 'message' => 'Cash advance has already been processed']);
                 exit;
             }
@@ -102,56 +113,76 @@ try {
             $db->beginTransaction();
             
             try {
+                // Calculate installment amount
+                $installment_amount = $advance['amount'] / $installments;
+                
                 // Update cash advance status
                 $stmt = $db->prepare("UPDATE cash_advances SET 
                     status = 'approved',
                     approved_by = ?,
                     approval_date = NOW(),
                     installments = ?,
+                    installment_amount = ?,
                     updated_at = NOW()
                     WHERE advance_id = ?");
-                $stmt->execute([getCurrentUserId(), $installments, $id]);
-                
-                // Calculate installment amount
-                $installment_amount = $advance['amount'] / $installments;
+                $stmt->execute([$user_id, $installments, $installment_amount, $id]);
                 
                 // Create automatic deduction
+                $description = "Cash Advance Repayment - {$installments} installment(s) of ₱" . number_format($installment_amount, 2);
+                
                 $stmt = $db->prepare("INSERT INTO deductions 
                     (worker_id, deduction_type, amount, description, frequency, status, is_active, created_by, created_at)
                     VALUES (?, 'cashadvance', ?, ?, 'per_payroll', 'applied', 1, ?, NOW())");
                 $stmt->execute([
                     $advance['worker_id'],
                     $installment_amount,
-                    "Cash Advance Repayment - {$installments} installments of ₱" . number_format($installment_amount, 2),
-                    getCurrentUserId()
+                    $description,
+                    $user_id
                 ]);
+                
+                $deduction_id = $db->lastInsertId();
+                
+                // Link deduction to cash advance
+                $stmt = $db->prepare("UPDATE cash_advances SET deduction_id = ? WHERE advance_id = ?");
+                $stmt->execute([$deduction_id, $id]);
                 
                 $db->commit();
                 
                 // Log activity
-                logActivity($db, getCurrentUserId(), 'approve_cashadvance', 'cash_advances', $id,
-                    "Approved cash advance for {$advance['first_name']} {$advance['last_name']} - ₱" . number_format($advance['amount'], 2));
+                logActivity($db, $user_id, 'approve_cashadvance', 'cash_advances', $id,
+                    "Approved cash advance for {$advance['first_name']} {$advance['last_name']} - ₱" . number_format($advance['amount'], 2) . " with deduction created");
                 
                 echo json_encode([
                     'success' => true, 
-                    'message' => 'Cash advance approved successfully!',
+                    'message' => 'Cash advance approved successfully! Automatic deduction created.',
                     'data' => [
                         'installment_amount' => $installment_amount,
-                        'installments' => $installments
+                        'installments' => $installments,
+                        'deduction_id' => $deduction_id
                     ]
                 ]);
                 
             } catch (Exception $e) {
                 $db->rollBack();
-                throw $e;
+                error_log("Approve Error: " . $e->getMessage());
+                http_response_code(500);
+                echo json_encode(['success' => false, 'message' => 'Failed to approve cash advance']);
             }
             break;
             
         case 'reject':
+            // Check admin access
+            if (!isSuperAdmin()) {
+                http_response_code(403);
+                echo json_encode(['success' => false, 'message' => 'Admin privileges required']);
+                exit;
+            }
+            
             $id = isset($_POST['id']) ? intval($_POST['id']) : 0;
             $notes = isset($_POST['notes']) ? sanitizeString($_POST['notes']) : '';
             
             if ($id <= 0) {
+                http_response_code(400);
                 echo json_encode(['success' => false, 'message' => 'Invalid ID']);
                 exit;
             }
@@ -165,11 +196,13 @@ try {
             $advance = $stmt->fetch();
             
             if (!$advance) {
+                http_response_code(404);
                 echo json_encode(['success' => false, 'message' => 'Cash advance not found']);
                 exit;
             }
             
             if ($advance['status'] !== 'pending') {
+                http_response_code(400);
                 echo json_encode(['success' => false, 'message' => 'Cash advance has already been processed']);
                 exit;
             }
@@ -182,19 +215,26 @@ try {
                 notes = ?,
                 updated_at = NOW()
                 WHERE advance_id = ?");
-            $stmt->execute([getCurrentUserId(), $notes, $id]);
+            $stmt->execute([$user_id, $notes, $id]);
             
             // Log activity
-            logActivity($db, getCurrentUserId(), 'reject_cashadvance', 'cash_advances', $id,
+            logActivity($db, $user_id, 'reject_cashadvance', 'cash_advances', $id,
                 "Rejected cash advance for {$advance['first_name']} {$advance['last_name']}");
             
             echo json_encode([
                 'success' => true, 
-                'message' => 'Cash advance rejected'
+                'message' => 'Cash advance rejected successfully'
             ]);
             break;
             
         case 'record_payment':
+            // Check admin access
+            if (!isSuperAdmin()) {
+                http_response_code(403);
+                echo json_encode(['success' => false, 'message' => 'Admin privileges required']);
+                exit;
+            }
+            
             $advance_id = isset($_POST['advance_id']) ? intval($_POST['advance_id']) : 0;
             $amount = isset($_POST['amount']) ? floatval($_POST['amount']) : 0;
             $payment_method = isset($_POST['payment_method']) ? sanitizeString($_POST['payment_method']) : 'cash';
@@ -202,6 +242,7 @@ try {
             $notes = isset($_POST['notes']) ? sanitizeString($_POST['notes']) : '';
             
             if ($advance_id <= 0 || $amount <= 0) {
+                http_response_code(400);
                 echo json_encode(['success' => false, 'message' => 'Invalid payment data']);
                 exit;
             }
@@ -212,11 +253,13 @@ try {
             $advance = $stmt->fetch();
             
             if (!$advance) {
+                http_response_code(404);
                 echo json_encode(['success' => false, 'message' => 'Cash advance not found']);
                 exit;
             }
             
             if ($amount > $advance['balance']) {
+                http_response_code(400);
                 echo json_encode(['success' => false, 'message' => 'Payment amount exceeds remaining balance']);
                 exit;
             }
@@ -234,7 +277,7 @@ try {
                     $amount,
                     $payment_method,
                     $notes,
-                    getCurrentUserId()
+                    $user_id
                 ]);
                 
                 // Update cash advance balance
@@ -260,7 +303,7 @@ try {
                 $db->commit();
                 
                 // Log activity
-                logActivity($db, getCurrentUserId(), 'record_cashadvance_payment', 'cash_advance_repayments', 
+                logActivity($db, $user_id, 'record_cashadvance_payment', 'cash_advance_repayments', 
                     $db->lastInsertId(), "Recorded payment of ₱" . number_format($amount, 2));
                 
                 echo json_encode([
@@ -274,11 +317,14 @@ try {
                 
             } catch (Exception $e) {
                 $db->rollBack();
-                throw $e;
+                error_log("Payment Error: " . $e->getMessage());
+                http_response_code(500);
+                echo json_encode(['success' => false, 'message' => 'Failed to record payment']);
             }
             break;
             
         default:
+            http_response_code(400);
             echo json_encode(['success' => false, 'message' => 'Invalid action']);
             break;
     }
@@ -288,6 +334,13 @@ try {
         $db->rollBack();
     }
     error_log("Cash Advance API Error: " . $e->getMessage());
+    http_response_code(500);
     echo json_encode(['success' => false, 'message' => 'Database error occurred']);
+} catch (Exception $e) {
+    if (isset($db) && $db->inTransaction()) {
+        $db->rollBack();
+    }
+    error_log("Cash Advance API Error: " . $e->getMessage());
+    http_response_code(500);
+    echo json_encode(['success' => false, 'message' => 'An error occurred']);
 }
-?>

@@ -1,9 +1,9 @@
 /**
- * Cash Advance JavaScript - COMPLETE FIXED VERSION
+ * Cash Advance JavaScript - FULLY FIXED VERSION
  * TrackSite Construction Management System
  */
 
-// Get base URL - FIXED
+// Get base URL
 function getBaseUrl() {
     const path = window.location.pathname;
     const modulesIndex = path.indexOf('/modules/');
@@ -43,6 +43,9 @@ function viewCashAdvance(advanceId) {
     fetch(`${baseUrl}/api/cashadvance.php?action=get&id=${advanceId}`)
         .then(response => {
             console.log('Response status:', response.status);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
             return response.json();
         })
         .then(data => {
@@ -64,6 +67,7 @@ function viewCashAdvance(advanceId) {
                 <div style="text-align: center; padding: 40px;">
                     <i class="fas fa-exclamation-circle" style="font-size: 48px; color: #dc3545; margin-bottom: 15px;"></i>
                     <p style="color: #666;">Failed to load details. Please try again.</p>
+                    <small style="color: #999;">${error.message}</small>
                 </div>
             `;
         });
@@ -155,7 +159,7 @@ function displayCashAdvanceDetails(advance) {
 }
 
 /**
- * Approve Cash Advance - WORKING VERSION
+ * Approve Cash Advance - FIXED VERSION
  */
 function approveAdvance(advanceId) {
     console.log('approveAdvance called with ID:', advanceId);
@@ -181,6 +185,13 @@ function approveAdvance(advanceId) {
     
     console.log('Sending approve request...');
     
+    // Show loading
+    const originalButtons = document.querySelectorAll(`button[onclick*="approveAdvance(${advanceId})"]`);
+    originalButtons.forEach(btn => {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    });
+    
     const formData = new FormData();
     formData.append('action', 'approve');
     formData.append('id', advanceId);
@@ -192,25 +203,42 @@ function approveAdvance(advanceId) {
     })
     .then(response => {
         console.log('Approve response status:', response.status);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
         return response.json();
     })
     .then(data => {
         console.log('Approve data:', data);
         if (data.success) {
-            showAlert('Cash advance approved successfully!\n\nDeduction of ₱' + data.data.installment_amount.toFixed(2) + ' per payroll has been created.', 'success');
+            const installmentAmount = data.data.installment_amount;
+            showAlert(
+                `Cash advance approved successfully!\n\nAutomatic deduction of ₱${installmentAmount.toFixed(2)} per payroll has been created.`, 
+                'success'
+            );
             setTimeout(() => window.location.reload(), 2000);
         } else {
             showAlert(data.message || 'Failed to approve', 'error');
+            // Re-enable buttons
+            originalButtons.forEach(btn => {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-check"></i>';
+            });
         }
     })
     .catch(error => {
         console.error('Approve error:', error);
-        showAlert('Failed to approve cash advance. Please try again.', 'error');
+        showAlert('Failed to approve cash advance. Please try again.\n\n' + error.message, 'error');
+        // Re-enable buttons
+        originalButtons.forEach(btn => {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-check"></i>';
+        });
     });
 }
 
 /**
- * Reject Cash Advance - WORKING VERSION
+ * Reject Cash Advance - FIXED VERSION
  */
 function rejectAdvance(advanceId) {
     console.log('rejectAdvance called with ID:', advanceId);
@@ -233,6 +261,13 @@ function rejectAdvance(advanceId) {
     
     console.log('Sending reject request...');
     
+    // Show loading
+    const originalButtons = document.querySelectorAll(`button[onclick*="rejectAdvance(${advanceId})"]`);
+    originalButtons.forEach(btn => {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    });
+    
     const formData = new FormData();
     formData.append('action', 'reject');
     formData.append('id', advanceId);
@@ -244,6 +279,9 @@ function rejectAdvance(advanceId) {
     })
     .then(response => {
         console.log('Reject response status:', response.status);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
         return response.json();
     })
     .then(data => {
@@ -253,11 +291,21 @@ function rejectAdvance(advanceId) {
             setTimeout(() => window.location.reload(), 1500);
         } else {
             showAlert(data.message || 'Failed to reject', 'error');
+            // Re-enable buttons
+            originalButtons.forEach(btn => {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-times"></i>';
+            });
         }
     })
     .catch(error => {
         console.error('Reject error:', error);
-        showAlert('Failed to reject cash advance. Please try again.', 'error');
+        showAlert('Failed to reject cash advance. Please try again.\n\n' + error.message, 'error');
+        // Re-enable buttons
+        originalButtons.forEach(btn => {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-times"></i>';
+        });
     });
 }
 
@@ -275,6 +323,7 @@ function closeModal(modalId) {
  * Show Alert
  */
 function showAlert(message, type) {
+    // Remove any existing alerts
     const existingAlert = document.querySelector('.alert');
     if (existingAlert) {
         existingAlert.remove();
@@ -285,7 +334,7 @@ function showAlert(message, type) {
     alertDiv.style.animation = 'slideDown 0.3s ease-out';
     alertDiv.innerHTML = `
         <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i>
-        <span>${message}</span>
+        <span>${message.replace(/\n/g, '<br>')}</span>
         <button class="alert-close" onclick="this.parentElement.remove()">
             <i class="fas fa-times"></i>
         </button>
@@ -296,6 +345,7 @@ function showAlert(message, type) {
         content.insertBefore(alertDiv, content.firstChild);
     }
     
+    // Auto remove after 5 seconds
     setTimeout(() => {
         if (alertDiv.parentElement) {
             alertDiv.style.animation = 'slideUp 0.3s ease-in';

@@ -1,6 +1,6 @@
 <?php
 /**
- * Cash Advance Management - Index Page
+ * Cash Advance Management - FULLY FIXED Index Page
  * TrackSite Construction Management System
  */
 
@@ -320,14 +320,12 @@ try {
                                                 </button>
                                                 
                                                 <?php if ($adv['status'] === 'pending'): ?>
-                                                    <!-- Approve Button -->
                                                     <button class="action-btn btn-success" 
                                                             onclick="approveAdvance(<?php echo $adv['advance_id']; ?>)"
                                                             title="Approve">
                                                         <i class="fas fa-check"></i>
                                                     </button>
                                                     
-                                                    <!-- Reject Button -->
                                                     <button class="action-btn btn-delete" 
                                                             onclick="rejectAdvance(<?php echo $adv['advance_id']; ?>)"
                                                             title="Reject">
@@ -336,7 +334,6 @@ try {
                                                 <?php endif; ?>
                                                 
                                                 <?php if ($adv['status'] === 'approved' || $adv['status'] === 'repaying'): ?>
-                                                    <!-- Record Payment Button -->
                                                     <button class="action-btn btn-edit" 
                                                             onclick="window.location.href='repayment.php?id=<?php echo $adv['advance_id']; ?>'"
                                                             title="Record Payment">
@@ -345,122 +342,6 @@ try {
                                                 <?php endif; ?>
                                             </div>
                                         </td>
-
-                                        <!-- REQUIRED STYLES FOR BUTTONS -->
-                                        <style>
-                                        .action-buttons {
-                                            display: flex;
-                                            gap: 8px;
-                                            justify-content: flex-start;
-                                            flex-wrap: wrap;
-                                        }
-
-                                        .action-btn {
-                                            padding: 8px 12px;
-                                            border: none;
-                                            border-radius: 6px;
-                                            cursor: pointer;
-                                            transition: all 0.3s ease;
-                                            font-size: 14px;
-                                            display: inline-flex;
-                                            align-items: center;
-                                            justify-content: center;
-                                            min-width: 36px;
-                                            height: 36px;
-                                        }
-
-                                        .action-btn:hover {
-                                            transform: translateY(-2px);
-                                            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-                                        }
-
-                                        .action-btn:active {
-                                            transform: translateY(0);
-                                        }
-
-                                        .btn-view {
-                                            background: #17a2b8;
-                                            color: #fff;
-                                        }
-
-                                        .btn-view:hover {
-                                            background: #138496;
-                                        }
-
-                                        .btn-edit {
-                                            background: #ffc107;
-                                            color: #1a1a1a;
-                                        }
-
-                                        .btn-edit:hover {
-                                            background: #e0a800;
-                                        }
-
-                                        .btn-success {
-                                            background: #28a745;
-                                            color: #fff;
-                                        }
-
-                                        .btn-success:hover {
-                                            background: #218838;
-                                        }
-
-                                        .btn-delete {
-                                            background: #dc3545;
-                                            color: #fff;
-                                        }
-
-                                        .btn-delete:hover {
-                                            background: #c82333;
-                                        }
-
-                                        .btn-timeout {
-                                            background: #28a745;
-                                            color: #fff;
-                                        }
-
-                                        .btn-timeout:hover {
-                                            background: #218838;
-                                        }
-
-                                        /* Make sure buttons don't break on small screens */
-                                        @media (max-width: 768px) {
-                                            .action-buttons {
-                                                gap: 5px;
-                                            }
-                                            
-                                            .action-btn {
-                                                padding: 6px 10px;
-                                                font-size: 12px;
-                                                min-width: 32px;
-                                                height: 32px;
-                                            }
-                                        }
-                                        </style>
-
-                                        <!-- REQUIRED SCRIPTS AT END OF BODY -->
-                                        <script src="<?php echo JS_URL; ?>/dashboard.js"></script>
-                                        <script src="<?php echo JS_URL; ?>/cashadvance.js"></script>
-
-                                        <!-- TEST BUTTONS (Add this temporarily to test if functions are working) -->
-                                        <script>
-                                        // Test if functions are loaded
-                                        console.log('Testing Cash Advance Functions:');
-                                        console.log('viewCashAdvance:', typeof window.viewCashAdvance);
-                                        console.log('approveAdvance:', typeof window.approveAdvance);
-                                        console.log('rejectAdvance:', typeof window.rejectAdvance);
-
-                                        // If any are undefined, there's a loading issue
-                                        if (typeof window.viewCashAdvance === 'undefined') {
-                                            console.error('ERROR: viewCashAdvance not loaded!');
-                                        }
-                                        if (typeof window.approveAdvance === 'undefined') {
-                                            console.error('ERROR: approveAdvance not loaded!');
-                                        }
-                                        if (typeof window.rejectAdvance === 'undefined') {
-                                            console.error('ERROR: rejectAdvance not loaded!');
-                                        }
-                                        </script>
                                     </tr>
                                     <?php endforeach; ?>
                                 <?php endif; ?>
@@ -493,5 +374,284 @@ try {
     
     <script src="<?php echo JS_URL; ?>/dashboard.js"></script>
     <script src="<?php echo JS_URL; ?>/cashadvance.js"></script>
+    
+    <style>
+        /* Action Buttons */
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+            justify-content: flex-start;
+            flex-wrap: wrap;
+        }
+
+        .action-btn {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 36px;
+            height: 36px;
+        }
+
+        .action-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .action-btn:not(:disabled):hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .action-btn:not(:disabled):active {
+            transform: translateY(0);
+        }
+
+        .btn-view {
+            background: #17a2b8;
+            color: #fff;
+        }
+
+        .btn-view:hover {
+            background: #138496;
+        }
+
+        .btn-edit {
+            background: #ffc107;
+            color: #1a1a1a;
+        }
+
+        .btn-edit:hover {
+            background: #e0a800;
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: #fff;
+        }
+
+        .btn-success:hover {
+            background: #218838;
+        }
+
+        .btn-delete {
+            background: #dc3545;
+            color: #fff;
+        }
+
+        .btn-delete:hover {
+            background: #c82333;
+        }
+
+        /* Progress Bar */
+        .progress-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .progress-bar {
+            flex: 1;
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #28a745, #20c997);
+            transition: width 0.3s ease;
+        }
+
+        .progress-text {
+            font-size: 12px;
+            font-weight: 600;
+            color: #666;
+            min-width: 40px;
+        }
+
+        /* Status Badges */
+        .status-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status-approved {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .status-repaying {
+            background: #cce5ff;
+            color: #004085;
+        }
+
+        .status-completed {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-rejected {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 9999;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: #fff;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 900px;
+            max-height: 90vh;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            animation: modalSlideIn 0.3s ease-out;
+        }
+
+        @keyframes modalSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 30px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+            font-size: 20px;
+            color: #1a1a1a;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            color: #999;
+            cursor: pointer;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: all 0.2s ease;
+        }
+
+        .modal-close:hover {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        .modal-body {
+            padding: 30px;
+            overflow-y: auto;
+            max-height: calc(90vh - 80px);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .action-buttons {
+                gap: 5px;
+            }
+            
+            .action-btn {
+                padding: 6px 10px;
+                font-size: 12px;
+                min-width: 32px;
+                height: 32px;
+            }
+
+            .modal-content {
+                width: 95%;
+                max-height: 95vh;
+            }
+
+            .modal-body {
+                padding: 20px;
+            }
+        }
+
+        /* Animations */
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 1;
+                transform: translateY(0);
+            }
+            to {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+        }
+    </style>
+    
+    <script>
+        // Test if JavaScript functions are loaded
+        console.log('Testing Cash Advance Functions:');
+        console.log('viewCashAdvance:', typeof window.viewCashAdvance);
+        console.log('approveAdvance:', typeof window.approveAdvance);
+        console.log('rejectAdvance:', typeof window.rejectAdvance);
+
+        // Alert if functions are not loaded
+        if (typeof window.viewCashAdvance === 'undefined' || 
+            typeof window.approveAdvance === 'undefined' || 
+            typeof window.rejectAdvance === 'undefined') {
+            console.error('ERROR: Cash Advance functions not loaded! Check cashadvance.js');
+        }
+    </script>
 </body>
 </html>
