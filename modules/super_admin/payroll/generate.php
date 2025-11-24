@@ -1,6 +1,6 @@
 <?php
 /**
- * Generate Payroll - Payroll Module
+ * Generate Payroll - FIXED VERSION
  * TrackSite Construction Management System
  */
 
@@ -42,26 +42,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['generate_payroll'])) 
         
         $generated_count = 0;
         $updated_count = 0;
-        $errors = [];
         
         // Get all active workers
-        $stmt = $db->prepare("SELECT * FROM workers WHERE employment_status = 'active' AND is_archived = FALSE");
+        $stmt = $db->prepare("SELECT * FROM workers WHERE employment_status = 'active'");
         $stmt->execute();
         $workers = $stmt->fetchAll();
         
         foreach ($workers as $worker) {
-            // Calculate attendance
+            // Calculate attendance - FIXED QUERY
             $stmt = $db->prepare("SELECT 
                 COUNT(DISTINCT CASE 
                     WHEN status IN ('present', 'late', 'overtime') 
                     THEN attendance_date 
                 END) as days_worked,
-                SUM(hours_worked) as total_hours,
-                SUM(overtime_hours) as overtime_hours
+                COALESCE(SUM(hours_worked), 0) as total_hours,
+                COALESCE(SUM(overtime_hours), 0) as overtime_hours
                 FROM attendance 
                 WHERE worker_id = ? 
-                AND attendance_date BETWEEN ? AND ?
-                AND is_archived = FALSE");
+                AND attendance_date BETWEEN ? AND ?");
             $stmt->execute([$worker['worker_id'], $period_start, $period_end]);
             $attendance = $stmt->fetch();
             
@@ -72,13 +70,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['generate_payroll'])) 
             // Calculate gross pay
             $gross_pay = $worker['daily_rate'] * $days_worked;
             
-            // Calculate deductions
-            $stmt = $db->prepare("SELECT SUM(amount) as total_deductions 
+            // Calculate deductions - FIXED: Use frequency-based logic
+            $stmt = $db->prepare("SELECT COALESCE(SUM(amount), 0) as total_deductions 
                 FROM deductions 
                 WHERE worker_id = ? 
-                AND deduction_date BETWEEN ? AND ?
-                AND status = 'applied'");
-            $stmt->execute([$worker['worker_id'], $period_start, $period_end]);
+                AND is_active = 1
+                AND status = 'applied'
+                AND (
+                    frequency = 'per_payroll'
+                    OR (frequency = 'one_time' AND applied_count = 0)
+                )");
+            $stmt->execute([$worker['worker_id']]);
             $deduction_result = $stmt->fetch();
             $total_deductions = $deduction_result['total_deductions'] ?? 0;
             
@@ -87,7 +89,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['generate_payroll'])) 
             
             // Check if payroll already exists
             $stmt = $db->prepare("SELECT payroll_id FROM payroll 
-                WHERE worker_id = ? AND pay_period_start = ? AND pay_period_end = ? AND is_archived = FALSE");
+                WHERE worker_id = ? AND pay_period_start = ? AND pay_period_end = ?");
             $stmt->execute([$worker['worker_id'], $period_start, $period_end]);
             $existing = $stmt->fetch();
             
@@ -132,6 +134,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['generate_payroll'])) 
                 ]);
                 $generated_count++;
             }
+            
+            // Update one-time deductions applied count
+            $stmt = $db->prepare("UPDATE deductions 
+                SET applied_count = applied_count + 1,
+                    is_active = CASE WHEN frequency = 'one_time' THEN 0 ELSE is_active END
+                WHERE worker_id = ? 
+                AND is_active = 1 
+                AND status = 'applied'
+                AND frequency = 'one_time'");
+            $stmt->execute([$worker['worker_id']]);
         }
         
         $db->commit();
@@ -150,71 +162,90 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['generate_payroll'])) 
     } catch (PDOException $e) {
         $db->rollBack();
         error_log("Generate Payroll Error: " . $e->getMessage());
-        setFlashMessage('Failed to generate payroll. Please try again.', 'error');
+        setFlashMessage('Failed to generate payroll: ' . $e->getMessage(), 'error');
     }
 }
 
-// Get preview data
+// Get preview data - SIMPLIFIED QUERY
 $preview_data = [];
-try {
-    $stmt = $db->prepare("SELECT 
-        w.worker_id,
-        w.worker_code,
-        w.first_name,
-        w.last_name,
-        w.position,
-        w.daily_rate,
-        COALESCE(COUNT(DISTINCT CASE 
-            WHEN a.status IN ('present', 'late', 'overtime') 
-            THEN a.attendance_date 
-        END), 0) as days_worked,
-        COALESCE(SUM(a.hours_worked), 0) as total_hours,
-        COALESCE(SUM(a.overtime_hours), 0) as overtime_hours,
-        (w.daily_rate * COALESCE(COUNT(DISTINCT CASE 
-            WHEN a.status IN ('present', 'late', 'overtime') 
-            THEN a.attendance_date 
-        END), 0)) as gross_pay,
-        COALESCE((SELECT SUM(amount) 
-            FROM deductions 
-            WHERE worker_id = w.worker_id 
-            AND deduction_date BETWEEN ? AND ?
-            AND status = 'applied'), 0) as total_deductions
-        FROM workers w
-        LEFT JOIN attendance a ON w.worker_id = a.worker_id 
-            AND a.attendance_date BETWEEN ? AND ?
-            AND a.is_archived = FALSE
-        WHERE w.employment_status = 'active' 
-        AND w.is_archived = FALSE
-        GROUP BY w.worker_id
-        ORDER BY w.first_name, w.last_name");
-    
-    $stmt->execute([$period_start, $period_end, $period_start, $period_end]);
-    $preview_data = $stmt->fetchAll();
-} catch (PDOException $e) {
-    error_log("Preview Query Error: " . $e->getMessage());
-}
-
-$total_workers = count($preview_data);
+$total_workers = 0;
 $total_gross = 0;
 $total_deductions = 0;
 $total_net = 0;
 
-foreach ($preview_data as $row) {
-    $net_pay = $row['gross_pay'] - $row['total_deductions'];
-    $total_gross += $row['gross_pay'];
-    $total_deductions += $row['total_deductions'];
-    $total_net += $net_pay;
+try {
+    // Get all active workers
+    $stmt = $db->prepare("SELECT * FROM workers WHERE employment_status = 'active' ORDER BY first_name, last_name");
+    $stmt->execute();
+    $workers = $stmt->fetchAll();
+    
+    foreach ($workers as $worker) {
+        // Get attendance data
+        $stmt = $db->prepare("SELECT 
+            COUNT(DISTINCT CASE 
+                WHEN status IN ('present', 'late', 'overtime') 
+                THEN attendance_date 
+            END) as days_worked,
+            COALESCE(SUM(hours_worked), 0) as total_hours,
+            COALESCE(SUM(overtime_hours), 0) as overtime_hours
+            FROM attendance 
+            WHERE worker_id = ? 
+            AND attendance_date BETWEEN ? AND ?");
+        $stmt->execute([$worker['worker_id'], $period_start, $period_end]);
+        $attendance = $stmt->fetch();
+        
+        // Get deductions
+        $stmt = $db->prepare("SELECT COALESCE(SUM(amount), 0) as total_deductions 
+            FROM deductions 
+            WHERE worker_id = ? 
+            AND is_active = 1
+            AND status = 'applied'
+            AND (
+                frequency = 'per_payroll'
+                OR (frequency = 'one_time' AND applied_count = 0)
+            )");
+        $stmt->execute([$worker['worker_id']]);
+        $deductions = $stmt->fetch();
+        
+        $days_worked = $attendance['days_worked'] ?? 0;
+        $gross_pay = $worker['daily_rate'] * $days_worked;
+        $deduction_amount = $deductions['total_deductions'] ?? 0;
+        $net_pay = $gross_pay - $deduction_amount;
+        
+        $preview_data[] = [
+            'worker_id' => $worker['worker_id'],
+            'worker_code' => $worker['worker_code'],
+            'first_name' => $worker['first_name'],
+            'last_name' => $worker['last_name'],
+            'position' => $worker['position'],
+            'daily_rate' => $worker['daily_rate'],
+            'days_worked' => $days_worked,
+            'total_hours' => $attendance['total_hours'] ?? 0,
+            'overtime_hours' => $attendance['overtime_hours'] ?? 0,
+            'gross_pay' => $gross_pay,
+            'total_deductions' => $deduction_amount
+        ];
+        
+        $total_gross += $gross_pay;
+        $total_deductions += $deduction_amount;
+        $total_net += $net_pay;
+    }
+    
+    $total_workers = count($preview_data);
+    
+} catch (PDOException $e) {
+    error_log("Preview Query Error: " . $e->getMessage());
+    setFlashMessage('Error loading preview: ' . $e->getMessage(), 'error');
 }
 ?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Generate Payroll - <?php echo SYSTEM_NAME; ?></title>
-    <link rel="stylesheet" href="https://pro.fontawesome.com/releases/v5.10.0/css/all.css" 
-          integrity="sha384-AYmEC3Yw5cVb3ZcuHtOA93w35dYTsvhLPVnYs9eStHfGJvOvKxVfELGroGkvsg+p" 
-          crossorigin="anonymous" />
+    <link rel="stylesheet" href="https://pro.fontawesome.com/releases/v5.10.0/css/all.css"/>
     <link rel="stylesheet" href="<?php echo CSS_URL; ?>/dashboard.css">
     <link rel="stylesheet" href="<?php echo CSS_URL; ?>/payroll.css">
 </head>
@@ -399,7 +430,6 @@ foreach ($preview_data as $row) {
     
     <script src="<?php echo JS_URL; ?>/dashboard.js"></script>
     <script>
-        // Auto-dismiss flash message
         setTimeout(() => {
             const flashMessage = document.getElementById('flashMessage');
             if (flashMessage) {
