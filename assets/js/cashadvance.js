@@ -1,5 +1,5 @@
 /**
- * Cash Advance JavaScript - FULLY FIXED VERSION
+ * Cash Advance JavaScript - FIXED VERSION
  * TrackSite Construction Management System
  */
 
@@ -56,7 +56,7 @@ function viewCashAdvance(advanceId) {
                 modalBody.innerHTML = `
                     <div style="text-align: center; padding: 40px;">
                         <i class="fas fa-exclamation-circle" style="font-size: 48px; color: #dc3545; margin-bottom: 15px;"></i>
-                        <p style="color: #666;">${data.message || 'Failed to load details'}</p>
+                        <p style="color: #666;">${escapeHtml(data.message || 'Failed to load details')}</p>
                     </div>
                 `;
             }
@@ -67,7 +67,7 @@ function viewCashAdvance(advanceId) {
                 <div style="text-align: center; padding: 40px;">
                     <i class="fas fa-exclamation-circle" style="font-size: 48px; color: #dc3545; margin-bottom: 15px;"></i>
                     <p style="color: #666;">Failed to load details. Please try again.</p>
-                    <small style="color: #999;">${error.message}</small>
+                    <small style="color: #999;">${escapeHtml(error.message)}</small>
                 </div>
             `;
         });
@@ -185,11 +185,11 @@ function approveAdvance(advanceId) {
     
     console.log('Sending approve request...');
     
-    // Show loading
-    const originalButtons = document.querySelectorAll(`button[onclick*="approveAdvance(${advanceId})"]`);
-    originalButtons.forEach(btn => {
+    // Disable all approve buttons for this advance
+    const approveButtons = document.querySelectorAll(`button[onclick*="approveAdvance(${advanceId})"]`);
+    approveButtons.forEach(btn => {
         btn.disabled = true;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Approving...';
     });
     
     const formData = new FormData();
@@ -203,15 +203,19 @@ function approveAdvance(advanceId) {
     })
     .then(response => {
         console.log('Approve response status:', response.status);
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        return response.json();
+        return response.text().then(text => {
+            console.log('Raw response:', text);
+            try {
+                return JSON.parse(text);
+            } catch (e) {
+                throw new Error('Invalid JSON response: ' + text);
+            }
+        });
     })
     .then(data => {
         console.log('Approve data:', data);
         if (data.success) {
-            const installmentAmount = data.data.installment_amount;
+            const installmentAmount = data.data?.installment_amount || 0;
             showAlert(
                 `Cash advance approved successfully!\n\nAutomatic deduction of ₱${installmentAmount.toFixed(2)} per payroll has been created.`, 
                 'success'
@@ -220,7 +224,7 @@ function approveAdvance(advanceId) {
         } else {
             showAlert(data.message || 'Failed to approve', 'error');
             // Re-enable buttons
-            originalButtons.forEach(btn => {
+            approveButtons.forEach(btn => {
                 btn.disabled = false;
                 btn.innerHTML = '<i class="fas fa-check"></i>';
             });
@@ -230,7 +234,7 @@ function approveAdvance(advanceId) {
         console.error('Approve error:', error);
         showAlert('Failed to approve cash advance. Please try again.\n\n' + error.message, 'error');
         // Re-enable buttons
-        originalButtons.forEach(btn => {
+        approveButtons.forEach(btn => {
             btn.disabled = false;
             btn.innerHTML = '<i class="fas fa-check"></i>';
         });
@@ -261,17 +265,17 @@ function rejectAdvance(advanceId) {
     
     console.log('Sending reject request...');
     
-    // Show loading
-    const originalButtons = document.querySelectorAll(`button[onclick*="rejectAdvance(${advanceId})"]`);
-    originalButtons.forEach(btn => {
+    // Disable all reject buttons for this advance
+    const rejectButtons = document.querySelectorAll(`button[onclick*="rejectAdvance(${advanceId})"]`);
+    rejectButtons.forEach(btn => {
         btn.disabled = true;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Rejecting...';
     });
     
     const formData = new FormData();
     formData.append('action', 'reject');
     formData.append('id', advanceId);
-    formData.append('notes', notes);
+    formData.append('notes', notes.trim());
     
     fetch(`${baseUrl}/api/cashadvance.php`, {
         method: 'POST',
@@ -279,10 +283,14 @@ function rejectAdvance(advanceId) {
     })
     .then(response => {
         console.log('Reject response status:', response.status);
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        return response.json();
+        return response.text().then(text => {
+            console.log('Raw response:', text);
+            try {
+                return JSON.parse(text);
+            } catch (e) {
+                throw new Error('Invalid JSON response: ' + text);
+            }
+        });
     })
     .then(data => {
         console.log('Reject data:', data);
@@ -292,7 +300,7 @@ function rejectAdvance(advanceId) {
         } else {
             showAlert(data.message || 'Failed to reject', 'error');
             // Re-enable buttons
-            originalButtons.forEach(btn => {
+            rejectButtons.forEach(btn => {
                 btn.disabled = false;
                 btn.innerHTML = '<i class="fas fa-times"></i>';
             });
@@ -302,7 +310,7 @@ function rejectAdvance(advanceId) {
         console.error('Reject error:', error);
         showAlert('Failed to reject cash advance. Please try again.\n\n' + error.message, 'error');
         // Re-enable buttons
-        originalButtons.forEach(btn => {
+        rejectButtons.forEach(btn => {
             btn.disabled = false;
             btn.innerHTML = '<i class="fas fa-times"></i>';
         });
@@ -331,27 +339,42 @@ function showAlert(message, type) {
     
     const alertDiv = document.createElement('div');
     alertDiv.className = `alert alert-${type}`;
-    alertDiv.style.animation = 'slideDown 0.3s ease-out';
+    alertDiv.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: ${type === 'success' ? '#d4edda' : '#f8d7da'};
+        color: ${type === 'success' ? '#155724' : '#721c24'};
+        border: 1px solid ${type === 'success' ? '#c3e6cb' : '#f5c6cb'};
+        padding: 15px 20px;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        z-index: 10000;
+        max-width: 400px;
+        animation: slideInRight 0.3s ease-out;
+    `;
     alertDiv.innerHTML = `
-        <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i>
-        <span>${message.replace(/\n/g, '<br>')}</span>
-        <button class="alert-close" onclick="this.parentElement.remove()">
-            <i class="fas fa-times"></i>
-        </button>
+        <div style="display: flex; align-items: start; gap: 10px;">
+            <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}" style="font-size: 20px;"></i>
+            <div style="flex: 1;">
+                <span style="white-space: pre-line;">${escapeHtml(message)}</span>
+            </div>
+            <button onclick="this.parentElement.parentElement.remove()" 
+                    style="background: none; border: none; cursor: pointer; padding: 0; color: inherit; font-size: 18px;">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
     `;
     
-    const content = document.querySelector('.cashadvance-content');
-    if (content) {
-        content.insertBefore(alertDiv, content.firstChild);
-    }
+    document.body.appendChild(alertDiv);
     
-    // Auto remove after 5 seconds
+    // Auto remove after 8 seconds
     setTimeout(() => {
         if (alertDiv.parentElement) {
-            alertDiv.style.animation = 'slideUp 0.3s ease-in';
+            alertDiv.style.animation = 'slideOutRight 0.3s ease-in';
             setTimeout(() => alertDiv.remove(), 300);
         }
-    }, 5000);
+    }, 8000);
 }
 
 /**
@@ -405,6 +428,44 @@ function updateWorkerInfo() {
         document.getElementById('display_rate').value = '';
     }
 }
+
+// Add animation styles
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes slideInRight {
+        from {
+            transform: translateX(400px);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+    
+    @keyframes slideOutRight {
+        from {
+            transform: translateX(0);
+            opacity: 1;
+        }
+        to {
+            transform: translateX(400px);
+            opacity: 0;
+        }
+    }
+    
+    @keyframes slideUp {
+        from {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        to {
+            opacity: 0;
+            transform: translateY(-20px);
+        }
+    }
+`;
+document.head.appendChild(style);
 
 // Auto-dismiss flash messages
 setTimeout(() => {
