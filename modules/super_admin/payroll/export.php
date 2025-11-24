@@ -1,6 +1,6 @@
 <?php
 /**
- * Export Payroll - Payroll Module
+ * Export Payroll - FIXED VERSION
  * TrackSite Construction Management System
  * 
  * Exports payroll data to CSV/Excel format
@@ -16,17 +16,6 @@ require_once __DIR__ . '/../../../includes/auth.php';
 
 requireSuperAdmin();
 
-// Add is_archived column to payroll table if it doesn't exist
-try {
-    $db->exec("ALTER TABLE payroll ADD COLUMN IF NOT EXISTS is_archived TINYINT(1) DEFAULT 0");
-    $db->exec("ALTER TABLE payroll ADD COLUMN IF NOT EXISTS archived_at TIMESTAMP NULL DEFAULT NULL");
-    $db->exec("ALTER TABLE payroll ADD COLUMN IF NOT EXISTS archived_by INT(11) DEFAULT NULL");
-    $db->exec("ALTER TABLE payroll ADD COLUMN IF NOT EXISTS archive_reason TEXT DEFAULT NULL");
-    $db->exec("ALTER TABLE payroll ADD CONSTRAINT fk_payroll_archived_by FOREIGN KEY (archived_by) REFERENCES users(user_id) ON DELETE SET NULL");
-} catch (PDOException $e) {
-    // Column might already exist, ignore error
-}
-
 // Get parameters
 $period_start = isset($_GET['start']) ? sanitizeString($_GET['start']) : '';
 $period_end = isset($_GET['end']) ? sanitizeString($_GET['end']) : '';
@@ -37,9 +26,10 @@ if (empty($period_start) || empty($period_end)) {
     redirect(BASE_URL . '/modules/super_admin/payroll/index.php');
 }
 
-// Fetch payroll data
+// Fetch payroll data - FIXED QUERY
 try {
     $sql = "SELECT 
+        w.worker_id,
         w.worker_code,
         w.first_name,
         w.last_name,
@@ -65,11 +55,17 @@ try {
             AND a.is_archived = FALSE 
             THEN a.attendance_date 
         END), 0)) as gross_pay,
-        COALESCE((SELECT SUM(amount) 
-            FROM deductions 
-            WHERE worker_id = w.worker_id 
-            AND deduction_date BETWEEN ? AND ?
-            AND status = 'applied'), 0) as total_deductions,
+        COALESCE((
+            SELECT SUM(d.amount) 
+            FROM deductions d
+            WHERE d.worker_id = w.worker_id 
+            AND d.is_active = 1
+            AND d.status = 'applied'
+            AND (
+                d.frequency = 'per_payroll' 
+                OR (d.frequency = 'one_time' AND d.applied_count = 0)
+            )
+        ), 0) as total_deductions,
         COALESCE(p.payment_status, 'unpaid') as payment_status,
         COALESCE(p.payment_date, '') as payment_date,
         COALESCE(p.notes, '') as notes
@@ -79,23 +75,23 @@ try {
     LEFT JOIN payroll p ON w.worker_id = p.worker_id 
         AND p.pay_period_start = ? 
         AND p.pay_period_end = ?
-        AND p.is_archived = FALSE
+        AND (p.is_archived = FALSE OR p.is_archived IS NULL)
     WHERE w.employment_status = 'active' 
     AND w.is_archived = FALSE
-    GROUP BY w.worker_id
+    GROUP BY w.worker_id, w.worker_code, w.first_name, w.last_name, 
+             w.position, w.daily_rate, p.payment_status, p.payment_date, p.notes
     ORDER BY w.first_name, w.last_name";
     
     $stmt = $db->prepare($sql);
     $stmt->execute([
-        $period_start, $period_end,  // deductions
-        $period_start, $period_end,  // attendance
-        $period_start, $period_end   // payroll
+        $period_start, $period_end,  // attendance join
+        $period_start, $period_end   // payroll join
     ]);
     $payroll_data = $stmt->fetchAll();
     
 } catch (PDOException $e) {
     error_log("Export Query Error: " . $e->getMessage());
-    setFlashMessage('Failed to export payroll data', 'error');
+    setFlashMessage('Failed to export payroll data: ' . $e->getMessage(), 'error');
     redirect(BASE_URL . '/modules/super_admin/payroll/index.php');
 }
 
