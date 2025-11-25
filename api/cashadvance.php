@@ -260,25 +260,27 @@ try {
             
             if ($amount > $advance['balance']) {
                 http_response_code(400);
-                echo json_encode(['success' => false, 'message' => 'Payment amount exceeds remaining balance']);
+                echo json_encode(['success' => false, 'message' => 'Payment amount exceeds remaining balance of ₱' . number_format($advance['balance'], 2)]);
                 exit;
             }
             
             $db->beginTransaction();
             
             try {
-                // Record repayment
+                // Record repayment - FIXED: Use correct column names
                 $stmt = $db->prepare("INSERT INTO cash_advance_repayments 
-                    (advance_id, repayment_date, amount, payment_method, notes, created_by)
-                    VALUES (?, ?, ?, ?, ?, ?)");
+                    (advance_id, repayment_date, amount, payment_method, notes, processed_by, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, NOW())");
                 $stmt->execute([
                     $advance_id,
                     $repayment_date,
                     $amount,
                     $payment_method,
                     $notes,
-                    $user_id
+                    $user_id  // Use processed_by instead of created_by
                 ]);
+                
+                $repayment_id = $db->lastInsertId();
                 
                 // Update cash advance balance
                 $new_balance = $advance['balance'] - $amount;
@@ -304,7 +306,7 @@ try {
                 
                 // Log activity
                 logActivity($db, $user_id, 'record_cashadvance_payment', 'cash_advance_repayments', 
-                    $db->lastInsertId(), "Recorded payment of ₱" . number_format($amount, 2));
+                    $repayment_id, "Recorded payment of ₱" . number_format($amount, 2));
                 
                 echo json_encode([
                     'success' => true, 
@@ -319,7 +321,7 @@ try {
                 $db->rollBack();
                 error_log("Payment Error: " . $e->getMessage());
                 http_response_code(500);
-                echo json_encode(['success' => false, 'message' => 'Failed to record payment']);
+                echo json_encode(['success' => false, 'message' => 'Failed to record payment: ' . $e->getMessage()]);
             }
             break;
             

@@ -78,14 +78,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['record_payment'])) {
         $errors[] = 'Payment amount cannot exceed remaining balance of ₱' . number_format($advance['balance'], 2);
     }
     
+    if (empty($payment_method)) {
+        $errors[] = 'Please select a payment method';
+    }
+    
     if (empty($errors)) {
         try {
             $db->beginTransaction();
             
             // Record repayment
             $stmt = $db->prepare("INSERT INTO cash_advance_repayments 
-                (advance_id, repayment_date, amount, payment_method, notes, created_by)
-                VALUES (?, ?, ?, ?, ?, ?)");
+                (advance_id, repayment_date, amount, payment_method, notes, processed_by, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, NOW())");
             $stmt->execute([
                 $advance_id,
                 $repayment_date,
@@ -100,12 +104,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['record_payment'])) {
             $new_repayment_amount = $advance['repayment_amount'] + $amount;
             $new_status = $new_balance <= 0 ? 'completed' : 'repaying';
             
-            $stmt = $db->prepare("UPDATE cash_advances 
-                SET balance = ?,
-                    repayment_amount = ?,
-                    status = ?,
-                    completed_at = CASE WHEN ? = 'completed' THEN NOW() ELSE completed_at END,
-                    updated_at = NOW()
+            $stmt = $db->prepare("UPDATE cash_advances SET 
+                balance = ?,
+                repayment_amount = ?,
+                status = ?,
+                completed_at = CASE WHEN ? = 'completed' THEN NOW() ELSE completed_at END,
+                updated_at = NOW()
                 WHERE advance_id = ?");
             $stmt->execute([
                 $new_balance,
@@ -118,8 +122,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['record_payment'])) {
             $db->commit();
             
             // Log activity
-            logActivity($db, getCurrentUserId(), 'record_cashadvance_payment', 'cash_advance_repayments', $db->lastInsertId(),
-                "Recorded payment of ₱" . number_format($amount, 2) . " for {$advance['first_name']} {$advance['last_name']}");
+            logActivity($db, getCurrentUserId(), 'record_cashadvance_payment', 'cash_advance_repayments', 
+                $db->lastInsertId(), "Recorded payment of ₱" . number_format($amount, 2) . " for {$advance['first_name']} {$advance['last_name']}");
             
             setFlashMessage('Payment recorded successfully!', 'success');
             redirect(BASE_URL . '/modules/super_admin/cashadvance/index.php');
@@ -307,30 +311,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['record_payment'])) {
                             </div>
                             
                             <div class="form-card">
-                                <div class="form-section-title">
-                                    <i class="fas fa-money-bill-wave"></i> Payment Details
-                                </div>
-                                
+                                <h3><i class="fas fa-money-bill-wave"></i> Payment Details</h3>
                                 <div class="form-row">
                                     <div class="form-group">
                                         <label for="repayment_date">Payment Date <span class="required">*</span></label>
                                         <input type="date" 
-                                               name="repayment_date" 
-                                               id="repayment_date" 
-                                               value="<?php echo date('Y-m-d'); ?>"
-                                               required>
+                                            name="repayment_date" 
+                                            id="repayment_date" 
+                                            value="<?php echo date('Y-m-d'); ?>"
+                                            max="<?php echo date('Y-m-d'); ?>"
+                                            required>
                                     </div>
                                     
                                     <div class="form-group">
                                         <label for="amount">Amount <span class="required">*</span></label>
                                         <input type="number" 
-                                               name="amount" 
-                                               id="amount" 
-                                               step="0.01" 
-                                               min="0.01" 
-                                               max="<?php echo $advance['balance']; ?>"
-                                               placeholder="0.00"
-                                               required>
+                                            name="amount" 
+                                            id="amount" 
+                                            step="0.01" 
+                                            min="0.01" 
+                                            max="<?php echo $advance['balance']; ?>"
+                                            placeholder="0.00"
+                                            required>
                                         <small>Max: ₱<?php echo number_format($advance['balance'], 2); ?></small>
                                     </div>
                                     
@@ -348,13 +350,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['record_payment'])) {
                                     <div class="form-group full-width">
                                         <label for="notes">Notes</label>
                                         <textarea name="notes" 
-                                                  id="notes" 
-                                                  rows="3" 
-                                                  placeholder="Add any notes about this payment..."></textarea>
+                                                id="notes" 
+                                                rows="3" 
+                                                placeholder="Add any notes about this payment..."></textarea>
                                     </div>
                                 </div>
                             </div>
-                            
+
                             <div class="form-actions">
                                 <button type="button" class="btn btn-secondary btn-lg" onclick="window.history.back()">
                                     <i class="fas fa-times"></i> Cancel
@@ -363,9 +365,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['record_payment'])) {
                                     <i class="fas fa-check"></i> Record Payment
                                 </button>
                             </div>
-                            
-                        </form>
-                    </div>
                     
                     <!-- Sidebar Summary -->
                     <div>
@@ -425,8 +424,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['record_payment'])) {
         </div>
     </div>
     
-    <script src="<?php echo JS_URL; ?>/dashboard.js"></script>
-    <script>
+<script src="<?php echo JS_URL; ?>/dashboard.js"></script>
+
+<script>
         function closeAlert(id) {
             const alert = document.getElementById(id);
             if (alert) {
@@ -439,6 +439,51 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['record_payment'])) {
             const errorMessage = document.getElementById('errorMessage');
             if (errorMessage) closeAlert('errorMessage');
         }, 5000);
-    </script>
+
+    // Add this to repayment.php for better UX
+    document.addEventListener('DOMContentLoaded', function() {
+        const amountInput = document.getElementById('amount');
+        const maxBalance = <?php echo $advance['balance']; ?>;
+        
+        if (amountInput) {
+            amountInput.addEventListener('input', function() {
+                const value = parseFloat(this.value) || 0;
+                
+                if (value > maxBalance) {
+                    this.setCustomValidity('Amount exceeds remaining balance of ₱' + maxBalance.toFixed(2));
+                } else if (value <= 0) {
+                    this.setCustomValidity('Amount must be greater than zero');
+                } else {
+                    this.setCustomValidity('');
+                }
+            });
+            
+            // Quick fill buttons
+            const balanceCard = document.querySelector('.summary-card');
+            if (balanceCard) {
+                const quickFillDiv = document.createElement('div');
+                quickFillDiv.style.cssText = 'margin-top: 15px; padding-top: 15px; border-top: 2px solid #f0f0f0;';
+                quickFillDiv.innerHTML = `
+                    <label style="font-size: 12px; color: #666; font-weight: 600; margin-bottom: 8px; display: block;">QUICK FILL:</label>
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;">
+                        <button type="button" class="btn btn-sm btn-secondary" onclick="fillAmount(${maxBalance / 2})">
+                            Half (₱${(maxBalance / 2).toFixed(2)})
+                        </button>
+                        <button type="button" class="btn btn-sm btn-primary" onclick="fillAmount(${maxBalance})">
+                            Full (₱${maxBalance.toFixed(2)})
+                        </button>
+                    </div>
+                `;
+                balanceCard.appendChild(quickFillDiv);
+            }
+        }
+    });
+
+    function fillAmount(amount) {
+        document.getElementById('amount').value = amount.toFixed(2);
+        document.getElementById('amount').dispatchEvent(new Event('input'));
+    }
+</script>
+
 </body>
 </html>
