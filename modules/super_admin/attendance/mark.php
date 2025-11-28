@@ -1,6 +1,6 @@
 <?php
 /**
- * Mark Attendance Page
+ * Mark Attendance Page - Updated
  * TrackSite Construction Management System
  */
 
@@ -63,7 +63,7 @@ try {
     $stmt = $db->query("SELECT w.*, 
                         (SELECT COUNT(*) FROM attendance a WHERE a.worker_id = w.worker_id AND a.attendance_date = '$today') as has_attendance
                         FROM workers w 
-                        WHERE w.employment_status = 'active'
+                        WHERE w.employment_status = 'active' AND w.is_archived = FALSE
                         ORDER BY w.first_name, w.last_name");
     $workers = $stmt->fetchAll();
 } catch (PDOException $e) {
@@ -103,20 +103,10 @@ try {
                     </button>
                 </div>
                 
-                <!-- Facial Recognition Placeholder -->
-                <div class="facial-recognition-card">
-                    <i class="fas fa-camera"></i>
-                    <h3>Facial Recognition System</h3>
-                    <p>Facial recognition will be integrated with Raspberry Pi for automated attendance marking</p>
-                    <button class="btn btn-primary" disabled>
-                        <i class="fas fa-video"></i> Launch Facial Recognition (Coming Soon)
-                    </button>
-                </div>
-                
                 <!-- Manual Attendance Marking -->
                 <div class="form-card">
                     <h3 class="form-section-title">
-                        <i class="fas fa-clipboard-check"></i> Manual Attendance Entry
+                        <i class="fas fa-clipboard-check"></i> Attendance Entry
                     </h3>
                     
                     <?php if (empty($workers)): ?>
