@@ -1,12 +1,13 @@
 /**
- * System Settings JavaScript
+ * System Settings JavaScript - SUPER ADMIN VERSION
  * TrackSite Construction Management System
+ * No General Settings - System, Profile, Security, Backup
  */
 
-// API URL - use local api.php in same folder
+// API URL
 const apiUrl = 'api.php';
 
-console.log('Settings JS Loaded - API URL:', apiUrl);
+console.log('Settings JS Loaded - Super Admin Version');
 
 // Initialize settings page
 document.addEventListener('DOMContentLoaded', function() {
@@ -53,57 +54,6 @@ function initializeTabs() {
 }
 
 /**
- * Save general settings
- */
-function saveGeneralSettings(event) {
-    event.preventDefault();
-    
-    const form = event.target;
-    const formData = new FormData(form);
-    formData.append('action', 'save_general');
-    
-    // Client-side validation
-    const companyName = formData.get('company_name');
-    const systemEmail = formData.get('system_email');
-    
-    if (!companyName || companyName.trim() === '') {
-        showAlert('Company name is required', 'error');
-        return;
-    }
-    
-    if (!systemEmail || !validateEmail(systemEmail)) {
-        showAlert('Please enter a valid email address', 'error');
-        return;
-    }
-    
-    showLoading('Saving settings...');
-    
-    fetch(apiUrl, {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        return response.json();
-    })
-    .then(data => {
-        hideLoading();
-        if (data.success) {
-            showAlert(data.message, 'success');
-        } else {
-            showAlert(data.message || 'Failed to save settings', 'error');
-        }
-    })
-    .catch(error => {
-        hideLoading();
-        console.error('Error:', error);
-        showAlert('An error occurred while saving settings: ' + error.message, 'error');
-    });
-}
-
-/**
  * Save system configuration
  */
 function saveSystemConfig(event) {
@@ -112,6 +62,19 @@ function saveSystemConfig(event) {
     const form = event.target;
     const formData = new FormData(form);
     formData.append('action', 'save_system');
+    
+    // Validate
+    const workHours = parseInt(formData.get('work_hours_per_day'));
+    if (workHours < 1 || workHours > 24) {
+        showAlert('Work hours must be between 1 and 24', 'error');
+        return;
+    }
+    
+    const overtimeRate = parseFloat(formData.get('overtime_rate'));
+    if (overtimeRate < 1 || overtimeRate > 3) {
+        showAlert('Overtime rate must be between 1.0 and 3.0', 'error');
+        return;
+    }
     
     showLoading('Saving configuration...');
     
@@ -145,6 +108,21 @@ function updateProfile(event) {
     const formData = new FormData(form);
     formData.append('action', 'update_profile');
     
+    // Validate
+    const firstName = formData.get('first_name').trim();
+    const lastName = formData.get('last_name').trim();
+    const email = formData.get('email').trim();
+    
+    if (!firstName || !lastName) {
+        showAlert('First and last name are required', 'error');
+        return;
+    }
+    
+    if (!email || !validateEmail(email)) {
+        showAlert('Please enter a valid email address', 'error');
+        return;
+    }
+    
     showLoading('Updating profile...');
     
     fetch(apiUrl, {
@@ -156,6 +134,16 @@ function updateProfile(event) {
         hideLoading();
         if (data.success) {
             showAlert(data.message, 'success');
+            
+            // Update displayed name if provided
+            if (data.data && data.data.full_name) {
+                const userNameElements = document.querySelectorAll('.user-name');
+                userNameElements.forEach(el => {
+                    el.textContent = data.data.full_name;
+                });
+            }
+            
+            // Reload after short delay
             setTimeout(() => window.location.reload(), 1500);
         } else {
             showAlert(data.message || 'Failed to update profile', 'error');
@@ -214,12 +202,7 @@ function changePassword(event) {
         method: 'POST',
         body: formData
     })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        return response.json();
-    })
+    .then(response => response.json())
     .then(data => {
         hideLoading();
         if (data.success) {
@@ -232,7 +215,7 @@ function changePassword(event) {
     .catch(error => {
         hideLoading();
         console.error('Error:', error);
-        showAlert('An error occurred while changing password: ' + error.message, 'error');
+        showAlert('An error occurred while changing password', 'error');
     });
 }
 
@@ -342,45 +325,6 @@ function clearCache() {
 }
 
 /**
- * Test email settings
- */
-function testEmail() {
-    const email = prompt('Enter email address to send test message:');
-    
-    if (!email) return;
-    
-    if (!validateEmail(email)) {
-        showAlert('Please enter a valid email address', 'error');
-        return;
-    }
-    
-    showLoading('Sending test email...');
-    
-    const formData = new FormData();
-    formData.append('action', 'test_email');
-    formData.append('email', email);
-    
-    fetch(apiUrl, {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => response.json())
-    .then(data => {
-        hideLoading();
-        if (data.success) {
-            showAlert('Test email sent successfully!', 'success');
-        } else {
-            showAlert(data.message || 'Failed to send test email', 'error');
-        }
-    })
-    .catch(error => {
-        hideLoading();
-        console.error('Error:', error);
-        showAlert('An error occurred while sending test email', 'error');
-    });
-}
-
-/**
  * Show loading overlay
  */
 function showLoading(message = 'Loading...') {
@@ -397,6 +341,8 @@ function showLoading(message = 'Loading...') {
             </div>
         `;
         document.body.appendChild(overlay);
+    } else {
+        overlay.querySelector('p').textContent = message;
     }
 }
 
@@ -416,7 +362,7 @@ function hideLoading() {
 function showAlert(message, type = 'info') {
     // Remove existing alerts
     const existingAlert = document.querySelector('.alert');
-    if (existingAlert) {
+    if (existingAlert && existingAlert.id !== 'flashMessage') {
         existingAlert.remove();
     }
     
@@ -462,12 +408,14 @@ function autoDismissAlerts() {
     
     alerts.forEach(alert => {
         setTimeout(() => {
-            alert.style.opacity = '0';
-            alert.style.transform = 'translateY(-20px)';
-            
-            setTimeout(() => {
-                alert.remove();
-            }, 300);
+            if (alert.parentElement) {
+                alert.style.opacity = '0';
+                alert.style.transform = 'translateY(-20px)';
+                
+                setTimeout(() => {
+                    alert.remove();
+                }, 300);
+            }
         }, 5000);
     });
 }
@@ -478,24 +426,6 @@ function autoDismissAlerts() {
 function validateEmail(email) {
     const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return re.test(email);
-}
-
-/**
- * Preview image
- */
-function previewImage(input) {
-    if (input.files && input.files[0]) {
-        const reader = new FileReader();
-        
-        reader.onload = function(e) {
-            const preview = document.getElementById('logoPreview');
-            if (preview) {
-                preview.src = e.target.result;
-            }
-        };
-        
-        reader.readAsDataURL(input.files[0]);
-    }
 }
 
 // Add CSS animations
@@ -522,11 +452,42 @@ style.textContent = `
             transform: translateY(-20px);
         }
     }
+    
+    .loading-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.7);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+    }
+    
+    .loading-content {
+        background: #fff;
+        padding: 30px 40px;
+        border-radius: 10px;
+        text-align: center;
+    }
+    
+    .loading-content i {
+        font-size: 32px;
+        color: #DAA520;
+        margin-bottom: 15px;
+    }
+    
+    .loading-content p {
+        margin: 0;
+        font-size: 16px;
+        color: #333;
+    }
 `;
 document.head.appendChild(style);
 
 // Make functions globally available
-window.saveGeneralSettings = saveGeneralSettings;
 window.saveSystemConfig = saveSystemConfig;
 window.updateProfile = updateProfile;
 window.changePassword = changePassword;
@@ -534,6 +495,6 @@ window.createBackup = createBackup;
 window.downloadBackup = downloadBackup;
 window.deleteBackup = deleteBackup;
 window.clearCache = clearCache;
-window.testEmail = testEmail;
 window.closeAlert = closeAlert;
-window.previewImage = previewImage;
+
+console.log('Settings JS initialized - Super Admin Version (No General Settings)');
