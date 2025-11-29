@@ -171,8 +171,8 @@ try {
                 
                 <div class="page-header">
                     <div class="header-left">
-                        <h1><i class="fas fa-minus-circle"></i> Deductions Management</h1>
-                        <p class="subtitle">Manage worker deductions (applies to all payrolls)</p>
+                        <h1></i> Deductions Management</h1>
+                        <p class="subtitle">Manage worker deductions</p>
                     </div>
                     <div class="header-actions">
                         <button class="btn btn-primary" onclick="window.location.href='add.php'">

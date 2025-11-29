@@ -193,7 +193,7 @@ try {
                 
                 <div class="page-header">
                     <div class="header-left">
-                        <h1><i class="fas fa-money-check-edit-alt"></i> Payroll Management</h1>
+                        <h1></i> Payroll Management</h1>
                         <p class="subtitle">Manage worker payroll for <?php echo date('M d', strtotime($period_start)); ?> - <?php echo date('M d, Y', strtotime($period_end)); ?></p>
                     </div>
                     <div class="header-actions">
@@ -222,16 +222,6 @@ try {
                     </div>
                 </div>
                 
-                <!-- Info Banner -->
-                <div class="info-banner">
-                    <div class="info-banner-content">
-                        <i class="fas fa-info-circle"></i>
-                        <div>
-                            <strong>How Deductions Work:</strong>
-                            <p>Deductions are automatically calculated when generating payroll. <strong>Recurring deductions</strong> apply to every payroll period. <strong>One-time deductions</strong> apply once and then become inactive. You can manage all deductions in the <a href="../deductions/index.php">Deductions module</a>.</p>
-                        </div>
-                    </div>
-                </div>
                 
                 <!-- Statistics Cards -->
                 <div class="payroll-stats">

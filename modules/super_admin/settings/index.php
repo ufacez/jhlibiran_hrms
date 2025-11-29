@@ -98,7 +98,7 @@ $total_logs = $stmt->fetchColumn();
                 
                 <div class="page-header">
                     <div class="header-left">
-                        <h1><i class="fas fa-cog"></i> Settings</h1>
+                        <h1></i> Settings</h1>
                         <p class="subtitle">Manage your account and preferences</p>
                     </div>
                 </div>

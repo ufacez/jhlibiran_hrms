@@ -133,7 +133,7 @@ try {
                 
                 <div class="page-header">
                     <div class="header-left">
-                        <h1><i class="fas fa-dollar-sign"></i> Cash Advance Management</h1>
+                        <h1> Cash Advance Management</h1>
                         <p class="subtitle">Manage worker cash advances and repayments</p>
                     </div>
                     <div class="header-actions">
