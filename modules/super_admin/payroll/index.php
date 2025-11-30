@@ -254,6 +254,9 @@ try {
                         <button class="btn btn-secondary" onclick="window.location.href='generate.php?start=<?php echo $period_start; ?>&end=<?php echo $period_end; ?>'">
                             <i class="fas fa-calculator"></i> Generate Payroll
                         </button>
+                        <button class="btn btn-secondary" onclick="window.location.href='worker_report.php'">
+                             <i class="fas fa-user-chart"></i> Individual Report
+                        </button>
                         <div class="btn-group">
                             <button class="btn btn-primary" onclick="toggleExportMenu(event)">
                                 <i class="fas fa-download"></i> Export <i class="fas fa-caret-down"></i>
