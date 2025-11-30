@@ -105,6 +105,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         try {
             $db->beginTransaction();
             
+            $email_value = !empty($email) ? $email : null;
+
             // Update user account
             if (!empty($password)) {
                 // Update with new password

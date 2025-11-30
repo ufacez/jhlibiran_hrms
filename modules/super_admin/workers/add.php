@@ -1,6 +1,6 @@
 <?php
 /**
- * Add Worker Page
+ * Add Worker Page - FIXED VERSION
  * TrackSite Construction Management System
  */
 
@@ -57,19 +57,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
     // Check if username exists
     if (!empty($username)) {
-        $stmt = $db->prepare("SELECT user_id FROM users WHERE username = ?");
-        $stmt->execute([$username]);
-        if ($stmt->fetch()) {
-            $errors[] = 'Username already exists';
+        try {
+            $stmt = $db->prepare("SELECT user_id FROM users WHERE username = ?");
+            $stmt->execute([$username]);
+            if ($stmt->fetch()) {
+                $errors[] = 'Username already exists';
+            }
+        } catch (PDOException $e) {
+            error_log("Username check error: " . $e->getMessage());
+            $errors[] = 'Database error occurred';
         }
     }
     
-    // Check if email exists
+    // Check if email exists (only if email is provided)
     if (!empty($email)) {
-        $stmt = $db->prepare("SELECT user_id FROM users WHERE email = ?");
-        $stmt->execute([$email]);
-        if ($stmt->fetch()) {
-            $errors[] = 'Email already exists';
+        try {
+            $stmt = $db->prepare("SELECT user_id FROM users WHERE email = ?");
+            $stmt->execute([$email]);
+            if ($stmt->fetch()) {
+                $errors[] = 'Email already exists';
+            }
+        } catch (PDOException $e) {
+            error_log("Email check error: " . $e->getMessage());
+            $errors[] = 'Database error occurred';
         }
     }
     
@@ -84,9 +94,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
             // Create user account
             $hashed_password = password_hash($password, PASSWORD_HASH_ALGO);
+            
+            // Use NULL for empty email to avoid duplicate empty string constraint violation
+            $email_value = !empty($email) ? $email : null;
+            
             $stmt = $db->prepare("INSERT INTO users (username, password, email, user_level, status) 
                                   VALUES (?, ?, ?, 'worker', 'active')");
-            $stmt->execute([$username, $hashed_password, $email]);
+            $stmt->execute([$username, $hashed_password, $email_value]);
             $user_id = $db->lastInsertId();
             
             // Create worker profile
@@ -99,7 +113,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
             $stmt->execute([
                 $user_id, $worker_code, $first_name, $last_name, $position, $phone, $address,
-                $date_of_birth, $gender, $emergency_contact_name, $emergency_contact_phone,
+                $date_of_birth ?: null, $gender, $emergency_contact_name, $emergency_contact_phone,
                 $date_hired, $daily_rate, $experience_years,
                 $sss_number, $philhealth_number, $pagibig_number, $tin_number
             ]);
@@ -118,7 +132,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } catch (PDOException $e) {
             $db->rollBack();
             error_log("Add Worker Error: " . $e->getMessage());
-            $errors[] = 'Failed to add worker. Please try again.';
+            error_log("SQL Error Details: " . print_r($e->errorInfo, true));
+            $errors[] = 'Failed to add worker. Please try again. Error: ' . $e->getMessage();
+        } catch (Exception $e) {
+            if ($db->inTransaction()) {
+                $db->rollBack();
+            }
+            error_log("Add Worker Exception: " . $e->getMessage());
+            $errors[] = 'An unexpected error occurred. Please try again.';
         }
     }
 }

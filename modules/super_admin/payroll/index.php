@@ -1,6 +1,6 @@
 <?php
 /**
- * Payroll Management - FIXED with Proper Deductions Connection
+ * Payroll Management - FIXED NO DUPLICATES
  * TrackSite Construction Management System
  */
 
@@ -35,70 +35,68 @@ if ($day_of_month <= 15) {
     $period_end = $current_date->format('Y-m-t');
 }
 
-// Build query for payroll with PROPER deductions connection
-$sql = "SELECT 
+// Build query - FIXED: Use subquery to ensure one payroll record per worker
+$sql = "SELECT DISTINCT
     w.worker_id,
     w.worker_code,
     w.first_name,
     w.last_name,
     w.position,
     w.daily_rate,
-    COALESCE(COUNT(DISTINCT CASE 
-        WHEN a.attendance_date BETWEEN ? AND ? 
-        AND a.status IN ('present', 'late', 'overtime') 
-        AND a.is_archived = FALSE 
-        THEN a.attendance_date 
-    END), 0) as days_worked,
-    COALESCE(SUM(CASE 
-        WHEN a.attendance_date BETWEEN ? AND ? 
-        AND a.is_archived = FALSE 
-        THEN a.hours_worked 
-        ELSE 0 
-    END), 0) as total_hours,
-    (w.daily_rate * COALESCE(COUNT(DISTINCT CASE 
-        WHEN a.attendance_date BETWEEN ? AND ? 
-        AND a.status IN ('present', 'late', 'overtime') 
-        AND a.is_archived = FALSE 
-        THEN a.attendance_date 
-    END), 0)) as overtime_hours,
-    COALESCE((
-        SELECT SUM(d.amount) 
-        FROM deductions d
-        WHERE d.worker_id = w.worker_id 
-        AND d.is_active = 1
-        AND d.status = 'applied'
-        AND (
-            d.frequency = 'per_payroll' 
-            OR (d.frequency = 'one_time' AND d.applied_count = 0)
-        )
-    ), 0) as total_deductions,
-    COALESCE((
-        SELECT COUNT(*) 
-        FROM deductions d
-        WHERE d.worker_id = w.worker_id 
-        AND d.is_active = 1
-        AND d.status = 'applied'
-        AND (
-            d.frequency = 'per_payroll' 
-            OR (d.frequency = 'one_time' AND d.applied_count = 0)
-        )
-    ), 0) as deduction_count,
-    COALESCE(p.payment_status, 'unpaid') as payment_status,
-    p.payroll_id
+    (SELECT p2.days_worked FROM payroll p2 
+     WHERE p2.worker_id = w.worker_id 
+     AND p2.pay_period_start = ? 
+     AND p2.pay_period_end = ?
+     AND p2.is_archived = FALSE 
+     LIMIT 1) as days_worked,
+    (SELECT p2.total_hours FROM payroll p2 
+     WHERE p2.worker_id = w.worker_id 
+     AND p2.pay_period_start = ? 
+     AND p2.pay_period_end = ?
+     AND p2.is_archived = FALSE 
+     LIMIT 1) as total_hours,
+    (SELECT p2.overtime_hours FROM payroll p2 
+     WHERE p2.worker_id = w.worker_id 
+     AND p2.pay_period_start = ? 
+     AND p2.pay_period_end = ?
+     AND p2.is_archived = FALSE 
+     LIMIT 1) as overtime_hours,
+    (SELECT p2.gross_pay FROM payroll p2 
+     WHERE p2.worker_id = w.worker_id 
+     AND p2.pay_period_start = ? 
+     AND p2.pay_period_end = ?
+     AND p2.is_archived = FALSE 
+     LIMIT 1) as gross_pay,
+    (SELECT p2.total_deductions FROM payroll p2 
+     WHERE p2.worker_id = w.worker_id 
+     AND p2.pay_period_start = ? 
+     AND p2.pay_period_end = ?
+     AND p2.is_archived = FALSE 
+     LIMIT 1) as total_deductions,
+    (SELECT p2.payment_status FROM payroll p2 
+     WHERE p2.worker_id = w.worker_id 
+     AND p2.pay_period_start = ? 
+     AND p2.pay_period_end = ?
+     AND p2.is_archived = FALSE 
+     LIMIT 1) as payment_status,
+    (SELECT p2.payroll_id FROM payroll p2 
+     WHERE p2.worker_id = w.worker_id 
+     AND p2.pay_period_start = ? 
+     AND p2.pay_period_end = ?
+     AND p2.is_archived = FALSE 
+     LIMIT 1) as payroll_id
 FROM workers w
-LEFT JOIN attendance a ON w.worker_id = a.worker_id
-LEFT JOIN payroll p ON w.worker_id = p.worker_id 
-    AND p.pay_period_start = ? 
-    AND p.pay_period_end = ?
-    AND (p.is_archived = FALSE OR p.is_archived IS NULL)
 WHERE w.employment_status = 'active' 
 AND w.is_archived = FALSE";
 
 $params = [
     $period_start, $period_end,  // days_worked
     $period_start, $period_end,  // total_hours
+    $period_start, $period_end,  // overtime_hours
     $period_start, $period_end,  // gross_pay
-    $period_start, $period_end   // payroll join
+    $period_start, $period_end,  // total_deductions
+    $period_start, $period_end,  // payment_status
+    $period_start, $period_end   // payroll_id
 ];
 
 if (!empty($position_filter)) {
@@ -114,15 +112,13 @@ if (!empty($search_query)) {
     $params[] = $search_param;
 }
 
-$sql .= " GROUP BY w.worker_id, w.worker_code, w.first_name, w.last_name, w.position, w.daily_rate, p.payment_status, p.payroll_id";
-
 if (!empty($status_filter)) {
     if ($status_filter === 'paid') {
-        $sql .= " HAVING payment_status = 'paid'";
+        $sql .= " AND p.payment_status = 'paid'";
     } elseif ($status_filter === 'unpaid') {
-        $sql .= " HAVING payment_status = 'unpaid' OR payment_status IS NULL";
+        $sql .= " AND (p.payment_status IS NULL OR p.payment_status = 'unpaid')";
     } elseif ($status_filter === 'pending') {
-        $sql .= " HAVING payment_status = 'pending'";
+        $sql .= " AND p.payment_status = 'pending'";
     }
 }
 
@@ -132,14 +128,73 @@ try {
     $stmt = $db->prepare($sql);
     $stmt->execute($params);
     $payroll_records = $stmt->fetchAll();
-
+    
+    // For records without payroll, calculate from attendance
     foreach ($payroll_records as &$record) {
-        $schedule = getWorkerScheduleHours($db, $record['worker_id']);
-        $hourly_rate = $record['daily_rate'] / $schedule['hours_per_day'];
-        $record['gross_pay'] = $hourly_rate * $record['total_hours'];
-        $record['hourly_rate'] = $hourly_rate;
-        $record['scheduled_hours_per_day'] = $schedule['hours_per_day'];
+        // Convert NULL to 0 for numeric fields
+        $record['days_worked'] = $record['days_worked'] ?? 0;
+        $record['total_hours'] = $record['total_hours'] ?? 0;
+        $record['overtime_hours'] = $record['overtime_hours'] ?? 0;
+        $record['gross_pay'] = $record['gross_pay'] ?? 0;
+        $record['total_deductions'] = $record['total_deductions'] ?? 0;
+        $record['payment_status'] = $record['payment_status'] ?? 'unpaid';
+        
+        // If no payroll record exists, calculate from attendance
+        if (!$record['payroll_id']) {
+            // Get attendance data
+            $stmt = $db->prepare("SELECT 
+                COUNT(DISTINCT CASE 
+                    WHEN status IN ('present', 'late', 'overtime') 
+                    THEN attendance_date 
+                END) as days_worked,
+                COALESCE(SUM(hours_worked), 0) as total_hours,
+                COALESCE(SUM(overtime_hours), 0) as overtime_hours
+                FROM attendance 
+                WHERE worker_id = ? 
+                AND attendance_date BETWEEN ? AND ?
+                AND is_archived = FALSE");
+            $stmt->execute([$record['worker_id'], $period_start, $period_end]);
+            $attendance = $stmt->fetch();
+            
+            $record['days_worked'] = $attendance['days_worked'] ?? 0;
+            $record['total_hours'] = $attendance['total_hours'] ?? 0;
+            $record['overtime_hours'] = $attendance['overtime_hours'] ?? 0;
+            
+            // Calculate gross pay
+            $schedule = getWorkerScheduleHours($db, $record['worker_id']);
+            $hourly_rate = $record['daily_rate'] / $schedule['hours_per_day'];
+            $record['gross_pay'] = $hourly_rate * $record['total_hours'];
+            
+            // Get active deductions
+            $stmt = $db->prepare("SELECT COALESCE(SUM(amount), 0) as total_deductions 
+                FROM deductions 
+                WHERE worker_id = ? 
+                AND is_active = 1
+                AND status = 'applied'
+                AND (
+                    frequency = 'per_payroll'
+                    OR (frequency = 'one_time' AND applied_count = 0)
+                )");
+            $stmt->execute([$record['worker_id']]);
+            $deductions = $stmt->fetch();
+            $record['total_deductions'] = $deductions['total_deductions'] ?? 0;
+        }
+        
+        // Calculate deduction count for display
+        $stmt = $db->prepare("SELECT COUNT(*) as count
+            FROM deductions 
+            WHERE worker_id = ? 
+            AND is_active = 1
+            AND status = 'applied'
+            AND (
+                frequency = 'per_payroll'
+                OR (frequency = 'one_time' AND applied_count = 0)
+            )");
+        $stmt->execute([$record['worker_id']]);
+        $deduction_count = $stmt->fetch();
+        $record['deduction_count'] = $deduction_count['count'] ?? 0;
     }
+    
 } catch (PDOException $e) {
     error_log("Payroll Query Error: " . $e->getMessage());
     $payroll_records = [];
@@ -201,7 +256,7 @@ try {
                 
                 <div class="page-header">
                     <div class="header-left">
-                        <h1></i> Payroll Management</h1>
+                        <h1><i class="fas fa-money-check-alt"></i> Payroll Management</h1>
                         <p class="subtitle">Manage worker payroll for <?php echo date('M d', strtotime($period_start)); ?> - <?php echo date('M d, Y', strtotime($period_end)); ?></p>
                     </div>
                     <div class="header-actions">
@@ -229,7 +284,6 @@ try {
                         </div>
                     </div>
                 </div>
-                
                 
                 <!-- Statistics Cards -->
                 <div class="payroll-stats">
@@ -465,48 +519,6 @@ try {
     <script src="<?php echo JS_URL; ?>/payroll.js"></script>
     
     <style>
-        .info-banner {
-            background: linear-gradient(135deg, rgba(218, 165, 32, 0.1), rgba(184, 134, 11, 0.1));
-            border-left: 4px solid #DAA520;
-            border-radius: 8px;
-            padding: 20px;
-            margin-bottom: 30px;
-        }
-        
-        .info-banner-content {
-            display: flex;
-            gap: 15px;
-            align-items: start;
-        }
-        
-        .info-banner-content i {
-            font-size: 24px;
-            color: #DAA520;
-            margin-top: 2px;
-        }
-        
-        .info-banner-content strong {
-            display: block;
-            margin-bottom: 5px;
-            color: #1a1a1a;
-        }
-        
-        .info-banner-content p {
-            margin: 0;
-            color: #666;
-            line-height: 1.6;
-        }
-        
-        .info-banner-content a {
-            color: #DAA520;
-            font-weight: 600;
-            text-decoration: none;
-        }
-        
-        .info-banner-content a:hover {
-            text-decoration: underline;
-        }
-        
         .btn-group {
             position: relative;
             display: inline-block;
