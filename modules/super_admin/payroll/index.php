@@ -244,7 +244,7 @@ try {
                 
                 <div class="page-header">
                     <div class="header-left">
-                        <h1><i class="fas fa-money-check-alt"></i> Payroll Management</h1>
+                        <h1>Payroll Management</h1>
                         <p class="subtitle">Manage worker payroll for <?php echo date('M d', strtotime($period_start)); ?> - <?php echo date('M d, Y', strtotime($period_end)); ?></p>
                     </div>
                     <div class="header-actions">
