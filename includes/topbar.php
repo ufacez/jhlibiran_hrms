@@ -6,8 +6,6 @@
  * Reusable top navigation bar with notifications and search
  */
 
-// Include notifications functions
-require_once __DIR__ . '/notifications.php';
 
 // Get current user info
 $user_id = getCurrentUserId();
@@ -15,8 +13,6 @@ $username = getCurrentUsername();
 $full_name = $_SESSION['full_name'] ?? 'Administrator';
 $user_level = getCurrentUserLevel();
 
-// Get unread notification count
-$unread_count = getUnreadCount($db, $user_id);
 
 // Generate avatar URL
 $avatar_url = "https://ui-avatars.com/api/?name=" . urlencode($full_name) . "&background=f39c12&color=fff";
