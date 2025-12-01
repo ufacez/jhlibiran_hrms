@@ -1,0 +1,517 @@
+/**
+ * Worker Module Styles
+ * TrackSite Construction Management System
+ */
+
+/* Welcome Banner */
+.welcome-banner {
+    background: linear-gradient(135deg, #DAA520, #B8860B);
+    border-radius: 15px;
+    padding: 30px;
+    margin-bottom: 30px;
+    display: flex;
+    align-items: center;
+    gap: 25px;
+    box-shadow: 0 4px 15px rgba(218, 165, 32, 0.3);
+    color: #1a1a1a;
+}
+
+.welcome-avatar {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 32px;
+    font-weight: 700;
+    color: #1a1a1a;
+    flex-shrink: 0;
+    border: 3px solid rgba(255, 255, 255, 0.5);
+}
+
+.welcome-content {
+    flex: 1;
+}
+
+.welcome-content h1 {
+    margin: 0 0 8px 0;
+    font-size: 28px;
+    color: #1a1a1a;
+    font-weight: 700;
+}
+
+.welcome-subtitle {
+    margin: 0;
+    font-size: 14px;
+    color: rgba(26, 26, 26, 0.8);
+}
+
+.welcome-actions {
+    display: flex;
+    gap: 15px;
+}
+
+.attendance-badge {
+    padding: 12px 20px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(10px);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    font-size: 14px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+}
+
+.badge-completed {
+    background: rgba(40, 167, 69, 0.2);
+    border-color: rgba(40, 167, 69, 0.3);
+    color: #155724;
+}
+
+.badge-active {
+    background: rgba(23, 162, 184, 0.2);
+    border-color: rgba(23, 162, 184, 0.3);
+    color: #0c5460;
+}
+
+.badge-pending {
+    background: rgba(255, 193, 7, 0.2);
+    border-color: rgba(255, 193, 7, 0.3);
+    color: #856404;
+}
+
+.badge-time {
+    font-size: 12px;
+    opacity: 0.8;
+}
+
+/* Worker Grid Layout */
+.worker-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 25px;
+}
+
+/* Worker Card */
+.worker-card {
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.worker-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.12);
+}
+
+.card-header {
+    padding: 20px 25px;
+    border-bottom: 2px solid #f0f0f0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.card-header h3 {
+    margin: 0;
+    font-size: 16px;
+    color: #1a1a1a;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.card-header h3 i {
+    color: #DAA520;
+}
+
+.card-link {
+    font-size: 13px;
+    color: #DAA520;
+    text-decoration: none;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.card-link:hover {
+    color: #B8860B;
+}
+
+.card-body {
+    padding: 20px 25px;
+}
+
+/* Empty State */
+.empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: #999;
+}
+
+.empty-state i {
+    font-size: 48px;
+    margin-bottom: 15px;
+    opacity: 0.5;
+}
+
+.empty-state p {
+    margin: 0;
+    font-size: 14px;
+}
+
+/* Attendance List */
+.attendance-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.attendance-item {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.attendance-item:hover {
+    background: #e9ecef;
+}
+
+.attendance-date {
+    width: 50px;
+    height: 50px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #DAA520, #B8860B);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: #1a1a1a;
+    flex-shrink: 0;
+}
+
+.date-day {
+    font-size: 20px;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.date-month {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    line-height: 1;
+    margin-top: 2px;
+}
+
+.attendance-info {
+    flex: 1;
+}
+
+.attendance-time {
+    font-size: 13px;
+    color: #666;
+    margin-bottom: 5px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.attendance-time i {
+    color: #DAA520;
+    font-size: 11px;
+}
+
+.attendance-hours {
+    font-size: 14px;
+    color: #1a1a1a;
+    font-weight: 600;
+}
+
+.ot-badge {
+    font-size: 11px;
+    padding: 2px 6px;
+    background: #fff3cd;
+    color: #856404;
+    border-radius: 4px;
+    margin-left: 5px;
+}
+
+.attendance-status {
+    flex-shrink: 0;
+}
+
+/* Info List */
+.info-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.info-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.info-item:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.info-label {
+    font-size: 13px;
+    color: #666;
+    font-weight: 600;
+}
+
+.info-value {
+    font-size: 14px;
+    color: #1a1a1a;
+    font-weight: 600;
+    text-align: right;
+}
+
+/* Full Width Card */
+.worker-card.full-width {
+    grid-column: 1 / -1;
+}
+
+/* Attendance Calendar View */
+.calendar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.calendar-nav {
+    display: flex;
+    gap: 10px;
+}
+
+.calendar-nav button {
+    padding: 8px 16px;
+    background: #f8f9fa;
+    border: 2px solid #e0e0e0;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-weight: 600;
+    color: #1a1a1a;
+}
+
+.calendar-nav button:hover {
+    background: #DAA520;
+    border-color: #DAA520;
+    color: #1a1a1a;
+}
+
+.calendar-month {
+    font-size: 18px;
+    font-weight: 700;
+    color: #1a1a1a;
+}
+
+/* Schedule List */
+.schedule-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.schedule-item {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 20px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border-left: 4px solid #DAA520;
+}
+
+.schedule-day {
+    width: 60px;
+    text-align: center;
+}
+
+.schedule-day-name {
+    font-size: 14px;
+    font-weight: 700;
+    color: #1a1a1a;
+    text-transform: uppercase;
+}
+
+.schedule-day-date {
+    font-size: 11px;
+    color: #666;
+}
+
+.schedule-info {
+    flex: 1;
+}
+
+.schedule-time {
+    font-size: 16px;
+    font-weight: 700;
+    color: #1a1a1a;
+    margin-bottom: 5px;
+}
+
+.schedule-hours {
+    font-size: 13px;
+    color: #666;
+}
+
+.schedule-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Payroll Summary Card */
+.payroll-summary {
+    background: linear-gradient(135deg, rgba(218, 165, 32, 0.1), rgba(184, 134, 11, 0.1));
+    border-radius: 12px;
+    padding: 25px;
+    margin-bottom: 25px;
+}
+
+.payroll-summary-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 12px 0;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.payroll-summary-row:last-child {
+    border-bottom: none;
+    padding-top: 15px;
+    margin-top: 10px;
+    border-top: 2px solid #DAA520;
+    font-size: 18px;
+    font-weight: 700;
+}
+
+.payroll-summary-label {
+    font-size: 14px;
+    color: #666;
+}
+
+.payroll-summary-value {
+    font-size: 14px;
+    font-weight: 600;
+    color: #1a1a1a;
+}
+
+/* Profile Form */
+.profile-form-section {
+    margin-bottom: 30px;
+}
+
+.profile-form-section h3 {
+    font-size: 18px;
+    color: #1a1a1a;
+    margin: 0 0 20px 0;
+    padding-bottom: 15px;
+    border-bottom: 2px solid #DAA520;
+}
+
+.form-grid-2 {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.form-group label {
+    font-size: 12px;
+    color: #666;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+    padding: 12px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: 14px;
+    outline: none;
+    transition: all 0.3s ease;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+    border-color: #DAA520;
+}
+
+.form-group input[readonly] {
+    background: #f5f5f5;
+    color: #666;
+}
+
+/* Responsive Design */
+@media (max-width: 1200px) {
+    .worker-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .welcome-banner {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .welcome-actions {
+        flex-direction: column;
+        width: 100%;
+    }
+    
+    .attendance-badge {
+        justify-content: center;
+    }
+    
+    .stats-cards {
+        grid-template-columns: 1fr;
+    }
+    
+    .form-grid-2 {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 480px) {
+    .welcome-content h1 {
+        font-size: 22px;
+    }
+    
+    .attendance-item {
+        flex-wrap: wrap;
+    }
+    
+    .schedule-item {
+        flex-direction: column;
+        text-align: center;
+    }
+}
