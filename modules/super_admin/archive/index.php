@@ -161,6 +161,7 @@ $total_archived = count($archived_items);
     <link rel="stylesheet" href="<?php echo CSS_URL; ?>/dashboard.css"> 
     <link rel="stylesheet" href="<?php echo CSS_URL; ?>/workers.css">
     <link rel="stylesheet" href="<?php echo CSS_URL; ?>/buttons.css">
+    <link rel="stylesheet" href="<?php echo CSS_URL; ?>/payroll.css">
 </head>
 <body>
     <div class="container">
@@ -217,7 +218,7 @@ $total_archived = count($archived_items);
                             </div>
                             
                             <button type="submit" class="btn btn-filter">
-                                <i class="fas fa-filter"></i> Filter
+                                <i class="fas fa-filter"></i> Apply
                             </button>
                             
                             <?php if (!empty($date_filter) || !empty($search_query) || !empty($type_filter)): ?>

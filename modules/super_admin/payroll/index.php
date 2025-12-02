@@ -380,11 +380,6 @@ try {
                 
                 <!-- Payroll Table -->
                 <div class="payroll-table-card">
-                    <div class="table-header-row">
-                        <div class="table-info">
-                            <span>Showing <?php echo count($payroll_records); ?> of <?php echo $total_workers; ?> payroll records</span>
-                        </div>
-                    </div>
                     
                     <div class="table-wrapper">
                         <table class="payroll-table">

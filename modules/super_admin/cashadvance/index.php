@@ -111,6 +111,7 @@ try {
     <link rel="stylesheet" href="<?php echo CSS_URL; ?>/cashadvance.css">
     <link rel="stylesheet" href="<?php echo CSS_URL; ?>/workers.css">
     <link rel="stylesheet" href="<?php echo CSS_URL; ?>/forms.css">
+    <link rel="stylesheet" href="<?php echo CSS_URL; ?>/payroll.css">
 </head>
 <body>
     <div class="container">
@@ -225,7 +226,7 @@ try {
                             </div>
                             
                             <button type="submit" class="btn btn-filter">
-                                <i class="fas fa-filter"></i> Filter
+                                <i class="fas fa-filter"></i> Apply
                             </button>
                             
                             <?php if (!empty($worker_filter) || !empty($status_filter) || !empty($search_query)): ?>
@@ -241,12 +242,6 @@ try {
                 
                 <!-- Cash Advance Table -->
                 <div class="cashadvance-table-card">
-                    <div class="table-header-row">
-                        <div class="table-info">
-                            <span>Showing <?php echo count($advances); ?> cash advance(s)</span>
-                        </div>
-                    </div>
-                    
                     <div class="table-wrapper">
                         <table class="cashadvance-table">
                             <thead>
