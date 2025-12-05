@@ -36,20 +36,9 @@ foreach ($settings_raw as $row) {
 }
 
 // Get backups
-$backup_dir = BASE_PATH . '/backups';
-$backups = [];
-if (is_dir($backup_dir)) {
-    $files = scandir($backup_dir, SCANDIR_SORT_DESCENDING);
-    foreach ($files as $file) {
-        if ($file !== '.' && $file !== '..' && pathinfo($file, PATHINFO_EXTENSION) === 'sql') {
-            $backups[] = [
-                'name' => $file,
-                'size' => filesize($backup_dir . '/' . $file),
-                'date' => date('Y-m-d H:i:s', filemtime($backup_dir . '/' . $file))
-            ];
-        }
-    }
-}
+require_once __DIR__ . '/../../../includes/backup_handler.php';
+$backup_handler = new DatabaseBackup($db);
+$backups = $backup_handler->getBackupList();
 
 // Get system stats
 $stmt = $db->query("SELECT COUNT(*) FROM workers WHERE is_archived = FALSE");
@@ -321,28 +310,34 @@ $total_logs = $stmt->fetchColumn();
                         <div class="backup-list">
                             <?php if (empty($backups)): ?>
                             <p style="text-align: center; color: #999; padding: 40px;">
-                                No backups found. Create your first backup.
+                                <i class="fas fa-database" style="font-size: 48px; margin-bottom: 15px; opacity: 0.3; display: block;"></i>
+                                No backups found. Create your first backup to protect your data.
                             </p>
                             <?php else: ?>
                                 <?php foreach ($backups as $backup): ?>
                                 <div class="backup-item">
                                     <div class="backup-icon">
-                                        <i class="fas fa-file-archive"></i>
+                                        <i class="fas fa-<?php echo $backup['compressed'] ? 'file-archive' : 'file-code'; ?>"></i>
                                     </div>
                                     <div class="backup-info">
-                                        <div class="backup-name"><?php echo htmlspecialchars($backup['name']); ?></div>
+                                        <div class="backup-name"><?php echo htmlspecialchars($backup['filename']); ?></div>
                                         <div class="backup-details">
-                                            <?php echo number_format($backup['size'] / 1024, 2); ?> KB • 
-                                            <?php echo $backup['date']; ?>
+                                            <span><i class="fas fa-weight"></i> <?php echo number_format($backup['size'] / 1024, 2); ?> KB</span> • 
+                                            <span><i class="far fa-clock"></i> <?php echo $backup['date']; ?></span>
+                                            <?php if ($backup['compressed']): ?>
+                                            <span class="badge badge-info"><i class="fas fa-compress"></i> Compressed</span>
+                                            <?php endif; ?>
                                         </div>
                                     </div>
                                     <div class="backup-actions">
                                         <button class="btn btn-secondary btn-sm" 
-                                                onclick="downloadBackup('<?php echo htmlspecialchars($backup['name']); ?>')">
+                                                onclick="downloadBackup('<?php echo htmlspecialchars($backup['filename']); ?>')"
+                                                title="Download backup">
                                             <i class="fas fa-download"></i>
                                         </button>
                                         <button class="btn btn-danger-outline btn-sm" 
-                                                onclick="deleteBackup('<?php echo htmlspecialchars($backup['name']); ?>')">
+                                                onclick="deleteBackup('<?php echo htmlspecialchars($backup['filename']); ?>')"
+                                                title="Delete backup">
                                             <i class="fas fa-trash"></i>
                                         </button>
                                     </div>

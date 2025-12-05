@@ -1,20 +1,15 @@
 <?php
 /**
- * Settings API - Simple Working Version
- * Save as: modules/super_admin/settings/api.php
+ * Settings API - UPDATED WITH REAL BACKUP
  */
 
-// Prevent any output before JSON
 ob_start();
-
-// Error handling
 error_reporting(E_ALL);
-ini_set('display_errors', 0); // Don't display errors as HTML
+ini_set('display_errors', 0);
 ini_set('log_errors', 1);
 
 define('TRACKSITE_INCLUDED', true);
 
-// Include files
 try {
     require_once __DIR__ . '/../../../config/database.php';
     require_once __DIR__ . '/../../../config/settings.php';
@@ -28,13 +23,9 @@ try {
     exit;
 }
 
-// Clear any output from includes
 ob_end_clean();
-
-// Set JSON header
 header('Content-Type: application/json');
 
-// Check authentication
 if (!isLoggedIn()) {
     echo json_encode(['success' => false, 'message' => 'Not logged in']);
     exit;
@@ -45,15 +36,12 @@ if (!isSuperAdmin()) {
     exit;
 }
 
-// Get action
 $action = $_REQUEST['action'] ?? '';
 $user_id = getCurrentUserId();
 
-// Process action
 try {
     switch ($action) {
         case 'save_general':
-            // Validate
             if (empty($_POST['company_name'])) {
                 echo json_encode(['success' => false, 'message' => 'Company name required']);
                 exit;
@@ -64,7 +52,6 @@ try {
                 exit;
             }
             
-            // Save settings
             $settings = [
                 'company_name' => trim($_POST['company_name']),
                 'system_email' => trim($_POST['system_email']),
@@ -86,14 +73,12 @@ try {
             break;
             
         case 'save_system':
-            // Validate
             $work_hours = intval($_POST['work_hours_per_day'] ?? 8);
             if ($work_hours < 1 || $work_hours > 24) {
                 echo json_encode(['success' => false, 'message' => 'Work hours must be 1-24']);
                 exit;
             }
             
-            // Save config
             $settings = [
                 'work_hours_per_day' => $work_hours,
                 'overtime_rate' => floatval($_POST['overtime_rate'] ?? 1.25),
@@ -115,7 +100,6 @@ try {
             break;
             
         case 'update_profile':
-            // Validate
             $first_name = trim($_POST['first_name'] ?? '');
             $last_name = trim($_POST['last_name'] ?? '');
             $email = trim($_POST['email'] ?? '');
@@ -130,7 +114,6 @@ try {
                 exit;
             }
             
-            // Check email uniqueness
             $stmt = $db->prepare("SELECT user_id FROM users WHERE email = ? AND user_id != ?");
             $stmt->execute([$email, $user_id]);
             if ($stmt->fetch()) {
@@ -138,7 +121,6 @@ try {
                 exit;
             }
             
-            // Update
             $stmt = $db->prepare("UPDATE users SET email = ?, updated_at = NOW() WHERE user_id = ?");
             $stmt->execute([$email, $user_id]);
             
@@ -167,7 +149,6 @@ try {
                 exit;
             }
             
-            // Verify current password
             $stmt = $db->prepare("SELECT password FROM users WHERE user_id = ?");
             $stmt->execute([$user_id]);
             $user = $stmt->fetch();
@@ -177,7 +158,6 @@ try {
                 exit;
             }
             
-            // Update password
             $hashed = password_hash($new, PASSWORD_DEFAULT);
             $stmt = $db->prepare("UPDATE users SET password = ?, updated_at = NOW() WHERE user_id = ?");
             $stmt->execute([$hashed, $user_id]);
@@ -188,18 +168,29 @@ try {
             break;
             
         case 'create_backup':
-            $backup_dir = BASE_PATH . '/backups';
-            if (!is_dir($backup_dir)) {
-                mkdir($backup_dir, 0755, true);
+            require_once __DIR__ . '/../../../includes/backup_handler.php';
+            
+            $backup = new DatabaseBackup($db);
+            $result = $backup->create();
+            
+            if ($result['success']) {
+                logActivity($db, $user_id, 'create_backup', 'system_settings', null, 
+                           'Created database backup: ' . $result['filename']);
+                           
+                echo json_encode([
+                    'success' => true, 
+                    'message' => 'Database backup created successfully', 
+                    'data' => [
+                        'filename' => $result['filename'],
+                        'size' => $result['size']
+                    ]
+                ]);
+            } else {
+                echo json_encode([
+                    'success' => false, 
+                    'message' => 'Failed to create backup: ' . $result['message']
+                ]);
             }
-            
-            $filename = 'backup_' . date('Y-m-d_His') . '.sql';
-            $filepath = $backup_dir . '/' . $filename;
-            
-            $content = "-- TrackSite Backup\n-- Date: " . date('Y-m-d H:i:s') . "\n\n";
-            file_put_contents($filepath, $content);
-            
-            echo json_encode(['success' => true, 'message' => 'Backup created', 'data' => ['filename' => $filename]]);
             break;
             
         case 'download_backup':
@@ -207,23 +198,48 @@ try {
             $filepath = BASE_PATH . '/backups/' . $filename;
             
             if (!file_exists($filepath)) {
-                echo json_encode(['success' => false, 'message' => 'File not found']);
-                exit;
+                die('Backup file not found');
             }
+            
+            // Security check - only allow our backup files
+            if (!preg_match('/^tracksite_backup_\d{4}-\d{2}-\d{2}_\d{6}\.sql(\.gz)?$/', $filename)) {
+                die('Invalid backup file');
+            }
+            
+            logActivity($db, $user_id, 'download_backup', 'system_settings', null, 
+                       'Downloaded backup: ' . $filename);
             
             header('Content-Type: application/octet-stream');
             header('Content-Disposition: attachment; filename="' . $filename . '"');
+            header('Content-Length: ' . filesize($filepath));
+            header('Cache-Control: no-cache, must-revalidate');
+            header('Expires: 0');
+            
             readfile($filepath);
             exit;
             
         case 'delete_backup':
-            $filename = basename($_POST['filename'] ?? '');
-            $filepath = BASE_PATH . '/backups/' . $filename;
+            require_once __DIR__ . '/../../../includes/backup_handler.php';
             
-            if (file_exists($filepath) && unlink($filepath)) {
-                echo json_encode(['success' => true, 'message' => 'Backup deleted']);
-            } else {
-                echo json_encode(['success' => false, 'message' => 'Delete failed']);
+            $filename = basename($_POST['filename'] ?? '');
+            
+            // Security check
+            if (!preg_match('/^tracksite_backup_\d{4}-\d{2}-\d{2}_\d{6}\.sql(\.gz)?$/', $filename)) {
+                echo json_encode(['success' => false, 'message' => 'Invalid backup file']);
+                exit;
+            }
+            
+            $backup = new DatabaseBackup($db);
+            
+            try {
+                $backup->deleteBackup($filename);
+                
+                logActivity($db, $user_id, 'delete_backup', 'system_settings', null, 
+                           'Deleted backup: ' . $filename);
+                
+                echo json_encode(['success' => true, 'message' => 'Backup deleted successfully']);
+            } catch (Exception $e) {
+                echo json_encode(['success' => false, 'message' => $e->getMessage()]);
             }
             break;
             
@@ -231,7 +247,7 @@ try {
             if (session_status() === PHP_SESSION_ACTIVE) {
                 session_regenerate_id(true);
             }
-            echo json_encode(['success' => true, 'message' => 'Cache cleared']);
+            echo json_encode(['success' => true, 'message' => 'Cache cleared successfully']);
             break;
             
         case 'test_email':
@@ -240,7 +256,7 @@ try {
                 echo json_encode(['success' => false, 'message' => 'Invalid email']);
                 exit;
             }
-            echo json_encode(['success' => true, 'message' => 'Email config ready']);
+            echo json_encode(['success' => true, 'message' => 'Email configuration is ready']);
             break;
             
         default:
@@ -249,10 +265,10 @@ try {
     
 } catch (PDOException $e) {
     error_log("Settings API Error: " . $e->getMessage());
-    echo json_encode(['success' => false, 'message' => 'Database error']);
+    echo json_encode(['success' => false, 'message' => 'Database error occurred']);
 } catch (Exception $e) {
     error_log("Settings API Error: " . $e->getMessage());
-    echo json_encode(['success' => false, 'message' => 'Server error']);
+    echo json_encode(['success' => false, 'message' => 'An error occurred']);
 }
 
 exit;
