@@ -197,7 +197,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_deduction'])) {
                                         <option value="pagibig">Pag-IBIG Fund</option>
                                         <option value="tax">Withholding Tax</option>
                                         <option value="loan">Loan Repayment</option>
-                                        <option value="cashadvance">Cash Advance</option>
                                         <option value="uniform">Uniform</option>
                                         <option value="tools">Tools/Equipment</option>
                                         <option value="damage">Damage/Breakage</option>
