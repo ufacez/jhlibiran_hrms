@@ -206,7 +206,7 @@ try {
                             <div class="filter-group">
                                 <label>Experience</label>
                                 <select name="experience" id="experienceFilter" onchange="submitFilter()">
-                                    <option value="">All Experience</option>
+                                    <option value="">All Tenure</option>
                                     <option value="0-1" <?php echo $experience_filter === '0-1' ? 'selected' : ''; ?>>0-1 years</option>
                                     <option value="1-3" <?php echo $experience_filter === '1-3' ? 'selected' : ''; ?>>1-3 years</option>
                                     <option value="3-5" <?php echo $experience_filter === '3-5' ? 'selected' : ''; ?>>3-5 years</option>
@@ -234,7 +234,7 @@ try {
                                     <th>Worker</th>
                                     <th>Position</th>
                                     <th>Contact</th>
-                                    <th>Experience</th>
+                                    <th>Tenure</th>
                                     <th>Daily Rate</th>
                                     <th>Status</th>
                                     <th>Actions</th>

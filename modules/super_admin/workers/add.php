@@ -267,7 +267,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             </div>
                             
                             <div class="form-group">
-                                <label for="experience_years">Years of Experience</label>
+                                <label for="experience_years">Years of Tenure</label>
                                 <input type="number" id="experience_years" name="experience_years" min="0" value="0">
                             </div>
                         </div>
