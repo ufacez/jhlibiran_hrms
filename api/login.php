@@ -1,9 +1,7 @@
 <?php
 /**
- * Login API Endpoint
+ * Login API Endpoint - FIXED WITH DEBUG
  * TrackSite Construction Management System
- * 
- * Handles AJAX login requests
  */
 
 // Define constant to allow includes
@@ -23,7 +21,8 @@ require_once __DIR__ . '/../includes/auth.php';
 $response = [
     'success' => false,
     'message' => '',
-    'redirect_url' => ''
+    'redirect_url' => '',
+    'debug' => []
 ];
 
 try {
@@ -66,25 +65,30 @@ try {
     $user = $auth_result['user'];
     setUserSession($user);
     
+    // Add debug info
+    $response['debug']['user_level'] = $user['user_level'];
+    $response['debug']['user_id'] = $user['user_id'];
+    
     // Handle "Remember Me"
     if ($remember) {
-        // Set cookie for 30 days
         $cookie_token = generateRandomString(32);
         setcookie('remember_token', $cookie_token, time() + (86400 * 30), '/');
-        
-        // Store token in database (you can implement this later)
-        // For now, we'll just set the cookie
     }
     
-    // Determine redirect URL
+    // Determine redirect URL - FIXED LOGIC
     if (!empty($redirect) && filter_var($redirect, FILTER_VALIDATE_URL)) {
         $redirect_url = $redirect;
     } else {
-        // Redirect based on user level
-        if ($user['user_level'] === USER_LEVEL_SUPER_ADMIN) {
+        // Redirect based on user level - EXPLICIT CHECK
+        if ($user['user_level'] === 'super_admin') {
             $redirect_url = BASE_URL . '/modules/super_admin/dashboard.php';
-        } else {
+        } elseif ($user['user_level'] === 'admin') {
+            $redirect_url = BASE_URL . '/modules/admin/dashboard.php';
+        } elseif ($user['user_level'] === 'worker') {
             $redirect_url = BASE_URL . '/modules/worker/dashboard.php';
+        } else {
+            // Unknown user level - logout
+            $redirect_url = BASE_URL . '/logout.php';
         }
     }
     
@@ -92,10 +96,12 @@ try {
     $response['success'] = true;
     $response['message'] = 'Login successful! Redirecting...';
     $response['redirect_url'] = $redirect_url;
+    $response['debug']['calculated_redirect'] = $redirect_url;
     
 } catch (Exception $e) {
     error_log("Login API Error: " . $e->getMessage());
     $response['message'] = 'An unexpected error occurred. Please try again.';
+    $response['debug']['error'] = $e->getMessage();
 }
 
 // Send response

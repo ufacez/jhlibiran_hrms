@@ -1,6 +1,6 @@
 <?php
 /**
- * Admin Dashboard
+ * Admin Dashboard - FIXED (No Redirect Loop)
  * TrackSite Construction Management System
  */
 
@@ -10,17 +10,18 @@ require_once __DIR__ . '/../../config/database.php';
 require_once __DIR__ . '/../../config/settings.php';
 require_once __DIR__ . '/../../config/session.php';
 require_once __DIR__ . '/../../includes/functions.php';
-require_once __DIR__ . '/../../includes/admin_functions.php';
 require_once __DIR__ . '/../../includes/auth.php';
 
-// Simple check - allow admin and super_admin
+// Check if logged in
 if (!isLoggedIn()) {
     header('Location: ' . BASE_URL . '/login.php');
     exit();
 }
 
+// Check user level - allow admin and super_admin ONLY
 $user_level = getCurrentUserLevel();
 if ($user_level !== 'admin' && $user_level !== 'super_admin') {
+    // If worker, redirect to worker dashboard
     header('Location: ' . BASE_URL . '/modules/worker/dashboard.php');
     exit();
 }

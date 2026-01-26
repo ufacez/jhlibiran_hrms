@@ -14,6 +14,11 @@ if (!defined('TRACKSITE_INCLUDED')) {
 // Require settings
 require_once __DIR__ . '/settings.php';
 
+// Define admin user level constant if not already defined
+if (!defined('USER_LEVEL_ADMIN')) {
+    define('USER_LEVEL_ADMIN', 'admin');
+}
+
 /**
  * Initialize secure session
  */
@@ -104,7 +109,7 @@ function isSuperAdmin() {
 }
 
 /**
- * Check if user is admin - NEW
+ * Check if user is admin - FIXED
  * 
  * @return bool True if admin, false otherwise
  */
@@ -113,7 +118,7 @@ function isAdmin() {
 }
 
 /**
- * Check if user is admin or super admin - NEW
+ * Check if user is admin or super admin - FIXED
  * 
  * @return bool True if admin or super admin, false otherwise
  */
@@ -165,7 +170,7 @@ function setUserSession($user) {
         $_SESSION['full_name'] = ($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? '');
         
     } elseif ($user['user_level'] === USER_LEVEL_ADMIN) {
-        // NEW: Handle admin level
+        // Handle admin level
         $_SESSION['admin_id'] = $user['admin_id'] ?? null;
         $_SESSION['full_name'] = ($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? '');
     }
@@ -226,7 +231,7 @@ function requireSuperAdmin($redirect_url = '') {
 }
 
 /**
- * Require admin or super admin access - NEW
+ * Require admin or super admin access - FIXED
  * 
  * @param string $redirect_url URL to redirect to if access denied
  */

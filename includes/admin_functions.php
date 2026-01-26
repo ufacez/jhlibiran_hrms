@@ -1,32 +1,12 @@
 <?php
 /**
- * Admin Helper Functions
+ * Admin Helper Functions - FIXED (No Duplicate Functions)
  * TrackSite Construction Management System
  * includes/admin_functions.php
  */
 
 if (!defined('TRACKSITE_INCLUDED')) {
     define('TRACKSITE_INCLUDED', true);
-}
-
-// Define admin user level constant
-if (!defined('USER_LEVEL_ADMIN')) {
-    define('USER_LEVEL_ADMIN', 'admin');
-}
-
-/**
- * Check if user is admin (regular admin)
- */
-function isAdmin() {
-    return getCurrentUserLevel() === USER_LEVEL_ADMIN;
-}
-
-/**
- * Check if user is admin or super admin
- */
-function isAdminOrHigher() {
-    $level = getCurrentUserLevel();
-    return $level === USER_LEVEL_ADMIN || $level === USER_LEVEL_SUPER_ADMIN;
 }
 
 /**
@@ -66,28 +46,14 @@ function hasPermission($db, $permission_name) {
 }
 
 /**
- * Require admin or super admin access
- */
-function requireAdminOrHigher($redirect_url = '') {
-    requireLogin($redirect_url);
-    
-    if (!isAdminOrHigher()) {
-        if (empty($redirect_url)) {
-            $redirect_url = BASE_URL . '/modules/worker/dashboard.php';
-        }
-        header('Location: ' . $redirect_url);
-        exit();
-    }
-}
-
-/**
  * Require specific permission
  */
 function requirePermission($db, $permission_name, $error_message = 'Access denied') {
     if (!hasPermission($db, $permission_name)) {
         http_response_code(403);
         setFlashMessage($error_message, 'error');
-        redirect(BASE_URL . '/modules/admin/dashboard.php');
+        header('Location: ' . BASE_URL . '/modules/admin/dashboard.php');
+        exit();
     }
 }
 
