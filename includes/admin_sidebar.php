@@ -413,6 +413,22 @@ $module_path = $is_super_admin ? '/modules/super_admin' : '/modules/admin';
         <?php endif; ?>
         
         <div class="menu-separator"></div>
+
+        <!-- ACCOUNT SECTION -->
+        <div class="menu-category">
+            <i class="fas fa-user-circle"></i> Account
+        </div>
+        
+        <!-- My Profile -->
+        <li>
+            <a href="<?php echo BASE_URL . $module_path; ?>/profile.php"
+               class="<?php echo ($current_page === 'profile.php') ? 'active' : ''; ?>">
+                <i class="fas fa-user-circle"></i>
+                <div class="title">My Profile</div>
+            </a>
+        </li>
+        
+        <div class="menu-separator"></div>
         
         <!-- Logout -->
         <li>
