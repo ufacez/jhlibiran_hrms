@@ -46,7 +46,14 @@ function getAdminPermissions($db, $user_id = null) {
             'can_manage_admins' => true,
             'can_view_settings' => true,
             'can_edit_settings' => true,
-            'can_view_logs' => true
+            'can_view_logs' => true,
+            'can_view_schedule' => true,
+            'can_manage_schedule' => true,
+            'can_view_cashadvance' => true,
+            'can_approve_cashadvance' => true,
+            'can_access_settings' => true,
+            'can_access_audit' => true,
+            'can_access_archive' => true
         ];
     }
     
@@ -58,7 +65,7 @@ function getAdminPermissions($db, $user_id = null) {
         $admin = $stmt->fetch(PDO::FETCH_ASSOC);
         
         if (!$admin) {
-            // No admin profile found, return default permissions
+            // No admin profile found, return default permissions (all false)
             return [
                 'can_view_workers' => false,
                 'can_add_workers' => false,
@@ -79,7 +86,14 @@ function getAdminPermissions($db, $user_id = null) {
                 'can_manage_admins' => false,
                 'can_view_settings' => false,
                 'can_edit_settings' => false,
-                'can_view_logs' => false
+                'can_view_logs' => false,
+                'can_view_schedule' => false,
+                'can_manage_schedule' => false,
+                'can_view_cashadvance' => false,
+                'can_approve_cashadvance' => false,
+                'can_access_settings' => false,
+                'can_access_audit' => false,
+                'can_access_archive' => false
             ];
         }
         
@@ -101,7 +115,7 @@ function getAdminPermissions($db, $user_id = null) {
             $permissions = $stmt->fetch(PDO::FETCH_ASSOC);
         }
         
-        // Convert to boolean array
+        // Convert to boolean array - include all possible permissions
         return [
             'can_view_workers' => (bool)($permissions['can_view_workers'] ?? 0),
             'can_add_workers' => (bool)($permissions['can_add_workers'] ?? 0),
@@ -122,7 +136,14 @@ function getAdminPermissions($db, $user_id = null) {
             'can_manage_admins' => (bool)($permissions['can_manage_admins'] ?? 0),
             'can_view_settings' => (bool)($permissions['can_view_settings'] ?? 0),
             'can_edit_settings' => (bool)($permissions['can_edit_settings'] ?? 0),
-            'can_view_logs' => (bool)($permissions['can_view_logs'] ?? 0)
+            'can_view_logs' => (bool)($permissions['can_view_logs'] ?? 0),
+            'can_view_schedule' => (bool)($permissions['can_view_schedule'] ?? 0),
+            'can_manage_schedule' => (bool)($permissions['can_manage_schedule'] ?? 0),
+            'can_view_cashadvance' => (bool)($permissions['can_view_cashadvance'] ?? 0),
+            'can_approve_cashadvance' => (bool)($permissions['can_approve_cashadvance'] ?? 0),
+            'can_access_settings' => (bool)($permissions['can_access_settings'] ?? 0),
+            'can_access_audit' => (bool)($permissions['can_access_audit'] ?? 0),
+            'can_access_archive' => (bool)($permissions['can_access_archive'] ?? 0)
         ];
         
     } catch (PDOException $e) {
@@ -133,7 +154,9 @@ function getAdminPermissions($db, $user_id = null) {
             'can_view_attendance', 'can_add_attendance', 'can_edit_attendance', 'can_delete_attendance',
             'can_view_payroll', 'can_generate_payroll', 'can_edit_payroll', 'can_delete_payroll',
             'can_view_deductions', 'can_manage_deductions', 'can_view_reports', 'can_export_data',
-            'can_manage_admins', 'can_view_settings', 'can_edit_settings', 'can_view_logs'
+            'can_manage_admins', 'can_view_settings', 'can_edit_settings', 'can_view_logs',
+            'can_view_schedule', 'can_manage_schedule', 'can_view_cashadvance', 'can_approve_cashadvance',
+            'can_access_settings', 'can_access_audit', 'can_access_archive'
         ], false);
     }
 }
@@ -175,40 +198,10 @@ function requirePermission($db, $permission, $error_message = null) {
     }
 }
 
-/**
- * Get worker schedule hours
- * 
- * @param PDO $db Database connection
- * @param int $worker_id Worker ID
- * @return array Array with hours_per_day and days_per_week
- */
-function getWorkerScheduleHours($db, $worker_id) {
-    try {
-        $stmt = $db->prepare("SELECT hours_per_day, days_per_week FROM worker_schedule WHERE worker_id = ? LIMIT 1");
-        $stmt->execute([$worker_id]);
-        $schedule = $stmt->fetch(PDO::FETCH_ASSOC);
-        
-        if ($schedule) {
-            return [
-                'hours_per_day' => (float)$schedule['hours_per_day'],
-                'days_per_week' => (int)$schedule['days_per_week']
-            ];
-        }
-        
-        // Default schedule if not found
-        return [
-            'hours_per_day' => 8.0,
-            'days_per_week' => 6
-        ];
-        
-    } catch (PDOException $e) {
-        error_log("Error fetching worker schedule: " . $e->getMessage());
-        return [
-            'hours_per_day' => 8.0,
-            'days_per_week' => 6
-        ];
-    }
-}
+// Note: getWorkerScheduleHours() is defined in includes/functions.php
+// Note: logActivity() is defined in includes/functions.php
+// Note: getInitials() is defined in includes/functions.php
+// Note: formatCurrency() is defined in includes/functions.php
 
 /**
  * Calculate payroll for a worker
@@ -385,70 +378,6 @@ function updateAdminPermissions($db, $admin_id, $permissions) {
         error_log("Error updating admin permissions: " . $e->getMessage());
         return false;
     }
-}
-
-/**
- * Log admin activity
- * 
- * @param PDO $db Database connection
- * @param int $user_id User ID
- * @param string $action Action performed
- * @param string $module Module name
- * @param int $record_id Related record ID
- * @param string $details Additional details
- */
-function logActivity($db, $user_id, $action, $module, $record_id = null, $details = '') {
-    try {
-        $stmt = $db->prepare("
-            INSERT INTO activity_logs (user_id, action, module, record_id, details, ip_address, user_agent)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-        ");
-        
-        $ip_address = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
-        $user_agent = $_SERVER['HTTP_USER_AGENT'] ?? 'unknown';
-        
-        $stmt->execute([
-            $user_id,
-            $action,
-            $module,
-            $record_id,
-            $details,
-            $ip_address,
-            $user_agent
-        ]);
-    } catch (PDOException $e) {
-        error_log("Error logging activity: " . $e->getMessage());
-    }
-}
-
-/**
- * Get initials from full name
- * 
- * @param string $name Full name
- * @return string Initials
- */
-function getInitials($name) {
-    $words = explode(' ', trim($name));
-    $initials = '';
-    
-    foreach ($words as $word) {
-        if (!empty($word)) {
-            $initials .= strtoupper(substr($word, 0, 1));
-        }
-    }
-    
-    return substr($initials, 0, 2);
-}
-
-/**
- * Format currency
- * 
- * @param float $amount Amount
- * @param string $currency Currency symbol
- * @return string Formatted currency
- */
-function formatCurrency($amount, $currency = '₱') {
-    return $currency . number_format($amount, 2);
 }
 
 /**
