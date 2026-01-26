@@ -1,6 +1,6 @@
 <?php
 /**
- * Admin Sidebar Component - RESTRICTED VERSION
+ * Admin Sidebar Component - FIXED PATHS
  * TrackSite Construction Management System
  */
 

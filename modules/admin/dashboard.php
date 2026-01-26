@@ -1,6 +1,6 @@
 <?php
 /**
- * Admin Dashboard - FIXED (No Redirect Loop)
+ * Admin Dashboard - FIXED (Using Admin Sidebar)
  * TrackSite Construction Management System
  */
 
@@ -69,7 +69,7 @@ try {
 </head>
 <body>
     <div class="container">
-        <?php include __DIR__ . '/../../includes/sidebar.php'; ?>
+        <?php include __DIR__ . '/../../includes/admin_sidebar.php'; ?>
         
         <div class="main">
             <?php include __DIR__ . '/../../includes/topbar.php'; ?>
@@ -183,7 +183,7 @@ try {
                         Quick Actions
                     </div>
                     <div class="quick-actions-grid">
-                        <a href="<?php echo BASE_URL; ?>/modules/super_admin/workers/add.php" class="quick-action-btn">
+                        <a href="<?php echo BASE_URL; ?>/modules/admin/workers/add.php" class="quick-action-btn">
                             <div class="quick-action-icon" style="background: rgba(52, 152, 219, 0.1); color: #3498db;">
                                 <i class="fas fa-user-plus"></i>
                             </div>
@@ -192,7 +192,7 @@ try {
                                 <div class="quick-action-desc">Register new employee</div>
                             </div>
                         </a>
-                        <a href="<?php echo BASE_URL; ?>/modules/super_admin/attendance/index.php" class="quick-action-btn">
+                        <a href="<?php echo BASE_URL; ?>/modules/admin/attendance/index.php" class="quick-action-btn">
                             <div class="quick-action-icon" style="background: rgba(39, 174, 96, 0.1); color: #27ae60;">
                                 <i class="fas fa-clock"></i>
                             </div>
@@ -201,7 +201,7 @@ try {
                                 <div class="quick-action-desc">Record today's attendance</div>
                             </div>
                         </a>
-                        <a href="<?php echo BASE_URL; ?>/modules/super_admin/payroll/index.php" class="quick-action-btn">
+                        <a href="<?php echo BASE_URL; ?>/modules/admin/payroll/index.php" class="quick-action-btn">
                             <div class="quick-action-icon" style="background: rgba(155, 89, 182, 0.1); color: #9b59b6;">
                                 <i class="fas fa-money-check-alt"></i>
                             </div>
@@ -210,7 +210,7 @@ try {
                                 <div class="quick-action-desc">Process payments</div>
                             </div>
                         </a>
-                        <a href="<?php echo BASE_URL; ?>/modules/super_admin/workers/index.php" class="quick-action-btn">
+                        <a href="<?php echo BASE_URL; ?>/modules/admin/workers/index.php" class="quick-action-btn">
                             <div class="quick-action-icon" style="background: rgba(243, 156, 18, 0.1); color: #f39c12;">
                                 <i class="fas fa-users"></i>
                             </div>
