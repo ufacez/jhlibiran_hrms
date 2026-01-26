@@ -1,6 +1,6 @@
 <?php
 /**
- * Session Management Configuration
+ * Session Management Configuration - FIXED FOR ADMIN LEVEL
  * TrackSite Construction Management System
  * 
  * Handles secure session initialization and management
@@ -104,6 +104,25 @@ function isSuperAdmin() {
 }
 
 /**
+ * Check if user is admin - NEW
+ * 
+ * @return bool True if admin, false otherwise
+ */
+function isAdmin() {
+    return getCurrentUserLevel() === USER_LEVEL_ADMIN;
+}
+
+/**
+ * Check if user is admin or super admin - NEW
+ * 
+ * @return bool True if admin or super admin, false otherwise
+ */
+function isAdminOrHigher() {
+    $level = getCurrentUserLevel();
+    return $level === USER_LEVEL_ADMIN || $level === USER_LEVEL_SUPER_ADMIN;
+}
+
+/**
  * Check if user is worker
  * 
  * @return bool True if worker, false otherwise
@@ -113,7 +132,7 @@ function isWorker() {
 }
 
 /**
- * Set user session after login
+ * Set user session after login - FIXED FOR ADMIN
  * 
  * @param array $user User data array
  * @return bool True on success
@@ -140,7 +159,13 @@ function setUserSession($user) {
         $_SESSION['worker_id'] = $user['worker_id'];
         $_SESSION['worker_code'] = $user['worker_code'] ?? '';
         $_SESSION['full_name'] = ($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? '');
+        
     } elseif ($user['user_level'] === USER_LEVEL_SUPER_ADMIN) {
+        $_SESSION['admin_id'] = $user['admin_id'] ?? null;
+        $_SESSION['full_name'] = ($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? '');
+        
+    } elseif ($user['user_level'] === USER_LEVEL_ADMIN) {
+        // NEW: Handle admin level
         $_SESSION['admin_id'] = $user['admin_id'] ?? null;
         $_SESSION['full_name'] = ($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? '');
     }
@@ -191,6 +216,24 @@ function requireSuperAdmin($redirect_url = '') {
     requireLogin($redirect_url);
     
     if (!isSuperAdmin()) {
+        if (empty($redirect_url)) {
+            $redirect_url = BASE_URL . '/modules/worker/dashboard.php';
+        }
+        
+        header('Location: ' . $redirect_url);
+        exit();
+    }
+}
+
+/**
+ * Require admin or super admin access - NEW
+ * 
+ * @param string $redirect_url URL to redirect to if access denied
+ */
+function requireAdminOrHigher($redirect_url = '') {
+    requireLogin($redirect_url);
+    
+    if (!isAdminOrHigher()) {
         if (empty($redirect_url)) {
             $redirect_url = BASE_URL . '/modules/worker/dashboard.php';
         }

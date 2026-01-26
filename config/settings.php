@@ -137,6 +137,7 @@ if (DEBUG_MODE) {
 // USER LEVELS
 // ============================================
 define('USER_LEVEL_SUPER_ADMIN', 'super_admin');
+define('USER_LEVEL_ADMIN', 'admin');
 define('USER_LEVEL_WORKER', 'worker');
 
 // ============================================

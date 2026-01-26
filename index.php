@@ -1,39 +1,32 @@
 <?php
 /**
- * Main Entry Point
+ * Main Entry Point - UPDATED WITH ADMIN LEVEL
  * TrackSite Construction Management System
- * 
- * Redirects users to appropriate page based on login status
  */
 
-// Define constant to allow includes
 define('TRACKSITE_INCLUDED', true);
 
-// Include required files
 require_once __DIR__ . '/config/database.php';
 require_once __DIR__ . '/config/settings.php';
 require_once __DIR__ . '/config/session.php';
 require_once __DIR__ . '/includes/functions.php';
 
-// Check if user is logged in
 if (isLoggedIn()) {
+    $user_level = getCurrentUserLevel();
+    
     // Redirect based on user level
-    if (isSuperAdmin()) {
+    if ($user_level === USER_LEVEL_SUPER_ADMIN) {
         redirect(BASE_URL . '/modules/super_admin/dashboard.php');
-    } else if (isWorker()) {
+    } elseif ($user_level === USER_LEVEL_ADMIN) {
+        // NEW: Admin redirect
+        redirect(BASE_URL . '/modules/admin/dashboard.php');
+    } elseif ($user_level === USER_LEVEL_WORKER) {
         redirect(BASE_URL . '/modules/worker/dashboard.php');
     } else {
         // Unknown user level, logout for safety
         redirect(BASE_URL . '/logout.php');
     }
 } else {
-    // Not logged in, redirect to login page
     redirect(BASE_URL . '/login.php');
 }
-
-// In any PHP file with database access
-require_once 'includes/notifications.php';  
-
-// Test notification
-
 ?>
