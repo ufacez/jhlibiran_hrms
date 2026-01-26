@@ -32,7 +32,108 @@ $flash = getFlashMessage();
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
     
-    if ($action === 'update_profile') {
+    if ($action === 'upload_profile_picture') {
+        try {
+            if (!isset($_FILES['profile_picture']) || $_FILES['profile_picture']['error'] !== UPLOAD_ERR_OK) {
+                throw new Exception('Please select a valid image file');
+            }
+            
+            $file = $_FILES['profile_picture'];
+            
+            // Validate file type
+            $allowed_types = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+            $finfo = finfo_open(FILEINFO_MIME_TYPE);
+            $mime_type = finfo_file($finfo, $file['tmp_name']);
+            finfo_close($finfo);
+            
+            if (!in_array($mime_type, $allowed_types)) {
+                throw new Exception('Invalid file type. Only JPG, PNG, and GIF are allowed.');
+            }
+            
+            // Validate file size (5MB max)
+            if ($file['size'] > 5242880) {
+                throw new Exception('File size must be less than 5MB');
+            }
+            
+            // Create upload directory if not exists
+            $upload_dir = UPLOADS_PATH;
+            if (!is_dir($upload_dir)) {
+                mkdir($upload_dir, 0755, true);
+            }
+            
+            // Generate unique filename
+            $extension = pathinfo($file['name'], PATHINFO_EXTENSION);
+            $new_filename = 'admin_' . $user_id . '_' . time() . '.' . $extension;
+            $target_path = $upload_dir . '/' . $new_filename;
+            
+            // Get the appropriate profile table
+            $profile_table = ($user_level === 'super_admin') ? 'super_admin_profile' : 'admin_profile';
+            
+            // Delete old profile picture if exists
+            $stmt = $db->prepare("SELECT profile_image FROM {$profile_table} WHERE user_id = ?");
+            $stmt->execute([$user_id]);
+            $old_image = $stmt->fetchColumn();
+            
+            if ($old_image && file_exists($upload_dir . '/' . $old_image)) {
+                unlink($upload_dir . '/' . $old_image);
+            }
+            
+            // Move uploaded file
+            if (!move_uploaded_file($file['tmp_name'], $target_path)) {
+                throw new Exception('Failed to upload file');
+            }
+            
+            // Update database
+            $stmt = $db->prepare("UPDATE {$profile_table} SET profile_image = ?, updated_at = NOW() WHERE user_id = ?");
+            $stmt->execute([$new_filename, $user_id]);
+            
+            logActivity($db, $user_id, 'update_profile_picture', 'users', $user_id, 'Updated profile picture');
+            
+            setFlashMessage('Profile picture updated successfully!', 'success');
+            redirect(BASE_URL . '/modules/admin/profile.php');
+            
+        } catch (Exception $e) {
+            error_log("Profile Picture Upload Error: " . $e->getMessage());
+            setFlashMessage($e->getMessage(), 'error');
+        }
+    }
+    
+    elseif ($action === 'remove_profile_picture') {
+        try {
+            // Get the appropriate profile table
+            $profile_table = ($user_level === 'super_admin') ? 'super_admin_profile' : 'admin_profile';
+            
+            // Get current profile image
+            $stmt = $db->prepare("SELECT profile_image FROM {$profile_table} WHERE user_id = ?");
+            $stmt->execute([$user_id]);
+            $old_image = $stmt->fetchColumn();
+            
+            if ($old_image) {
+                $file_path = UPLOADS_PATH . '/' . $old_image;
+                if (file_exists($file_path)) {
+                    unlink($file_path);
+                }
+                
+                // Update database
+                $stmt = $db->prepare("UPDATE {$profile_table} SET profile_image = NULL, updated_at = NOW() WHERE user_id = ?");
+                $stmt->execute([$user_id]);
+                
+                logActivity($db, $user_id, 'remove_profile_picture', 'users', $user_id, 'Removed profile picture');
+                
+                setFlashMessage('Profile picture removed successfully!', 'success');
+            } else {
+                setFlashMessage('No profile picture to remove', 'info');
+            }
+            
+            redirect(BASE_URL . '/modules/admin/profile.php');
+            
+        } catch (Exception $e) {
+            error_log("Profile Picture Removal Error: " . $e->getMessage());
+            setFlashMessage('Failed to remove profile picture', 'error');
+        }
+    }
+    
+    elseif ($action === 'update_profile') {
         try {
             $db->beginTransaction();
             
@@ -131,6 +232,9 @@ try {
         $profile = $stmt->fetch();
     }
     
+    // Get profile image
+    $profile_image = $profile['profile_image'] ?? null;
+    
     // Calculate account duration
     $created_date = new DateTime($user['created_at']);
     $today = new DateTime();
@@ -181,6 +285,113 @@ try {
             font-weight: 700;
             color: #1a1a1a;
             border: 5px solid rgba(255, 255, 255, 0.5);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .profile-header-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .profile-picture-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            padding: 30px;
+            background: #f8f9fa;
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+        
+        .profile-picture-preview {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #DAA520, #B8860B);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 48px;
+            font-weight: 700;
+            color: #1a1a1a;
+            border: 5px solid #fff;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .profile-picture-preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .profile-picture-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        
+        .btn-upload {
+            padding: 10px 20px;
+            background: linear-gradient(135deg, #DAA520, #B8860B);
+            color: #1a1a1a;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-upload:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(218, 165, 32, 0.3);
+        }
+        
+        .btn-remove {
+            padding: 10px 20px;
+            background: #dc3545;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-remove:hover {
+            background: #c82333;
+            transform: translateY(-2px);
+        }
+        
+        .file-input-wrapper {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+        }
+        
+        .file-input-wrapper input[type=file] {
+            position: absolute;
+            left: -9999px;
+        }
+        
+        .upload-hint {
+            text-align: center;
+            color: #666;
+            font-size: 13px;
+            margin-top: 10px;
         }
         
         .profile-header-info h1 {
@@ -320,7 +531,7 @@ try {
         <?php include __DIR__ . '/../../includes/admin_sidebar.php'; ?>
         
         <div class="main">
-            <?php include __DIR__ . '/../../includes/topbar.php'; ?>
+            <?php include __DIR__ . '/../../includes/admin_topbar.php'; ?>
             
             <div class="dashboard-content">
                 
@@ -336,7 +547,12 @@ try {
                 <div class="profile-header-card">
                     <div class="profile-header-content">
                         <div class="profile-header-avatar">
-                            <?php echo getInitials($full_name); ?>
+                            <?php if ($profile_image && file_exists(UPLOADS_PATH . '/' . $profile_image)): ?>
+                                <img src="<?php echo UPLOADS_URL . '/' . htmlspecialchars($profile_image); ?>" 
+                                     alt="<?php echo htmlspecialchars($full_name); ?>">
+                            <?php else: ?>
+                                <?php echo getInitials($full_name); ?>
+                            <?php endif; ?>
                         </div>
                         <div class="profile-header-info">
                             <h1><?php echo htmlspecialchars($full_name); ?></h1>
@@ -474,6 +690,54 @@ try {
                 
                 <!-- Edit Profile Tab -->
                 <div class="tab-content" id="editTab">
+                    <!-- Profile Picture Section -->
+                    <div class="form-card">
+                        <h3 class="form-section-title">
+                            <i class="fas fa-camera"></i> Profile Picture
+                        </h3>
+                        
+                        <div class="profile-picture-section">
+                            <div class="profile-picture-preview">
+                                <?php if ($profile_image && file_exists(UPLOADS_PATH . '/' . $profile_image)): ?>
+                                    <img src="<?php echo UPLOADS_URL . '/' . htmlspecialchars($profile_image); ?>" 
+                                         alt="Profile Picture" id="profilePreview">
+                                <?php else: ?>
+                                    <span id="profileInitials"><?php echo getInitials($full_name); ?></span>
+                                <?php endif; ?>
+                            </div>
+                            
+                            <div class="profile-picture-actions">
+                                <form method="POST" enctype="multipart/form-data" id="uploadPictureForm" style="display: inline;">
+                                    <input type="hidden" name="action" value="upload_profile_picture">
+                                    <div class="file-input-wrapper">
+                                        <label for="profilePicture" class="btn-upload">
+                                            <i class="fas fa-camera"></i> Choose Photo
+                                        </label>
+                                        <input type="file" 
+                                               id="profilePicture" 
+                                               name="profile_picture" 
+                                               accept="image/jpeg,image/jpg,image/png,image/gif"
+                                               onchange="previewAndSubmit(this)">
+                                    </div>
+                                </form>
+                                
+                                <?php if ($profile_image): ?>
+                                <form method="POST" style="display: inline;" onsubmit="return confirm('Are you sure you want to remove your profile picture?')">
+                                    <input type="hidden" name="action" value="remove_profile_picture">
+                                    <button type="submit" class="btn-remove">
+                                        <i class="fas fa-trash"></i> Remove Photo
+                                    </button>
+                                </form>
+                                <?php endif; ?>
+                            </div>
+                            
+                            <div class="upload-hint">
+                                <i class="fas fa-info-circle"></i> 
+                                JPG, PNG, or GIF • Max 5MB • Recommended: Square image (500x500px)
+                            </div>
+                        </div>
+                    </div>
+                    
                     <form method="POST" action="">
                         <input type="hidden" name="action" value="update_profile">
                         
@@ -629,6 +893,55 @@ try {
                 return false;
             }
         });
+        
+        // Profile picture preview and auto-submit
+        function previewAndSubmit(input) {
+            if (input.files && input.files[0]) {
+                const file = input.files[0];
+                
+                // Validate file size (5MB)
+                if (file.size > 5242880) {
+                    alert('File size must be less than 5MB');
+                    input.value = '';
+                    return;
+                }
+                
+                // Validate file type
+                const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+                if (!allowedTypes.includes(file.type)) {
+                    alert('Invalid file type. Only JPG, PNG, and GIF are allowed.');
+                    input.value = '';
+                    return;
+                }
+                
+                // Preview image
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const preview = document.getElementById('profilePreview');
+                    const initials = document.getElementById('profileInitials');
+                    
+                    if (preview) {
+                        preview.src = e.target.result;
+                    } else if (initials) {
+                        initials.outerHTML = '<img src="' + e.target.result + '" alt="Profile Picture" id="profilePreview">';
+                    } else {
+                        const container = document.querySelector('.profile-picture-preview');
+                        container.innerHTML = '<img src="' + e.target.result + '" alt="Profile Picture" id="profilePreview">';
+                    }
+                    
+                    // Auto-submit form
+                    setTimeout(() => {
+                        if (confirm('Upload this photo as your profile picture?')) {
+                            document.getElementById('uploadPictureForm').submit();
+                        } else {
+                            input.value = '';
+                            location.reload();
+                        }
+                    }, 100);
+                };
+                reader.readAsDataURL(file);
+            }
+        }
     </script>
 </body>
 </html>

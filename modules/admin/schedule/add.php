@@ -162,7 +162,7 @@ try {
         <?php include __DIR__ . '/../../../includes/admin_sidebar.php'; ?>
         
         <div class="main">
-            <?php include __DIR__ . '/../../../includes/topbar.php'; ?>
+           <?php include __DIR__ . '/../../../includes/admin_topbar.php'; ?>
             
             <div class="schedule-content">
                 
