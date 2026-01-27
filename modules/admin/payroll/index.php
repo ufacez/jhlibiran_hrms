@@ -39,104 +39,202 @@ $permissions = getAdminPermissions($db);
 $can_edit = $permissions['can_edit_payroll'] ?? false;
 $can_generate = $permissions['can_generate_payroll'] ?? false;
 
-// Get date range filter
-$date_range = isset($_GET['date_range']) ? sanitizeString($_GET['date_range']) : date('Y-m-01');
-$period = getPayPeriod($date_range);
-$period_start = $period['start'];
-$period_end = $period['end'];
+// Get filter parameters
+$position_filter = isset($_GET['position']) ? sanitizeString($_GET['position']) : '';
+$status_filter = isset($_GET['status']) ? sanitizeString($_GET['status']) : '';
+$date_range = isset($_GET['date_range']) ? sanitizeString($_GET['date_range']) : date('Y-m-d');
+$search_query = isset($_GET['search']) ? sanitizeString($_GET['search']) : '';
 
-// Fetch payroll data
+// Calculate pay period (15 days)
+$current_date = new DateTime($date_range);
+$day_of_month = (int)$current_date->format('d');
+
+if ($day_of_month <= 15) {
+    $period_start = $current_date->format('Y-m-01');
+    $period_end = $current_date->format('Y-m-15');
+} else {
+    $period_start = $current_date->format('Y-m-16');
+    $period_end = $current_date->format('Y-m-t');
+}
+
+// Build query
+$sql_workers = "SELECT DISTINCT
+    w.worker_id,
+    w.worker_code,
+    w.first_name,
+    w.last_name,
+    w.position,
+    w.daily_rate
+FROM workers w
+WHERE w.employment_status = 'active' 
+AND w.is_archived = FALSE";
+
+$params = [];
+
+if (!empty($position_filter)) {
+    $sql_workers .= " AND w.position = ?";
+    $params[] = $position_filter;
+}
+
+if (!empty($search_query)) {
+    $sql_workers .= " AND (w.first_name LIKE ? OR w.last_name LIKE ? OR w.worker_code LIKE ?)";
+    $search_param = '%' . $search_query . '%';
+    $params[] = $search_param;
+    $params[] = $search_param;
+    $params[] = $search_param;
+}
+
+$sql_workers .= " ORDER BY w.first_name, w.last_name";
+
 try {
-    $sql = "SELECT 
-        w.worker_id,
-        w.worker_code,
-        w.first_name,
-        w.last_name,
-        w.position,
-        w.daily_rate,
-        COALESCE(COUNT(DISTINCT CASE 
-            WHEN a.status IN ('present', 'late', 'overtime') 
-            AND a.is_archived = FALSE 
-            THEN a.attendance_date 
-        END), 0) as days_worked,
-        COALESCE(SUM(CASE 
-            WHEN a.is_archived = FALSE 
-            THEN a.hours_worked 
-            ELSE 0 
-        END), 0) as total_hours,
-        COALESCE(SUM(CASE 
-            WHEN a.is_archived = FALSE 
-            THEN a.overtime_hours 
-            ELSE 0 
-        END), 0) as overtime_hours,
-        COALESCE((
-            SELECT SUM(d.amount) 
-            FROM deductions d
-            WHERE d.worker_id = w.worker_id 
-            AND d.is_active = 1
-            AND d.status = 'applied'
-            AND (
-                d.frequency = 'per_payroll' 
-                OR (d.frequency = 'one_time' AND d.applied_count = 0)
-            )
-        ), 0) as total_deductions,
-        COALESCE(p.payroll_id, NULL) as payroll_id,
-        COALESCE(p.gross_pay, 0) as gross_pay,
-        COALESCE(p.net_pay, 0) as net_pay,
-        COALESCE(p.payment_status, 'unpaid') as payment_status,
-        COALESCE(p.payment_date, '') as payment_date
-    FROM workers w
-    LEFT JOIN attendance a ON w.worker_id = a.worker_id 
-        AND a.attendance_date BETWEEN ? AND ?
-    LEFT JOIN payroll p ON w.worker_id = p.worker_id 
-        AND p.pay_period_start = ? 
-        AND p.pay_period_end = ?
-        AND (p.is_archived = FALSE OR p.is_archived IS NULL)
-    WHERE w.employment_status = 'active' 
-    AND w.is_archived = FALSE
-    GROUP BY w.worker_id, w.worker_code, w.first_name, w.last_name, 
-             w.position, w.daily_rate, p.payroll_id, p.gross_pay, p.net_pay, 
-             p.payment_status, p.payment_date
-    ORDER BY w.first_name, w.last_name";
+    // Get workers
+    $stmt = $db->prepare($sql_workers);
+    $stmt->execute($params);
+    $workers = $stmt->fetchAll();
     
-    $stmt = $db->prepare($sql);
-    $stmt->execute([
-        $period_start, $period_end,
-        $period_start, $period_end
-    ]);
-    $payroll_data = $stmt->fetchAll();
-
-    // Calculate gross pay for each worker if not already in payroll
-    foreach ($payroll_data as &$row) {
-        if ($row['gross_pay'] == 0 && $row['total_hours'] > 0) {
-            $schedule = getWorkerScheduleHours($db, $row['worker_id']);
-            $hourly_rate = $row['daily_rate'] / $schedule['hours_per_day'];
-            $row['gross_pay'] = $hourly_rate * $row['total_hours'];
-            $row['net_pay'] = $row['gross_pay'] - $row['total_deductions'];
+    $payroll_records = [];
+    
+    // For each worker, get their payroll data
+    foreach ($workers as $worker) {
+        $worker_id = $worker['worker_id'];
+        
+        // Check if payroll exists
+        $stmt = $db->prepare("SELECT 
+            payroll_id,
+            days_worked,
+            total_hours,
+            overtime_hours,
+            gross_pay,
+            total_deductions,
+            payment_status
+        FROM payroll 
+        WHERE worker_id = ? 
+        AND pay_period_start = ? 
+        AND pay_period_end = ?
+        AND is_archived = FALSE
+        LIMIT 1");
+        $stmt->execute([$worker_id, $period_start, $period_end]);
+        $payroll = $stmt->fetch();
+        
+        // Build the record
+        $record = [
+            'worker_id' => $worker['worker_id'],
+            'worker_code' => $worker['worker_code'],
+            'first_name' => $worker['first_name'],
+            'last_name' => $worker['last_name'],
+            'position' => $worker['position'],
+            'daily_rate' => $worker['daily_rate']
+        ];
+        
+        if ($payroll) {
+            // Has existing payroll
+            $record['payroll_id'] = $payroll['payroll_id'];
+            $record['days_worked'] = $payroll['days_worked'];
+            $record['total_hours'] = $payroll['total_hours'];
+            $record['overtime_hours'] = $payroll['overtime_hours'];
+            $record['gross_pay'] = $payroll['gross_pay'];
+            $record['total_deductions'] = $payroll['total_deductions'];
+            $record['payment_status'] = $payroll['payment_status'];
+        } else {
+            // Calculate from attendance
+            $stmt = $db->prepare("SELECT 
+                COUNT(DISTINCT CASE 
+                    WHEN status IN ('present', 'late', 'overtime') 
+                    THEN attendance_date 
+                END) as days_worked,
+                COALESCE(SUM(hours_worked), 0) as total_hours,
+                COALESCE(SUM(overtime_hours), 0) as overtime_hours
+                FROM attendance 
+                WHERE worker_id = ? 
+                AND attendance_date BETWEEN ? AND ?
+                AND is_archived = FALSE");
+            $stmt->execute([$worker_id, $period_start, $period_end]);
+            $attendance = $stmt->fetch();
+            
+            $record['payroll_id'] = null;
+            $record['days_worked'] = $attendance['days_worked'] ?? 0;
+            $record['total_hours'] = $attendance['total_hours'] ?? 0;
+            $record['overtime_hours'] = $attendance['overtime_hours'] ?? 0;
+            
+            // Calculate gross pay
+            $schedule = getWorkerScheduleHours($db, $worker_id);
+            $hourly_rate = $worker['daily_rate'] / $schedule['hours_per_day'];
+            $record['gross_pay'] = $hourly_rate * $record['total_hours'];
+            
+            // Get deductions
+            $stmt = $db->prepare("SELECT COALESCE(SUM(amount), 0) as total_deductions 
+                FROM deductions 
+                WHERE worker_id = ? 
+                AND is_active = 1
+                AND status = 'applied'
+                AND (
+                    frequency = 'per_payroll'
+                    OR (frequency = 'one_time' AND applied_count = 0)
+                )");
+            $stmt->execute([$worker_id]);
+            $deductions = $stmt->fetch();
+            $record['total_deductions'] = $deductions['total_deductions'] ?? 0;
+            
+            $record['payment_status'] = 'unpaid';
         }
+        
+        // Get deduction count
+        $stmt = $db->prepare("SELECT COUNT(*) as count
+            FROM deductions 
+            WHERE worker_id = ? 
+            AND is_active = 1
+            AND status = 'applied'
+            AND (
+                frequency = 'per_payroll'
+                OR (frequency = 'one_time' AND applied_count = 0)
+            )");
+        $stmt->execute([$worker_id]);
+        $deduction_count = $stmt->fetch();
+        $record['deduction_count'] = $deduction_count['count'] ?? 0;
+        
+        // Apply status filter
+        if (!empty($status_filter)) {
+            if ($status_filter === 'paid' && $record['payment_status'] !== 'paid') {
+                continue;
+            } elseif ($status_filter === 'unpaid' && !in_array($record['payment_status'], ['unpaid', 'pending', null])) {
+                continue;
+            } elseif ($status_filter === 'pending' && $record['payment_status'] !== 'pending') {
+                continue;
+            }
+        }
+        
+        $payroll_records[] = $record;
     }
     
 } catch (PDOException $e) {
     error_log("Payroll Query Error: " . $e->getMessage());
-    $payroll_data = [];
+    $payroll_records = [];
 }
 
 // Calculate totals
 $total_gross = 0;
 $total_deductions = 0;
 $total_net = 0;
-$total_workers = count($payroll_data);
 $paid_count = 0;
+$total_workers = count($payroll_records);
 
-foreach ($payroll_data as $row) {
-    $total_gross += $row['gross_pay'];
-    $total_deductions += $row['total_deductions'];
-    $total_net += $row['net_pay'];
-    if ($row['payment_status'] === 'paid') {
+foreach ($payroll_records as $record) {
+    $net_pay = $record['gross_pay'] - $record['total_deductions'];
+    $total_gross += $record['gross_pay'];
+    $total_deductions += $record['total_deductions'];
+    $total_net += $net_pay;
+    if ($record['payment_status'] === 'paid') {
         $paid_count++;
     }
 }
 
+// Get unique positions
+try {
+    $stmt = $db->query("SELECT DISTINCT position FROM workers WHERE employment_status = 'active' AND is_archived = FALSE ORDER BY position");
+    $positions = $stmt->fetchAll(PDO::FETCH_COLUMN);
+} catch (PDOException $e) {
+    $positions = [];
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -169,8 +267,8 @@ foreach ($payroll_data as $row) {
                 
                 <div class="page-header">
                     <div class="header-left">
-                        <h1><i class="fas fa-money-check-alt"></i> Payroll Management</h1>
-                        <p class="subtitle">Process and manage worker payroll for <?php echo date('F d', strtotime($period_start)); ?> - <?php echo date('F d, Y', strtotime($period_end)); ?></p>
+                        <h1>Payroll Management</h1>
+                        <p class="subtitle">Manage worker payroll for <?php echo date('M d', strtotime($period_start)); ?> - <?php echo date('M d, Y', strtotime($period_end)); ?></p>
                     </div>
                     <div class="header-actions">
                         <?php if ($can_generate): ?>
@@ -180,195 +278,222 @@ foreach ($payroll_data as $row) {
                         </a>
                         <?php endif; ?>
                         
-                        <div class="dropdown">
-                            <button class="btn btn-secondary dropdown-toggle">
-                                <i class="fas fa-download"></i> Export
+                        <div class="btn-group">
+                            <button class="btn btn-secondary" onclick="toggleExportMenu(event)">
+                                <i class="fas fa-download"></i> Export <i class="fas fa-caret-down"></i>
                             </button>
-                            <div class="dropdown-menu">
-                                <a href="<?php echo BASE_URL; ?>/modules/admin/payroll/export.php?start=<?php echo $period_start; ?>&end=<?php echo $period_end; ?>&format=csv" class="dropdown-item">
+                            <div class="export-menu" id="exportMenu">
+                                <a href="<?php echo BASE_URL; ?>/modules/admin/payroll/export.php?start=<?php echo $period_start; ?>&end=<?php echo $period_end; ?>&format=csv" class="export-option">
                                     <i class="fas fa-file-csv"></i> Export as CSV
                                 </a>
-                                <a href="<?php echo BASE_URL; ?>/modules/admin/payroll/export.php?start=<?php echo $period_start; ?>&end=<?php echo $period_end; ?>&format=excel" class="dropdown-item">
+                                <a href="<?php echo BASE_URL; ?>/modules/admin/payroll/export.php?start=<?php echo $period_start; ?>&end=<?php echo $period_end; ?>&format=excel" class="export-option">
                                     <i class="fas fa-file-excel"></i> Export as Excel
                                 </a>
-                                <a href="<?php echo BASE_URL; ?>/modules/admin/payroll/export.php?start=<?php echo $period_start; ?>&end=<?php echo $period_end; ?>&format=pdf" class="dropdown-item" target="_blank">
-                                    <i class="fas fa-file-pdf"></i> Export as PDF
+                                <a href="<?php echo BASE_URL; ?>/modules/admin/payroll/export.php?start=<?php echo $period_start; ?>&end=<?php echo $period_end; ?>&format=pdf" class="export-option" target="_blank">
+                                    <i class="fas fa-file-pdf"></i> Print / PDF
                                 </a>
                             </div>
                         </div>
                     </div>
                 </div>
                 
-                <!-- Summary Cards -->
-                <div class="stats-grid" style="margin-bottom: 30px;">
+                <!-- Statistics Cards -->
+                <div class="payroll-stats">
                     <div class="stat-card card-blue">
-                        <div class="stat-header">
-                            <div>
-                                <div class="card-label">Total Workers</div>
-                                <div class="card-value"><?php echo $total_workers; ?></div>
-                                <div class="card-change">
-                                    <i class="fas fa-users"></i>
-                                    <span>Active employees</span>
-                                </div>
-                            </div>
-                            <div class="stat-icon">
-                                <i class="fas fa-users"></i>
-                            </div>
+                        <div class="stat-icon">
+                            <i class="fas fa-money-bill-wave"></i>
                         </div>
-                    </div>
-                    
-                    <div class="stat-card card-green">
-                        <div class="stat-header">
-                            <div>
-                                <div class="card-label">Total Gross Pay</div>
-                                <div class="card-value">₱<?php echo number_format($total_gross, 2); ?></div>
-                                <div class="card-change">
-                                    <i class="fas fa-money-bill-wave"></i>
-                                    <span>Before deductions</span>
-                                </div>
-                            </div>
-                            <div class="stat-icon">
-                                <i class="fas fa-money-bill-wave"></i>
-                            </div>
+                        <div class="stat-info">
+                            <div class="stat-label">Total Gross Pay</div>
+                            <div class="stat-value">₱<?php echo number_format($total_gross, 2); ?></div>
+                            <div class="stat-sublabel">Current Period</div>
                         </div>
                     </div>
                     
                     <div class="stat-card card-orange">
-                        <div class="stat-header">
-                            <div>
-                                <div class="card-label">Total Deductions</div>
-                                <div class="card-value">₱<?php echo number_format($total_deductions, 2); ?></div>
-                                <div class="card-change">
-                                    <i class="fas fa-minus-circle"></i>
-                                    <span>Total withheld</span>
-                                </div>
-                            </div>
-                            <div class="stat-icon">
-                                <i class="fas fa-minus-circle"></i>
-                            </div>
+                        <div class="stat-icon">
+                            <i class="fas fa-minus-circle"></i>
+                        </div>
+                        <div class="stat-info">
+                            <div class="stat-label">Total Deductions</div>
+                            <div class="stat-value">₱<?php echo number_format($total_deductions, 2); ?></div>
+                            <div class="stat-sublabel">Active Deductions</div>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card card-green">
+                        <div class="stat-icon">
+                            <i class="fas fa-hand-holding-usd"></i>
+                        </div>
+                        <div class="stat-info">
+                            <div class="stat-label">Net Payroll</div>
+                            <div class="stat-value">₱<?php echo number_format($total_net, 2); ?></div>
+                            <div class="stat-sublabel">Total Payout</div>
                         </div>
                     </div>
                     
                     <div class="stat-card card-purple">
-                        <div class="stat-header">
-                            <div>
-                                <div class="card-label">Total Net Pay</div>
-                                <div class="card-value">₱<?php echo number_format($total_net, 2); ?></div>
-                                <div class="card-change change-positive">
-                                    <i class="fas fa-check-circle"></i>
-                                    <span><?php echo $paid_count; ?> paid</span>
-                                </div>
-                            </div>
-                            <div class="stat-icon">
-                                <i class="fas fa-hand-holding-usd"></i>
-                            </div>
+                        <div class="stat-icon">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <div class="stat-info">
+                            <div class="stat-label">Workers Paid</div>
+                            <div class="stat-value"><?php echo $paid_count; ?>/<?php echo $total_workers; ?></div>
+                            <div class="stat-sublabel">Payment Status</div>
                         </div>
                     </div>
                 </div>
                 
-                <!-- Filter Section -->
+                <!-- Filters -->
                 <div class="filter-card">
-                    <form method="GET" action="">
+                    <form method="GET" action="" id="filterForm">
                         <div class="filter-row">
                             <div class="filter-group">
-                                <label><i class="fas fa-calendar"></i> Pay Period</label>
-                                <input type="date" name="date_range" value="<?php echo htmlspecialchars($date_range); ?>" 
-                                       onchange="this.form.submit()">
-                                <small>Select any date within the pay period</small>
+                                <label>Position</label>
+                                <select name="position" onchange="document.getElementById('filterForm').submit()">
+                                    <option value="">All Positions</option>
+                                    <?php foreach ($positions as $pos): ?>
+                                        <option value="<?php echo htmlspecialchars($pos); ?>" 
+                                                <?php echo $position_filter === $pos ? 'selected' : ''; ?>>
+                                            <?php echo htmlspecialchars($pos); ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
                             </div>
                             
                             <div class="filter-group">
-                                <label><i class="fas fa-info-circle"></i> Period Info</label>
-                                <div style="padding: 8px 0; font-weight: 600; color: #1a1a1a;">
-                                    <?php echo date('M d', strtotime($period_start)); ?> - <?php echo date('M d, Y', strtotime($period_end)); ?>
-                                </div>
-                                <small><?php echo getDaysInPeriod($period_start, $period_end); ?> days</small>
+                                <label>Payment Status</label>
+                                <select name="status" onchange="document.getElementById('filterForm').submit()">
+                                    <option value="">All Status</option>
+                                    <option value="paid" <?php echo $status_filter === 'paid' ? 'selected' : ''; ?>>Paid</option>
+                                    <option value="pending" <?php echo $status_filter === 'pending' ? 'selected' : ''; ?>>Pending</option>
+                                    <option value="unpaid" <?php echo $status_filter === 'unpaid' ? 'selected' : ''; ?>>Unpaid</option>
+                                </select>
                             </div>
+                            
+                            <div class="filter-group">
+                                <label>Date Range</label>
+                                <input type="date" name="date_range" value="<?php echo htmlspecialchars($date_range); ?>" onchange="document.getElementById('filterForm').submit()">
+                            </div>
+                            
+                            <div class="filter-group" style="flex: 2;">
+                                <label>Search</label>
+                                <input type="text" 
+                                       name="search" 
+                                       value="<?php echo htmlspecialchars($search_query); ?>"
+                                       placeholder="Search payroll...">
+                            </div>
+                            
+                            <button type="submit" class="btn btn-filter">
+                                <i class="fas fa-filter"></i> Apply
+                            </button>
+                            
+                            <?php if (!empty($position_filter) || !empty($status_filter) || !empty($search_query) || $date_range !== date('Y-m-d')): ?>
+                            <button type="button" 
+                                    class="btn btn-secondary" 
+                                    onclick="window.location.href='index.php'">
+                                <i class="fas fa-times"></i> Clear
+                            </button>
+                            <?php endif; ?>
                         </div>
                     </form>
                 </div>
                 
                 <!-- Payroll Table -->
-                <div class="table-card">
-                    <div class="table-header">
-                        <h3><i class="fas fa-list"></i> Payroll List</h3>
-                        <div class="table-actions">
-                            <input type="text" 
-                                   id="searchInput" 
-                                   class="search-input" 
-                                   placeholder="Search workers...">
-                        </div>
-                    </div>
+                <div class="payroll-table-card">
                     
-                    <div class="table-responsive">
-                        <table class="data-table">
+                    <div class="table-wrapper">
+                        <table class="payroll-table">
                             <thead>
                                 <tr>
-                                    <th>Worker Code</th>
-                                    <th>Name</th>
+                                    <th>Worker</th>
                                     <th>Position</th>
-                                    <th style="text-align: center;">Days</th>
-                                    <th style="text-align: center;">Hours</th>
-                                    <th style="text-align: right;">Gross Pay</th>
-                                    <th style="text-align: right;">Deductions</th>
-                                    <th style="text-align: right;">Net Pay</th>
-                                    <th style="text-align: center;">Status</th>
-                                    <th style="text-align: center;">Actions</th>
+                                    <th>Days Worked</th>
+                                    <th>Gross Pay</th>
+                                    <th>Deductions</th>
+                                    <th>Net Pay</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
                                 </tr>
                             </thead>
-                            <tbody id="payrollTableBody">
-                                <?php if (empty($payroll_data)): ?>
+                            <tbody>
+                                <?php if (empty($payroll_records)): ?>
                                 <tr>
-                                    <td colspan="10" style="text-align: center; padding: 40px;">
-                                        <i class="fas fa-inbox" style="font-size: 48px; color: #ddd; margin-bottom: 10px; display: block;"></i>
-                                        <p style="color: #999; margin: 0;">No active workers found</p>
+                                    <td colspan="8" class="no-data">
+                                        <i class="fas fa-money-check-alt"></i>
+                                        <p>No payroll records found</p>
+                                        <?php if ($can_generate): ?>
+                                        <button class="btn btn-sm btn-primary" onclick="window.location.href='generate.php?start=<?php echo $period_start; ?>&end=<?php echo $period_end; ?>'">
+                                            <i class="fas fa-calculator"></i> Generate Payroll
+                                        </button>
+                                        <?php endif; ?>
                                     </td>
                                 </tr>
                                 <?php else: ?>
-                                    <?php foreach ($payroll_data as $row): ?>
-                                    <tr data-worker-name="<?php echo strtolower($row['first_name'] . ' ' . $row['last_name']); ?>" 
-                                        data-worker-code="<?php echo strtolower($row['worker_code']); ?>">
-                                        <td><strong><?php echo htmlspecialchars($row['worker_code']); ?></strong></td>
-                                        <td><?php echo htmlspecialchars($row['first_name'] . ' ' . $row['last_name']); ?></td>
-                                        <td><?php echo htmlspecialchars($row['position']); ?></td>
-                                        <td style="text-align: center;"><?php echo $row['days_worked']; ?></td>
-                                        <td style="text-align: center;"><?php echo number_format($row['total_hours'], 1); ?>h</td>
-                                        <td style="text-align: right; font-weight: 600;">₱<?php echo number_format($row['gross_pay'], 2); ?></td>
-                                        <td style="text-align: right; color: #dc3545;">₱<?php echo number_format($row['total_deductions'], 2); ?></td>
-                                        <td style="text-align: right; font-weight: 700; color: #28a745;">₱<?php echo number_format($row['net_pay'], 2); ?></td>
-                                        <td style="text-align: center;">
-                                            <?php 
-                                            $status_class = '';
-                                            switch($row['payment_status']) {
-                                                case 'paid':
-                                                    $status_class = 'status-present';
-                                                    break;
-                                                case 'processing':
-                                                    $status_class = 'status-late';
-                                                    break;
-                                                default:
-                                                    $status_class = 'status-absent';
-                                            }
+                                    <?php foreach ($payroll_records as $record): 
+                                        $net_pay = $record['gross_pay'] - $record['total_deductions'];
+                                    ?>
+                                    <tr>
+                                        <td>
+                                            <div class="worker-info">
+                                                <div class="worker-avatar">
+                                                    <?php echo getInitials($record['first_name'] . ' ' . $record['last_name']); ?>
+                                                </div>
+                                                <div>
+                                                    <div class="worker-name">
+                                                        <?php echo htmlspecialchars($record['first_name'] . ' ' . $record['last_name']); ?>
+                                                    </div>
+                                                    <div class="worker-code">
+                                                        <?php echo htmlspecialchars($record['worker_code']); ?>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td><?php echo htmlspecialchars($record['position']); ?></td>
+                                        <td>
+                                            <strong><?php echo $record['days_worked']; ?> day/s</strong>
+                                            <small style="display: block; color: #666;">₱<?php echo number_format($record['daily_rate'], 2); ?>/day</small>
+                                        </td>
+                                        <td><strong>₱<?php echo number_format($record['gross_pay'], 2); ?></strong></td>
+                                        <td>
+                                            <span style="color: #dc3545;">₱<?php echo number_format($record['total_deductions'], 2); ?></span>
+                                            <?php if ($record['deduction_count'] > 0): ?>
+                                                <small style="display: block; color: #666;">
+                                                    <i class="fas fa-layer-group"></i> <?php echo $record['deduction_count']; ?> active
+                                                </small>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td><strong style="color: #28a745;">₱<?php echo number_format($net_pay, 2); ?></strong></td>
+                                        <td>
+                                            <?php
+                                            $status = $record['payment_status'] ?: 'unpaid';
+                                            $status_class = 'status-' . $status;
                                             ?>
                                             <span class="status-badge <?php echo $status_class; ?>">
-                                                <?php echo ucfirst($row['payment_status']); ?>
+                                                <?php echo ucfirst($status); ?>
                                             </span>
                                         </td>
-                                        <td style="text-align: center;">
+                                        <td>
                                             <div class="action-buttons">
-                                                <?php if ($can_edit): ?>
-                                                <a href="<?php echo BASE_URL; ?>/modules/admin/payroll/edit.php?worker_id=<?php echo $row['worker_id']; ?>&start=<?php echo $period_start; ?>&end=<?php echo $period_end; ?>" 
-                                                   class="btn-icon btn-edit" 
-                                                   title="Edit Payroll">
-                                                    <i class="fas fa-edit"></i>
-                                                </a>
-                                                <?php endif; ?>
-                                                
-                                                <a href="<?php echo BASE_URL; ?>/modules/admin/payroll/view.php?worker_id=<?php echo $row['worker_id']; ?>&start=<?php echo $period_start; ?>&end=<?php echo $period_end; ?>" 
-                                                   class="btn-icon btn-view" 
-                                                   title="View Details">
+                                                <button class="action-btn btn-view" 
+                                                        onclick="viewPayroll(<?php echo $record['worker_id']; ?>, '<?php echo $period_start; ?>', '<?php echo $period_end; ?>')"
+                                                        title="View Details">
                                                     <i class="fas fa-eye"></i>
-                                                </a>
+                                                </button>
+                                                <?php if ($can_edit): ?>
+                                                <button class="action-btn btn-edit" 
+                                                        onclick="window.location.href='edit.php?worker_id=<?php echo $record['worker_id']; ?>&start=<?php echo $period_start; ?>&end=<?php echo $period_end; ?>'"
+                                                        title="Edit">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                                <?php endif; ?>
+                                                <?php if ($can_edit && $status !== 'paid'): ?>
+                                                <button class="action-btn btn-success" 
+                                                        onclick="markAsPaid(<?php echo $record['worker_id']; ?>, '<?php echo $period_start; ?>', '<?php echo $period_end; ?>')"
+                                                        title="Mark as Paid">
+                                                    <i class="fas fa-check"></i>
+                                                </button>
+                                                <?php endif; ?>
                                             </div>
                                         </td>
                                     </tr>
@@ -383,8 +508,105 @@ foreach ($payroll_data as $row) {
         </div>
     </div>
     
+    <!-- View Payroll Modal -->
+    <div id="viewModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Payroll Details</h2>
+                <button class="modal-close" onclick="closeModal('viewModal')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body" id="modalBody">
+                <div style="text-align: center; padding: 40px;">
+                    <i class="fas fa-spinner fa-spin" style="font-size: 32px; color: #DAA520;"></i>
+                    <p style="margin-top: 15px; color: #666;">Loading details...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
     <script src="<?php echo JS_URL; ?>/dashboard.js"></script>
+    <script src="<?php echo JS_URL; ?>/payroll.js"></script>
+    
+    <style>
+        .btn-group {
+            position: relative;
+            display: inline-block;
+        }
+        
+        .export-menu {
+            display: none;
+            position: absolute;
+            top: 100%;
+            right: 0;
+            margin-top: 5px;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            min-width: 200px;
+            z-index: 1000;
+            overflow: hidden;
+        }
+        
+        .export-menu.show {
+            display: block;
+            animation: slideDown 0.2s ease-out;
+        }
+        
+        .export-option {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 20px;
+            color: #1a1a1a;
+            text-decoration: none;
+            transition: all 0.2s ease;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .export-option:last-child {
+            border-bottom: none;
+        }
+        
+        .export-option:hover {
+            background: #f8f9fa;
+            color: #DAA520;
+        }
+        
+        .export-option i {
+            width: 20px;
+            text-align: center;
+        }
+        
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+    
     <script>
+        function toggleExportMenu(event) {
+            event.stopPropagation();
+            const menu = document.getElementById('exportMenu');
+            menu.classList.toggle('show');
+        }
+        
+        document.addEventListener('click', function(event) {
+            const menu = document.getElementById('exportMenu');
+            const btnGroup = event.target.closest('.btn-group');
+            
+            if (!btnGroup && menu.classList.contains('show')) {
+                menu.classList.remove('show');
+            }
+        });
+        
         function closeAlert(id) {
             const alert = document.getElementById(id);
             if (alert) {
@@ -397,137 +619,6 @@ foreach ($payroll_data as $row) {
             const flashMessage = document.getElementById('flashMessage');
             if (flashMessage) closeAlert('flashMessage');
         }, 5000);
-        
-        // Search functionality
-        const searchInput = document.getElementById('searchInput');
-        const tableBody = document.getElementById('payrollTableBody');
-        
-        if (searchInput && tableBody) {
-            searchInput.addEventListener('input', function() {
-                const searchTerm = this.value.toLowerCase();
-                const rows = tableBody.querySelectorAll('tr[data-worker-name]');
-                
-                rows.forEach(row => {
-                    const workerName = row.getAttribute('data-worker-name');
-                    const workerCode = row.getAttribute('data-worker-code');
-                    
-                    if (workerName.includes(searchTerm) || workerCode.includes(searchTerm)) {
-                        row.style.display = '';
-                    } else {
-                        row.style.display = 'none';
-                    }
-                });
-            });
-        }
-        
-        // Dropdown functionality
-        document.querySelectorAll('.dropdown-toggle').forEach(toggle => {
-            toggle.addEventListener('click', function() {
-                const dropdown = this.nextElementSibling;
-                dropdown.classList.toggle('show');
-                
-                // Close when clicking outside
-                document.addEventListener('click', function closeDropdown(e) {
-                    if (!toggle.contains(e.target) && !dropdown.contains(e.target)) {
-                        dropdown.classList.remove('show');
-                        document.removeEventListener('click', closeDropdown);
-                    }
-                });
-            });
-        });
     </script>
-    
-    <style>
-        .dropdown {
-            position: relative;
-            display: inline-block;
-        }
-        
-        .dropdown-menu {
-            display: none;
-            position: absolute;
-            right: 0;
-            background: #fff;
-            min-width: 200px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            border-radius: 8px;
-            margin-top: 8px;
-            z-index: 1000;
-            overflow: hidden;
-        }
-        
-        .dropdown-menu.show {
-            display: block;
-        }
-        
-        .dropdown-item {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 12px 20px;
-            color: #333;
-            text-decoration: none;
-            transition: background 0.2s;
-        }
-        
-        .dropdown-item:hover {
-            background: #f8f9fa;
-        }
-        
-        .dropdown-item i {
-            width: 20px;
-            text-align: center;
-        }
-        
-        .action-buttons {
-            display: flex;
-            gap: 8px;
-            justify-content: center;
-        }
-        
-        .btn-icon {
-            width: 32px;
-            height: 32px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 6px;
-            text-decoration: none;
-            transition: all 0.2s;
-        }
-        
-        .btn-edit {
-            background: #ffc107;
-            color: #1a1a1a;
-        }
-        
-        .btn-edit:hover {
-            background: #ffb300;
-            transform: translateY(-2px);
-        }
-        
-        .btn-view {
-            background: #2196f3;
-            color: #fff;
-        }
-        
-        .btn-view:hover {
-            background: #1976d2;
-            transform: translateY(-2px);
-        }
-        
-        .search-input {
-            padding: 8px 15px;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            width: 250px;
-            font-size: 14px;
-        }
-        
-        .search-input:focus {
-            outline: none;
-            border-color: #DAA520;
-        }
-    </style>
 </body>
 </html>
