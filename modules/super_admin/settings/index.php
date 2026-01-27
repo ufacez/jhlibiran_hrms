@@ -31,42 +31,27 @@ try {
     $admin_stats = $stmt->fetch();
     
     // Total workers
-    $stmt = $db->query("SELECT COUNT(*) as total FROM workers WHERE status = 'active'");
+    $stmt = $db->query("SELECT COUNT(*) as total FROM workers WHERE employment_status = 'active'");
     $worker_count = $stmt->fetch()['total'];
     
-    // Recent activity logs (last 10)
+    // Recent activity logs (last 10) - FIXED QUERY
     $stmt = $db->query("
         SELECT 
             al.*,
-            CASE 
-                WHEN u.user_level = 'super_admin' THEN CONCAT(sa.first_name, ' ', sa.last_name)
-                WHEN u.user_level = 'admin' THEN CONCAT(ap.first_name, ' ', ap.last_name)
-                ELSE u.username
-            END as user_name,
+            u.username,
             u.user_level
         FROM activity_logs al
         LEFT JOIN users u ON al.user_id = u.user_id
-        LEFT JOIN super_admin_profile sa ON u.user_id = sa.user_id AND u.user_level = 'super_admin'
-        LEFT JOIN admin_profile ap ON u.user_id = ap.user_id AND u.user_level = 'admin'
         ORDER BY al.created_at DESC
         LIMIT 10
     ");
     $recent_logs = $stmt->fetchAll();
-    
-    // System info
-    $db_size = $db->query("
-        SELECT 
-            ROUND(SUM(data_length + index_length) / 1024 / 1024, 2) AS size_mb 
-        FROM information_schema.tables 
-        WHERE table_schema = 'construction_management'
-    ")->fetch()['size_mb'];
     
 } catch (PDOException $e) {
     error_log("Error: " . $e->getMessage());
     $admin_stats = ['total' => 0, 'active' => 0];
     $worker_count = 0;
     $recent_logs = [];
-    $db_size = 0;
 }
 
 function getActionBadge($action) {
@@ -79,8 +64,27 @@ function getActionBadge($action) {
         'add_admin' => ['icon' => 'user-plus', 'color' => '#9C27B0', 'bg' => '#F3E5F5'],
         'update_admin' => ['icon' => 'user-edit', 'color' => '#FF9800', 'bg' => '#FFF3E0'],
         'delete_admin' => ['icon' => 'user-times', 'color' => '#F44336', 'bg' => '#FFEBEE'],
+        'toggle_admin_status' => ['icon' => 'toggle-on', 'color' => '#2196F3', 'bg' => '#E3F2FD'],
+        'update_admin_permissions' => ['icon' => 'key', 'color' => '#FF9800', 'bg' => '#FFF3E0'],
     ];
     return $badges[$action] ?? ['icon' => 'info-circle', 'color' => '#607D8B', 'bg' => '#ECEFF1'];
+}
+
+function formatActivityTime($datetime) {
+    $time = strtotime($datetime);
+    $diff = time() - $time;
+    
+    if ($diff < 60) {
+        return 'Just now';
+    } elseif ($diff < 3600) {
+        $mins = floor($diff / 60);
+        return $mins . ' min' . ($mins > 1 ? 's' : '') . ' ago';
+    } elseif ($diff < 86400) {
+        $hours = floor($diff / 3600);
+        return $hours . ' hr' . ($hours > 1 ? 's' : '') . ' ago';
+    } else {
+        return date('M d, g:i A', $time);
+    }
 }
 ?>
 <!DOCTYPE html>
@@ -136,7 +140,6 @@ function getActionBadge($action) {
         .stat-icon.gold { background: linear-gradient(135deg, #DAA520, #B8860B); color: #1a1a1a; }
         .stat-icon.blue { background: linear-gradient(135deg, #667eea, #764ba2); color: #fff; }
         .stat-icon.green { background: linear-gradient(135deg, #56ab2f, #a8e063); color: #fff; }
-        .stat-icon.purple { background: linear-gradient(135deg, #9C27B0, #6A1B9A); color: #fff; }
         
         .stat-value {
             font-size: 32px;
@@ -185,9 +188,6 @@ function getActionBadge($action) {
         .action-card.logs { border-left-color: #2196F3; }
         .action-card.logs:hover { background: linear-gradient(to right, rgba(33, 150, 243, 0.05), transparent); }
         
-        .action-card.api { border-left-color: #4CAF50; }
-        .action-card.api:hover { background: linear-gradient(to right, rgba(76, 175, 80, 0.05), transparent); }
-        
         .action-icon {
             width: 50px;
             height: 50px;
@@ -202,7 +202,6 @@ function getActionBadge($action) {
         .action-icon.admins { background: #FFF9E6; color: #DAA520; }
         .action-icon.permissions { background: #F3E5F5; color: #9C27B0; }
         .action-icon.logs { background: #E3F2FD; color: #2196F3; }
-        .action-icon.api { background: #E8F5E9; color: #4CAF50; }
         
         .action-details h3 {
             margin: 0 0 5px 0;
@@ -293,6 +292,7 @@ function getActionBadge($action) {
         .activity-time {
             font-size: 12px;
             color: #999;
+            white-space: nowrap;
         }
         
         .no-activity {
@@ -365,18 +365,6 @@ function getActionBadge($action) {
                             </div>
                         </div>
                     </div>
-                    
-                    <div class="stat-card">
-                        <div class="stat-header">
-                            <div>
-                                <h3 class="stat-value"><?php echo $db_size; ?> MB</h3>
-                                <p class="stat-label">Database Size</p>
-                            </div>
-                            <div class="stat-icon purple">
-                                <i class="fas fa-database"></i>
-                            </div>
-                        </div>
-                    </div>
                 </div>
                 
                 <!-- Quick Actions -->
@@ -410,16 +398,6 @@ function getActionBadge($action) {
                             <p>View all system activity and changes</p>
                         </div>
                     </a>
-                    
-                    <a href="<?php echo BASE_URL; ?>/modules/super_admin/settings/api.php" class="action-card api">
-                        <div class="action-icon api">
-                            <i class="fas fa-code"></i>
-                        </div>
-                        <div class="action-details">
-                            <h3>API Settings</h3>
-                            <p>Configure API keys and integrations</p>
-                        </div>
-                    </a>
                 </div>
                 
                 <!-- Recent Activity -->
@@ -439,31 +417,20 @@ function getActionBadge($action) {
                     <?php else: ?>
                         <?php foreach ($recent_logs as $log): 
                             $badge = getActionBadge($log['action']);
+                            $user_display = $log['username'] ?? 'System';
                         ?>
                         <div class="activity-item">
                             <div class="activity-icon" style="background: <?php echo $badge['bg']; ?>; color: <?php echo $badge['color']; ?>">
                                 <i class="fas fa-<?php echo $badge['icon']; ?>"></i>
                             </div>
                             <div class="activity-details">
-                                <h4><?php echo htmlspecialchars($log['user_name'] ?? 'Unknown User'); ?></h4>
+                                <h4><?php echo htmlspecialchars($user_display); ?></h4>
                                 <p>
                                     <?php echo htmlspecialchars($log['description'] ?? ucwords(str_replace('_', ' ', $log['action']))); ?>
                                 </p>
                             </div>
                             <div class="activity-time">
-                                <?php 
-                                $time = strtotime($log['created_at']);
-                                $diff = time() - $time;
-                                if ($diff < 60) {
-                                    echo 'Just now';
-                                } elseif ($diff < 3600) {
-                                    echo floor($diff / 60) . ' min ago';
-                                } elseif ($diff < 86400) {
-                                    echo floor($diff / 3600) . ' hr ago';
-                                } else {
-                                    echo date('M d, g:i A', $time);
-                                }
-                                ?>
+                                <?php echo formatActivityTime($log['created_at']); ?>
                             </div>
                         </div>
                         <?php endforeach; ?>
