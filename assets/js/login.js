@@ -5,11 +5,10 @@
 
 // Wait for DOM to be ready
 document.addEventListener('DOMContentLoaded', function() {
-    
     // Get form elements
     const loginForm = document.getElementById('loginForm');
     const btnLogin = document.getElementById('btnLogin');
-    const usernameInput = document.getElementById('username');
+    const emailInput = document.getElementById('email');
     const passwordInput = document.getElementById('password');
     
     // Handle form submission
@@ -18,10 +17,12 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // Add enter key listener
-    if (usernameInput) {
-        usernameInput.addEventListener('keypress', function(e) {
+    if (emailInput) {
+        emailInput.addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
-                passwordInput.focus();
+                if (passwordInput) {
+                    passwordInput.focus();
+                }
             }
         });
     }
@@ -44,27 +45,45 @@ function handleLogin(e) {
     const form = e.target;
     const formData = new FormData(form);
     const btnLogin = document.getElementById('btnLogin');
-    
-    // Validate inputs
-    const username = formData.get('username').trim();
-    const password = formData.get('password');
-    
-    if (!username || !password) {
-        showAlert('Please enter both username and password.', 'error');
+
+    // Validate inputs (use safe defaults)
+    const email = formData.get('email') || '';
+    const password = formData.get('password') || '';
+
+    // do not log credentials
+
+    if (!email.trim()) {
+        showAlert('Please enter your email.', 'error');
         return;
     }
-    
+
+    if (!password) {
+        showAlert('Please enter your password.', 'error');
+        return;
+    }
+
     // Show loading state
-    btnLogin.classList.add('loading');
-    btnLogin.disabled = true;
+    if (btnLogin) {
+        btnLogin.classList.add('loading');
+        btnLogin.disabled = true;
+    }
+    
+    // Log for debugging
+    console.log('Sending login request...');
+    console.log('Email:', email);
     
     // Send AJAX request
-    fetch('api/login.php', {
+    fetch('/tracksite/api/login.php', {
         method: 'POST',
         body: formData
     })
-    .then(response => response.json())
+    .then(response => {
+        console.log('Response status:', response.status);
+        return response.json();
+    })
     .then(data => {
+        console.log('Response data:', data);
+        
         if (data.success) {
             showAlert(data.message, 'success');
             
@@ -73,11 +92,13 @@ function handleLogin(e) {
                 window.location.href = data.redirect_url;
             }, 1000);
         } else {
-            showAlert(data.message, 'error');
+            showAlert(data.message || 'Login failed', 'error');
             
             // Reset loading state
-            btnLogin.classList.remove('loading');
-            btnLogin.disabled = false;
+            if (btnLogin) {
+                btnLogin.classList.remove('loading');
+                btnLogin.disabled = false;
+            }
             
             // Clear password field
             document.getElementById('password').value = '';
@@ -86,11 +107,13 @@ function handleLogin(e) {
     })
     .catch(error => {
         console.error('Login error:', error);
-        showAlert('An error occurred. Please try again.', 'error');
+        showAlert('Connection error: ' + error.message, 'error');
         
         // Reset loading state
-        btnLogin.classList.remove('loading');
-        btnLogin.disabled = false;
+        if (btnLogin) {
+            btnLogin.classList.remove('loading');
+            btnLogin.disabled = false;
+        }
     });
 }
 
@@ -172,10 +195,10 @@ function isValidEmail(email) {
  * Handle keyboard shortcuts
  */
 document.addEventListener('keydown', function(e) {
-    // Ctrl/Cmd + L to focus username field
+    // Ctrl/Cmd + L to focus email field
     if ((e.ctrlKey || e.metaKey) && e.key === 'l') {
         e.preventDefault();
-        document.getElementById('username').focus();
+        document.getElementById('email').focus();
     }
 });
 

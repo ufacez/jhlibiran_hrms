@@ -14,31 +14,31 @@ require_once __DIR__ . '/../config/session.php';
 require_once __DIR__ . '/functions.php';
 
 /**
- * Authenticate user login
+ * Authenticate user login by email
  */
-function authenticateUser($db, $username, $password) {
+function authenticateUser($db, $email, $password) {
     $result = ['success' => false, 'message' => '', 'user' => null];
     
-    if (isLoginLocked($username)) {
+    if (isLoginLocked($email)) {
         $result['message'] = 'Too many failed login attempts. Please try again in ' . LOGIN_LOCKOUT_TIME/60 . ' minutes.';
         return $result;
     }
     
     try {
-        $sql = "SELECT * FROM users WHERE (username = ? OR email = ?) AND status = 'active' LIMIT 1";
+        $sql = "SELECT * FROM users WHERE email = ? AND status = 'active' LIMIT 1";
         $stmt = $db->prepare($sql);
-        $stmt->execute([$username, $username]);
+        $stmt->execute([$email]);
         $user = $stmt->fetch();
         
         if (!$user) {
-            recordFailedLogin($username);
-            $result['message'] = 'Invalid username or password.';
+            recordFailedLogin($email);
+            $result['message'] = 'Invalid email or password.';
             return $result;
         }
         
         if (!password_verify($password, $user['password'])) {
-            recordFailedLogin($username);
-            $result['message'] = 'Invalid username or password.';
+            recordFailedLogin($email);
+            $result['message'] = 'Invalid email or password.';
             return $result;
         }
         
@@ -80,7 +80,7 @@ function authenticateUser($db, $username, $password) {
         $stmt = $db->prepare($sql);
         $stmt->execute([$user['user_id']]);
         
-        clearFailedLogins($username);
+        clearFailedLogins($email);
         logActivity($db, $user['user_id'], 'login', 'users', $user['user_id'], 'User logged in');
         
         $result['success'] = true;

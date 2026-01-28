@@ -17,6 +17,19 @@ require_once __DIR__ . '/../config/session.php';
 require_once __DIR__ . '/../includes/functions.php';
 require_once __DIR__ . '/../includes/auth.php';
 
+// Initialize session
+initSession();
+
+// Get database connection
+$db = getDBConnection();
+if (!$db) {
+    echo json_encode([
+        'success' => false,
+        'message' => 'Database connection failed.'
+    ]);
+    exit();
+}
+
 // Initialize response
 $response = [
     'success' => false,
@@ -34,14 +47,14 @@ try {
     }
     
     // Get and sanitize inputs
-    $username = isset($_POST['username']) ? sanitizeString($_POST['username']) : '';
+    $email = isset($_POST['email']) ? sanitizeEmail($_POST['email']) : '';
     $password = isset($_POST['password']) ? $_POST['password'] : '';
     $remember = isset($_POST['remember']) ? true : false;
     $redirect = isset($_POST['redirect']) ? $_POST['redirect'] : '';
     
     // Validate inputs
-    if (empty($username)) {
-        $response['message'] = 'Please enter your username or email.';
+    if (empty($email)) {
+        $response['message'] = 'Please enter your company email.';
         echo json_encode($response);
         exit();
     }
@@ -53,7 +66,7 @@ try {
     }
     
     // Attempt authentication
-    $auth_result = authenticateUser($db, $username, $password);
+    $auth_result = authenticateUser($db, $email, $password);
     
     if (!$auth_result['success']) {
         $response['message'] = $auth_result['message'];

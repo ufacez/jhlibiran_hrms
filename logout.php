@@ -15,6 +15,9 @@ require_once __DIR__ . '/config/settings.php';
 require_once __DIR__ . '/config/session.php';
 require_once __DIR__ . '/includes/functions.php';
 
+// Get database connection
+$db = getDBConnection();
+
 // Check if user is logged in
 if (isLoggedIn()) {
     // Log activity before destroying session

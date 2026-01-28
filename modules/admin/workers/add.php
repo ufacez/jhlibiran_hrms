@@ -45,8 +45,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $philhealth_number = sanitizeString($_POST['philhealth_number'] ?? '');
     $pagibig_number = sanitizeString($_POST['pagibig_number'] ?? '');
     $tin_number = sanitizeString($_POST['tin_number'] ?? '');
-    $username = sanitizeString($_POST['username'] ?? '');
-    $password = $_POST['password'] ?? '';
     
     // Validate required fields
     if (empty($first_name)) $errors[] = 'First name is required';
@@ -54,26 +52,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($position)) $errors[] = 'Position is required';
     if (empty($date_hired)) $errors[] = 'Date hired is required';
     if ($daily_rate <= 0) $errors[] = 'Daily rate must be greater than zero';
-    if (empty($username)) $errors[] = 'Username is required';
-    if (empty($password)) $errors[] = 'Password is required';
     
     // Validate email if provided
     if (!empty($email) && !validateEmail($email)) {
         $errors[] = 'Invalid email format';
-    }
-    
-    // Check if username exists
-    if (!empty($username)) {
-        try {
-            $stmt = $db->prepare("SELECT user_id FROM users WHERE username = ?");
-            $stmt->execute([$username]);
-            if ($stmt->fetch()) {
-                $errors[] = 'Username already exists';
-            }
-        } catch (PDOException $e) {
-            error_log("Username check error: " . $e->getMessage());
-            $errors[] = 'Database error occurred';
-        }
     }
     
     // Check if email exists (only if email is provided)
@@ -99,13 +81,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $worker_count = $stmt->fetchColumn();
             $worker_code = 'WKR-' . str_pad($worker_count + 1, 4, '0', STR_PAD_LEFT);
             
-            // Create user account
-            $hashed_password = password_hash($password, PASSWORD_HASH_ALGO);
-            $email_value = !empty($email) ? $email : null;
+            // Extract worker ID number from worker code (0001, 0002, etc.)
+            $id_no = str_pad($worker_count + 1, 4, '0', STR_PAD_LEFT);
+            
+            // Generate default email: firstnameidno@tracksite.com
+            $default_email = strtolower($first_name) . $id_no . '@tracksite.com';
+            
+            // Generate default password: tracksite-(lastname)
+            $default_password = 'tracksite-' . strtolower($last_name);
+            
+            // Hash the default password
+            $hashed_password = password_hash($default_password, PASSWORD_HASH_ALGO);
             
             $stmt = $db->prepare("INSERT INTO users (username, password, email, user_level, status) 
                                   VALUES (?, ?, ?, 'worker', 'active')");
-            $stmt->execute([$username, $hashed_password, $email_value]);
+            $stmt->execute([$default_email, $hashed_password, $default_email]);
             $user_id = $db->lastInsertId();
             
             // Create worker profile
@@ -341,21 +331,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     
                     <div class="form-card">
                         <h3 class="form-section-title">
-                            <i class="fas fa-key"></i> Account Credentials
+                            <i class="fas fa-key"></i> Account Credentials (Auto-Generated)
                         </h3>
                         
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="username">Username <span class="required">*</span></label>
-                                <input type="text" id="username" name="username" required
-                                       value="<?php echo isset($_POST['username']) ? htmlspecialchars($_POST['username']) : ''; ?>">
-                                <small>Worker will use this to login</small>
-                            </div>
-                            
-                            <div class="form-group">
-                                <label for="password">Password <span class="required">*</span></label>
-                                <input type="password" id="password" name="password" required>
-                                <small>Minimum 6 characters</small>
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i>
+                            <div>
+                                <p><strong>Email:</strong> firstnameidno@tracksite.com (auto-generated from first name and worker ID)</p>
+                                <p><strong>Password:</strong> tracksite-(lastname) (auto-generated from worker last name)</p>
                             </div>
                         </div>
                     </div>

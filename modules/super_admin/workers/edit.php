@@ -126,9 +126,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
     
-    $username = sanitizeString($_POST['username'] ?? '');
-    $password = $_POST['password'] ?? ''; // Only update if provided
-    
     // Validate required fields
     if (empty($first_name)) $errors[] = 'First name is required';
     if (empty($last_name)) $errors[] = 'Last name is required';
@@ -169,19 +166,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     if (!$same_address && (empty($permanent_address) || empty($permanent_province) || empty($permanent_city) || empty($permanent_barangay))) {
         $errors[] = 'Permanent address is incomplete';
-    }
-    
-    // Check if username already exists (excluding current user)
-    if (!empty($username)) {
-        try {
-            $stmt = $db->prepare("SELECT user_id FROM users WHERE username = ? AND user_id != ?");
-            $stmt->execute([$username, $worker['user_id']]);
-            if ($stmt->fetch()) {
-                $errors[] = 'Username already exists';
-            }
-        } catch (PDOException $e) {
-            $errors[] = 'Database error checking username';
-        }
     }
     
     // Check if email already exists (excluding current user)
@@ -260,28 +244,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $ids_json, $worker_id
             ]);
             
-            // Update user account
-            if (!empty($password)) {
-                $hashed_password = password_hash($password, PASSWORD_DEFAULT);
-                $stmt = $db->prepare("
-                    UPDATE users SET
-                        username = ?,
-                        email = ?,
-                        password = ?,
-                        updated_at = NOW()
-                    WHERE user_id = ?
-                ");
-                $stmt->execute([$username, $email, $hashed_password, $worker['user_id']]);
-            } else {
-                $stmt = $db->prepare("
-                    UPDATE users SET
-                        username = ?,
-                        email = ?,
-                        updated_at = NOW()
-                    WHERE user_id = ?
-                ");
-                $stmt->execute([$username, $email, $worker['user_id']]);
-            }
+            // Update user account (only email, as credentials are auto-generated)
+            $stmt = $db->prepare("
+                UPDATE users SET
+                    email = ?,
+                    updated_at = NOW()
+                WHERE user_id = ?
+            ");
+            $stmt->execute([$email, $worker['user_id']]);
             
             // Log activity
             logActivity($db, $user_id, 'update_worker', 'workers', $worker_id,
@@ -789,24 +759,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </div>
                     </div>
                     
-                    <!-- Login Credentials -->
+                    <!-- Login Credentials (Auto-Generated) -->
                     <div class="form-card">
-                        <h3><i class="fas fa-lock"></i> Login Credentials</h3>
-                        <p style="color: #666; font-size: 14px; margin-bottom: 15px;">
-                            Leave password blank to keep current password
-                        </p>
+                        <h3><i class="fas fa-lock"></i> Login Credentials (Auto-Generated)</h3>
                         
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>Username <span class="required-asterisk">*</span></label>
-                                <input type="text" name="username" id="username" required 
-                                       value="<?php echo htmlspecialchars($worker['username']); ?>">
-                            </div>
-                            
-                            <div class="form-group">
-                                <label>New Password (Optional)</label>
-                                <input type="password" name="password" id="password" 
-                                       placeholder="Leave blank to keep current">
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i>
+                            <div>
+                                <p><strong>Email:</strong> <?php echo htmlspecialchars($worker['email']); ?></p>
+                                <p><strong>Password Format:</strong> tracksite-(lastname)</p>
                             </div>
                         </div>
                     </div>

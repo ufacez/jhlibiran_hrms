@@ -90,8 +90,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
     
-    $username = sanitizeString($_POST['username'] ?? '');
-    $password = $_POST['password'] ?? '';
     
     // Validate required fields
     if (empty($first_name)) $errors[] = 'First name is required';
@@ -118,8 +116,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($emergency_contact_relationship)) $errors[] = 'Emergency contact relationship is required';
     if (empty($primary_id_type)) $errors[] = 'Primary ID type is required';
     if (empty($primary_id_number)) $errors[] = 'Primary ID number is required';
-    if (empty($username)) $errors[] = 'Username is required';
-    if (empty($password)) $errors[] = 'Password is required';
     
     // Validate phone number (11 digits, Philippines format)
     if (!empty($phone)) {
@@ -162,20 +158,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors[] = 'Invalid email format';
     }
     
-    // Check if username exists
-    if (!empty($username)) {
-        try {
-            $stmt = $db->prepare("SELECT user_id FROM users WHERE username = ?");
-            $stmt->execute([$username]);
-            if ($stmt->fetch()) {
-                $errors[] = 'Username already exists';
-            }
-        } catch (PDOException $e) {
-            error_log("Username check error: " . $e->getMessage());
-            $errors[] = 'Database error occurred';
-        }
-    }
-    
     // Check if email exists
     if (!empty($email)) {
         try {
@@ -199,12 +181,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $worker_count = $stmt->fetchColumn();
             $worker_code = 'WKR-' . str_pad($worker_count + 1, 4, '0', STR_PAD_LEFT);
             
-            // Create user account
-            $hashed_password = password_hash($password, PASSWORD_HASH_ALGO);
+            // Extract worker ID number from worker code (0001, 0002, etc.)
+            $id_no = str_pad($worker_count + 1, 4, '0', STR_PAD_LEFT);
+            
+            // Generate default email: firstnameidno@tracksite.com
+            $default_email = strtolower($first_name) . $id_no . '@tracksite.com';
+            
+            // Generate default password: tracksite-(lastname)
+            $default_password = 'tracksite-' . strtolower($last_name);
+            
+            // Hash the default password
+            $hashed_password = password_hash($default_password, PASSWORD_HASH_ALGO);
             
             $stmt = $db->prepare("INSERT INTO users (username, password, email, user_level, status) 
                                   VALUES (?, ?, ?, 'worker', 'active')");
-            $stmt->execute([$username, $hashed_password, $email]);
+            $stmt->execute([$default_email, $hashed_password, $default_email]);
             $user_id = $db->lastInsertId();
             
             // Combine addresses into JSON format
@@ -778,26 +769,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </div>
                     </div>
                     
-                    <!-- Account Credentials -->
-                    <div class="form-card">
-                        <h3 class="form-section-title">
-                            <i class="fas fa-key"></i> Account Credentials
-                        </h3>
-                        
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="username">Username <span class="required">*</span></label>
-                                <input type="text" id="username" name="username" required
-                                       value="<?php echo isset($_POST['username']) ? htmlspecialchars($_POST['username']) : ''; ?>">
-                                <small>Worker will use this to login</small>
-                            </div>
-                            
-                            <div class="form-group">
-                                <label for="password">Password <span class="required">*</span></label>
-                                <input type="password" id="password" name="password" required minlength="6">
-                                <small>Minimum 6 characters</small>
-                            </div>
-                        </div>
                     </div>
                     
                     <!-- Form Actions -->

@@ -13,6 +13,7 @@ require_once __DIR__ . '/config/settings.php';
 require_once __DIR__ . '/config/session.php';
 require_once __DIR__ . '/includes/functions.php';
 
+
 // If already logged in, redirect to appropriate dashboard
 if (isLoggedIn()) {
     if (isSuperAdmin()) {
@@ -69,13 +70,13 @@ $flash = getFlashMessage();
                 <input type="hidden" name="redirect" value="<?php echo htmlspecialchars($redirect_url); ?>">
                 
                 <div class="input-group">
-                    <i class="fas fa-user"></i>
-                    <input type="text" 
-                           name="username" 
-                           id="username" 
-                           placeholder="Username or Email" 
+                    <i class="fas fa-envelope"></i>
+                    <input type="email" 
+                           name="email" 
+                           id="email" 
+                           placeholder="Company Email" 
                            required 
-                           autocomplete="username"
+                           autocomplete="email"
                            autofocus>
                 </div>
                 
