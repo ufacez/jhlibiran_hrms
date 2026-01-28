@@ -221,14 +221,6 @@ try {
                         </a>
                     </div>
                 </div>
-
-                <!-- Admin Notice -->
-                <?php if ($user_level === 'admin'): ?>
-                <div class="alert alert-info">
-                    <i class="fas fa-info-circle"></i>
-                    <span>You have Admin access. Some advanced features (Settings, Audit, Archive) are restricted to Super Admins.</span>
-                </div>
-                <?php endif; ?>
             </div>
         </div>
     </div>

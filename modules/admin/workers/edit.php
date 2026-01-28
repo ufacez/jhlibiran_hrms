@@ -1,7 +1,15 @@
 <?php
 /**
- * Admin Edit Worker Page
+ * Edit Worker Page - ENHANCED VERSION (Admin)
  * TrackSite Construction Management System
+ * 
+ * Features matching Super Admin version:
+ * - All required fields with red asterisks
+ * - Validation ONLY on blur (leaving field)
+ * - 11-digit phone number validation (Philippines)
+ * - Philippines address API integration
+ * - Emergency contact with relationship
+ * - Primary ID and additional IDs
  */
 
 define('TRACKSITE_INCLUDED', true);
@@ -21,22 +29,25 @@ if (!isLoggedIn() || (!isAdmin() && !isSuperAdmin())) {
 
 requirePermission($db, 'can_edit_workers', 'You do not have permission to edit workers');
 
+$user_id = getCurrentUserId();
 $full_name = $_SESSION['full_name'] ?? 'Administrator';
 
 // Get worker ID
-$worker_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
-
-if ($worker_id <= 0) {
+if (!isset($_GET['id'])) {
     setFlashMessage('Invalid worker ID', 'error');
     redirect(BASE_URL . '/modules/admin/workers/index.php');
 }
 
-// Fetch worker details
+$worker_id = intval($_GET['id']);
+
+// Fetch worker data
 try {
-    $stmt = $db->prepare("SELECT w.*, u.username, u.email 
-                          FROM workers w 
-                          JOIN users u ON w.user_id = u.user_id 
-                          WHERE w.worker_id = ? AND w.is_archived = FALSE");
+    $stmt = $db->prepare("
+        SELECT w.*, u.email, u.username 
+        FROM workers w 
+        JOIN users u ON w.user_id = u.user_id 
+        WHERE w.worker_id = ? AND w.is_archived = FALSE
+    ");
     $stmt->execute([$worker_id]);
     $worker = $stmt->fetch();
     
@@ -44,9 +55,14 @@ try {
         setFlashMessage('Worker not found', 'error');
         redirect(BASE_URL . '/modules/admin/workers/index.php');
     }
+    
+    // Parse JSON data
+    $addresses = $worker['addresses'] ? json_decode($worker['addresses'], true) : ['current' => [], 'permanent' => []];
+    $ids = $worker['identification_data'] ? json_decode($worker['identification_data'], true) : ['primary' => [], 'additional' => []];
+    
 } catch (PDOException $e) {
     error_log("Fetch Worker Error: " . $e->getMessage());
-    setFlashMessage('Failed to load worker details', 'error');
+    setFlashMessage('Failed to load worker data', 'error');
     redirect(BASE_URL . '/modules/admin/workers/index.php');
 }
 
@@ -57,119 +73,235 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Get and sanitize input
     $first_name = sanitizeString($_POST['first_name'] ?? '');
     $last_name = sanitizeString($_POST['last_name'] ?? '');
+    $middle_name = sanitizeString($_POST['middle_name'] ?? '');
     $position = sanitizeString($_POST['position'] ?? '');
     $phone = sanitizeString($_POST['phone'] ?? '');
     $email = sanitizeEmail($_POST['email'] ?? '');
-    $address = sanitizeString($_POST['address'] ?? '');
+    
+    // Current Address
+    $current_address = sanitizeString($_POST['current_address'] ?? '');
+    $current_province = sanitizeString($_POST['current_province'] ?? '');
+    $current_city = sanitizeString($_POST['current_city'] ?? '');
+    $current_barangay = sanitizeString($_POST['current_barangay'] ?? '');
+    
+    // Permanent Address
+    $same_address = isset($_POST['same_address']);
+    if ($same_address) {
+        $permanent_address = $current_address;
+        $permanent_province = $current_province;
+        $permanent_city = $current_city;
+        $permanent_barangay = $current_barangay;
+    } else {
+        $permanent_address = sanitizeString($_POST['permanent_address'] ?? '');
+        $permanent_province = sanitizeString($_POST['permanent_province'] ?? '');
+        $permanent_city = sanitizeString($_POST['permanent_city'] ?? '');
+        $permanent_barangay = sanitizeString($_POST['permanent_barangay'] ?? '');
+    }
+    
     $date_of_birth = sanitizeString($_POST['date_of_birth'] ?? '');
     $gender = sanitizeString($_POST['gender'] ?? '');
     $date_hired = sanitizeString($_POST['date_hired'] ?? '');
     $daily_rate = sanitizeFloat($_POST['daily_rate'] ?? 0);
     $experience_years = sanitizeInt($_POST['experience_years'] ?? 0);
-    $employment_status = sanitizeString($_POST['employment_status'] ?? '');
+    $employment_status = sanitizeString($_POST['employment_status'] ?? 'active');
+    
+    // Emergency Contact
     $emergency_contact_name = sanitizeString($_POST['emergency_contact_name'] ?? '');
     $emergency_contact_phone = sanitizeString($_POST['emergency_contact_phone'] ?? '');
+    $emergency_contact_relationship = sanitizeString($_POST['emergency_contact_relationship'] ?? '');
+    
+    // Government IDs
     $sss_number = sanitizeString($_POST['sss_number'] ?? '');
     $philhealth_number = sanitizeString($_POST['philhealth_number'] ?? '');
     $pagibig_number = sanitizeString($_POST['pagibig_number'] ?? '');
     $tin_number = sanitizeString($_POST['tin_number'] ?? '');
+    
+    // Primary ID
+    $primary_id_type = sanitizeString($_POST['primary_id_type'] ?? '');
+    $primary_id_number = sanitizeString($_POST['primary_id_number'] ?? '');
+    
+    // Additional IDs
+    $additional_ids = [];
+    if (isset($_POST['additional_id_type']) && is_array($_POST['additional_id_type'])) {
+        for ($i = 0; $i < count($_POST['additional_id_type']); $i++) {
+            if (!empty($_POST['additional_id_type'][$i]) && !empty($_POST['additional_id_number'][$i])) {
+                $additional_ids[] = [
+                    'type' => sanitizeString($_POST['additional_id_type'][$i]),
+                    'number' => sanitizeString($_POST['additional_id_number'][$i])
+                ];
+            }
+        }
+    }
+    
     $username = sanitizeString($_POST['username'] ?? '');
-    $password = $_POST['password'] ?? '';
+    $password = $_POST['password'] ?? ''; // Only update if provided
     
     // Validate required fields
     if (empty($first_name)) $errors[] = 'First name is required';
     if (empty($last_name)) $errors[] = 'Last name is required';
     if (empty($position)) $errors[] = 'Position is required';
+    if (empty($phone)) $errors[] = 'Phone number is required';
+    if (empty($email)) $errors[] = 'Email is required';
+    if (empty($date_of_birth)) $errors[] = 'Date of birth is required';
+    if (empty($gender)) $errors[] = 'Gender is required';
     if (empty($date_hired)) $errors[] = 'Date hired is required';
-    if ($daily_rate <= 0) $errors[] = 'Daily rate must be greater than zero';
-    if (empty($username)) $errors[] = 'Username is required';
-    if (empty($employment_status)) $errors[] = 'Employment status is required';
+    if ($daily_rate <= 0) $errors[] = 'Daily rate must be greater than 0';
+    if (empty($emergency_contact_name)) $errors[] = 'Emergency contact name is required';
+    if (empty($emergency_contact_phone)) $errors[] = 'Emergency contact phone is required';
+    if (empty($emergency_contact_relationship)) $errors[] = 'Emergency contact relationship is required';
+    if (empty($primary_id_type) || empty($primary_id_number)) $errors[] = 'Primary ID is required';
     
-    // Validate email if provided
-    if (!empty($email) && !validateEmail($email)) {
+    // Validate phone numbers (exactly 11 digits)
+    $phone_clean = preg_replace('/[^\d+]/', '', $phone);
+    $emergency_phone_clean = preg_replace('/[^\d+]/', '', $emergency_contact_phone);
+    
+    if (!(strlen($phone_clean) === 11 && preg_match('/^09\d{9}$/', $phone_clean)) && 
+        !(strlen($phone_clean) === 13 && preg_match('/^\+639\d{9}$/', $phone_clean))) {
+        $errors[] = 'Personal phone must be exactly 11 digits (09XXXXXXXXX)';
+    }
+    
+    if (!(strlen($emergency_phone_clean) === 11 && preg_match('/^09\d{9}$/', $emergency_phone_clean)) && 
+        !(strlen($emergency_phone_clean) === 13 && preg_match('/^\+639\d{9}$/', $emergency_phone_clean))) {
+        $errors[] = 'Emergency phone must be exactly 11 digits (09XXXXXXXXX)';
+    }
+    
+    // Validate email format
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $errors[] = 'Invalid email format';
     }
     
-    // Check if username exists (excluding current user)
+    // Validate addresses
+    if (empty($current_address) || empty($current_province) || empty($current_city) || empty($current_barangay)) {
+        $errors[] = 'Current address is incomplete';
+    }
+    if (!$same_address && (empty($permanent_address) || empty($permanent_province) || empty($permanent_city) || empty($permanent_barangay))) {
+        $errors[] = 'Permanent address is incomplete';
+    }
+    
+    // Check if username already exists (excluding current user)
     if (!empty($username)) {
-        $stmt = $db->prepare("SELECT user_id FROM users WHERE username = ? AND user_id != ?");
-        $stmt->execute([$username, $worker['user_id']]);
-        if ($stmt->fetch()) {
-            $errors[] = 'Username already exists';
+        try {
+            $stmt = $db->prepare("SELECT user_id FROM users WHERE username = ? AND user_id != ?");
+            $stmt->execute([$username, $worker['user_id']]);
+            if ($stmt->fetch()) {
+                $errors[] = 'Username already exists';
+            }
+        } catch (PDOException $e) {
+            $errors[] = 'Database error checking username';
         }
     }
     
-    // Check if email exists (excluding current user)
-    if (!empty($email)) {
+    // Check if email already exists (excluding current user)
+    try {
         $stmt = $db->prepare("SELECT user_id FROM users WHERE email = ? AND user_id != ?");
         $stmt->execute([$email, $worker['user_id']]);
         if ($stmt->fetch()) {
             $errors[] = 'Email already exists';
         }
+    } catch (PDOException $e) {
+        $errors[] = 'Database error checking email';
     }
     
     if (empty($errors)) {
         try {
             $db->beginTransaction();
             
-            $email_value = !empty($email) ? $email : null;
-
-            // Update user account
-            if (!empty($password)) {
-                $hashed_password = password_hash($password, PASSWORD_HASH_ALGO);
-                $stmt = $db->prepare("UPDATE users SET username = ?, password = ?, email = ?, updated_at = NOW() 
-                                      WHERE user_id = ?");
-                $stmt->execute([$username, $hashed_password, $email_value, $worker['user_id']]);
-            } else {
-                $stmt = $db->prepare("UPDATE users SET username = ?, email = ?, updated_at = NOW() 
-                                      WHERE user_id = ?");
-                $stmt->execute([$username, $email_value, $worker['user_id']]);
-            }
-            
-            // Update worker profile
-            $stmt = $db->prepare("UPDATE workers SET 
-                first_name = ?, last_name = ?, position = ?, phone = ?, address = ?,
-                date_of_birth = ?, gender = ?, emergency_contact_name = ?, emergency_contact_phone = ?,
-                date_hired = ?, employment_status = ?, daily_rate = ?, experience_years = ?,
-                sss_number = ?, philhealth_number = ?, pagibig_number = ?, tin_number = ?,
-                updated_at = NOW()
-                WHERE worker_id = ?");
-            
-            $stmt->execute([
-                $first_name, $last_name, $position, $phone, $address,
-                $date_of_birth ?: null, $gender, $emergency_contact_name, $emergency_contact_phone,
-                $date_hired, $employment_status, $daily_rate, $experience_years,
-                $sss_number, $philhealth_number, $pagibig_number, $tin_number,
-                $worker_id
+            // Prepare addresses JSON
+            $addresses_json = json_encode([
+                'current' => [
+                    'address' => $current_address,
+                    'province' => $current_province,
+                    'city' => $current_city,
+                    'barangay' => $current_barangay
+                ],
+                'permanent' => [
+                    'address' => $permanent_address,
+                    'province' => $permanent_province,
+                    'city' => $permanent_city,
+                    'barangay' => $permanent_barangay
+                ]
             ]);
             
+            // Prepare IDs JSON
+            $ids_json = json_encode([
+                'primary' => [
+                    'type' => $primary_id_type,
+                    'number' => $primary_id_number
+                ],
+                'additional' => $additional_ids
+            ]);
+            
+            // Update worker
+            $stmt = $db->prepare("
+                UPDATE workers SET
+                    first_name = ?,
+                    middle_name = ?,
+                    last_name = ?,
+                    position = ?,
+                    phone = ?,
+                    date_of_birth = ?,
+                    gender = ?,
+                    addresses = ?,
+                    date_hired = ?,
+                    daily_rate = ?,
+                    experience_years = ?,
+                    employment_status = ?,
+                    emergency_contact_name = ?,
+                    emergency_contact_phone = ?,
+                    emergency_contact_relationship = ?,
+                    sss_number = ?,
+                    philhealth_number = ?,
+                    pagibig_number = ?,
+                    tin_number = ?,
+                    identification_data = ?,
+                    updated_at = NOW()
+                WHERE worker_id = ?
+            ");
+            
+            $stmt->execute([
+                $first_name, $middle_name, $last_name, $position, $phone,
+                $date_of_birth, $gender, $addresses_json, $date_hired,
+                $daily_rate, $experience_years, $employment_status,
+                $emergency_contact_name, $emergency_contact_phone, $emergency_contact_relationship,
+                $sss_number, $philhealth_number, $pagibig_number, $tin_number,
+                $ids_json, $worker_id
+            ]);
+            
+            // Update user account
+            if (!empty($password)) {
+                $hashed_password = password_hash($password, PASSWORD_DEFAULT);
+                $stmt = $db->prepare("
+                    UPDATE users SET
+                        username = ?,
+                        email = ?,
+                        password = ?,
+                        updated_at = NOW()
+                    WHERE user_id = ?
+                ");
+                $stmt->execute([$username, $email, $hashed_password, $worker['user_id']]);
+            } else {
+                $stmt = $db->prepare("
+                    UPDATE users SET
+                        username = ?,
+                        email = ?,
+                        updated_at = NOW()
+                    WHERE user_id = ?
+                ");
+                $stmt->execute([$username, $email, $worker['user_id']]);
+            }
+            
             // Log activity
-            $changes = [];
-            if ($first_name !== $worker['first_name'] || $last_name !== $worker['last_name']) {
-                $changes[] = 'name';
-            }
-            if ($position !== $worker['position']) {
-                $changes[] = 'position';
-            }
-            if ($employment_status !== $worker['employment_status']) {
-                $changes[] = 'status';
-            }
-            if ($daily_rate != $worker['daily_rate']) {
-                $changes[] = 'daily rate';
-            }
-            
-            $change_desc = !empty($changes) ? 'Updated: ' . implode(', ', $changes) : 'Updated worker details';
-            
-            logActivity($db, getCurrentUserId(), 'edit_worker', 'workers', $worker_id,
-                       "Updated worker: $first_name $last_name ({$worker['worker_code']}) - $change_desc");
+            logActivity($db, $user_id, 'update_worker', 'workers', $worker_id,
+                       "Updated worker: $first_name $last_name");
             
             $db->commit();
-            
-            setFlashMessage('Worker updated successfully!', 'success');
+            setFlashMessage('Worker updated successfully', 'success');
             redirect(BASE_URL . '/modules/admin/workers/index.php');
             
         } catch (PDOException $e) {
-            $db->rollBack();
+            if ($db->inTransaction()) {
+                $db->rollBack();
+            }
             error_log("Update Worker Error: " . $e->getMessage());
             $errors[] = 'Failed to update worker. Please try again.';
         }
@@ -182,10 +314,152 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Edit Worker - <?php echo SYSTEM_NAME; ?></title>
-    <link rel="stylesheet" href="https://pro.fontawesome.com/releases/v5.10.0/css/all.css"/>
+    <link rel="stylesheet" href="https://pro.fontawesome.com/releases/v5.10.0/css/all.css" 
+          integrity="sha384-AYmEC3Yw5cVb3ZcuHtOA93w35dYTsvhLPVnYs9eStHfGJvOvKxVfELGroGkvsg+p" 
+          crossorigin="anonymous" />
     <link rel="stylesheet" href="<?php echo CSS_URL; ?>/dashboard.css">
     <link rel="stylesheet" href="<?php echo CSS_URL; ?>/workers.css">
     <link rel="stylesheet" href="<?php echo CSS_URL; ?>/forms.css">
+    <style>
+        .required-asterisk {
+            color: #dc3545;
+            font-weight: bold;
+            margin-left: 3px;
+        }
+        
+        /* Validation Styles - ONLY SHOW ON BLUR */
+        .form-group input.invalid,
+        .form-group select.invalid,
+        .form-group textarea.invalid {
+            border-color: #dc3545 !important;
+            background-color: #fff5f5 !important;
+        }
+        
+        .form-group input.valid,
+        .form-group select.valid,
+        .form-group textarea.valid {
+            border-color: #28a745 !important;
+            background-color: #f0fff4 !important;
+        }
+        
+        .error-message {
+            color: #dc3545;
+            font-size: 12px;
+            margin-top: 5px;
+            display: none;
+        }
+        
+        .error-message.show {
+            display: block;
+        }
+        
+        .success-message {
+            color: #28a745;
+            font-size: 12px;
+            margin-top: 5px;
+            display: none;
+        }
+        
+        .success-message.show {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .checkbox-group {
+            margin: 15px 0;
+        }
+        
+        .checkbox-group label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        
+        .id-section {
+            border: 1px solid #e0e0e0;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            background: #f8f9fa;
+        }
+        
+        .id-row {
+            display: grid;
+            grid-template-columns: 1fr 2fr auto;
+            gap: 10px;
+            margin-bottom: 10px;
+            align-items: start;
+        }
+        
+        .btn-remove-id {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .btn-add-id {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .btn-add-id:hover {
+            background: #0056b3;
+        }
+        
+        .alert-danger {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .alert-danger ul {
+            margin: 0;
+            padding-left: 20px;
+        }
+        
+        .address-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 15px 0;
+            padding: 12px;
+            background: #fff;
+            border-radius: 6px;
+            border: 2px solid #e0e0e0;
+        }
+        
+        .checkbox-group input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+            accent-color: #DAA520;
+        }
+    </style>
 </head>
 <body>
     <div class="container">
@@ -195,238 +469,397 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <?php include __DIR__ . '/../../../includes/admin_topbar.php'; ?>
             
             <div class="workers-content">
+                <div class="page-header">
+                    <div class="header-left">
+                        <button class="btn-back" onclick="window.location.href='index.php'">
+                            <i class="fas fa-arrow-left"></i> Back
+                        </button>
+                        <div>
+                            <h1>Edit Worker</h1>
+                            <p class="subtitle">Update worker information</p>
+                        </div>
+                    </div>
+                </div>
                 
                 <?php if (!empty($errors)): ?>
-                <div class="alert alert-error" id="errorAlert">
-                    <i class="fas fa-exclamation-circle"></i>
-                    <div>
+                <div class="alert-danger">
+                    <strong><i class="fas fa-exclamation-circle"></i> Please fix the following errors:</strong>
+                    <ul>
                         <?php foreach ($errors as $error): ?>
-                        <p><?php echo htmlspecialchars($error); ?></p>
+                            <li><?php echo htmlspecialchars($error); ?></li>
                         <?php endforeach; ?>
-                    </div>
-                    <button class="alert-close" onclick="closeAlert('errorAlert')">
-                        <i class="fas fa-times"></i>
-                    </button>
+                    </ul>
                 </div>
                 <?php endif; ?>
                 
-                <div class="page-header">
-                    <div class="header-left">
-                        <h1>Edit Worker</h1>
-                        <p class="subtitle">Update worker information for <?php echo htmlspecialchars($worker['first_name'] . ' ' . $worker['last_name']); ?> (<?php echo htmlspecialchars($worker['worker_code']); ?>)</p>
-                    </div>
-                    <button class="btn btn-secondary" onclick="window.location.href='index.php'">
-                        <i class="fas fa-arrow-left"></i> Back to List
-                    </button>
-                </div>
-                
-                <form method="POST" action="" class="worker-form">
+                <form method="POST" id="workerForm" class="worker-form">
                     
+                    <!-- Personal Information -->
                     <div class="form-card">
-                        <div class="info-badge">
-                            <i class="fas fa-id-badge"></i>
-                            <div>
-                                <span class="info-badge-label">Worker Code</span>
-                                <span class="info-badge-value"><?php echo htmlspecialchars($worker['worker_code']); ?></span>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="form-card">
-                        <h3 class="form-section-title">
-                            <i class="fas fa-user"></i> Personal Information
-                        </h3>
+                        <h3><i class="fas fa-user"></i> Personal Information</h3>
                         
                         <div class="form-row">
                             <div class="form-group">
-                                <label for="first_name">First Name <span class="required">*</span></label>
-                                <input type="text" id="first_name" name="first_name" required 
+                                <label>First Name <span class="required-asterisk">*</span></label>
+                                <input type="text" name="first_name" id="first_name" required 
                                        value="<?php echo htmlspecialchars($worker['first_name']); ?>">
                             </div>
                             
                             <div class="form-group">
-                                <label for="last_name">Last Name <span class="required">*</span></label>
-                                <input type="text" id="last_name" name="last_name" required
+                                <label>Middle Name</label>
+                                <input type="text" name="middle_name" id="middle_name" 
+                                       value="<?php echo htmlspecialchars($worker['middle_name'] ?? ''); ?>">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Last Name <span class="required-asterisk">*</span></label>
+                                <input type="text" name="last_name" id="last_name" required 
                                        value="<?php echo htmlspecialchars($worker['last_name']); ?>">
                             </div>
                         </div>
                         
                         <div class="form-row">
                             <div class="form-group">
-                                <label for="date_of_birth">Date of Birth</label>
-                                <input type="date" id="date_of_birth" name="date_of_birth"
-                                       value="<?php echo htmlspecialchars($worker['date_of_birth'] ?? ''); ?>">
+                                <label>Date of Birth <span class="required-asterisk">*</span></label>
+                                <input type="date" name="date_of_birth" id="date_of_birth" required 
+                                       value="<?php echo htmlspecialchars($worker['date_of_birth']); ?>">
                             </div>
                             
                             <div class="form-group">
-                                <label for="gender">Gender</label>
-                                <select id="gender" name="gender">
+                                <label>Gender <span class="required-asterisk">*</span></label>
+                                <select name="gender" id="gender" required>
                                     <option value="">Select Gender</option>
-                                    <option value="male" <?php echo ($worker['gender'] === 'male') ? 'selected' : ''; ?>>Male</option>
-                                    <option value="female" <?php echo ($worker['gender'] === 'female') ? 'selected' : ''; ?>>Female</option>
-                                    <option value="other" <?php echo ($worker['gender'] === 'other') ? 'selected' : ''; ?>>Other</option>
+                                    <option value="male" <?php echo $worker['gender'] === 'male' ? 'selected' : ''; ?>>Male</option>
+                                    <option value="female" <?php echo $worker['gender'] === 'female' ? 'selected' : ''; ?>>Female</option>
+                                    <option value="other" <?php echo $worker['gender'] === 'other' ? 'selected' : ''; ?>>Other</option>
                                 </select>
                             </div>
                         </div>
                         
                         <div class="form-row">
                             <div class="form-group">
-                                <label for="phone">Phone Number</label>
-                                <input type="tel" id="phone" name="phone" placeholder="+63 912 345 6789"
-                                       value="<?php echo htmlspecialchars($worker['phone'] ?? ''); ?>">
+                                <label>Phone Number <span class="required-asterisk">*</span></label>
+                                <input type="tel" name="phone" id="phone" required 
+                                       placeholder="09XXXXXXXXX" maxlength="13"
+                                       value="<?php echo htmlspecialchars($worker['phone']); ?>">
+                                <div class="error-message" id="phone-error"></div>
+                                <div class="success-message" id="phone-success"><i class="fas fa-check-circle"></i> Valid phone number</div>
                             </div>
                             
                             <div class="form-group">
-                                <label for="email">Email Address</label>
-                                <input type="email" id="email" name="email" placeholder="worker@example.com"
-                                       value="<?php echo htmlspecialchars($worker['email'] ?? ''); ?>">
+                                <label>Email <span class="required-asterisk">*</span></label>
+                                <input type="email" name="email" id="email" required 
+                                       value="<?php echo htmlspecialchars($worker['email']); ?>">
+                                <div class="error-message" id="email-error"></div>
+                                <div class="success-message" id="email-success"><i class="fas fa-check-circle"></i> Valid email</div>
                             </div>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="address">Address</label>
-                            <textarea id="address" name="address" rows="3"><?php echo htmlspecialchars($worker['address'] ?? ''); ?></textarea>
                         </div>
                     </div>
                     
+                    <!-- Current Address -->
                     <div class="form-card">
-                        <h3 class="form-section-title">
-                            <i class="fas fa-briefcase"></i> Employment Details
-                        </h3>
+                        <h3><i class="fas fa-map-marker-alt"></i> Current Address</h3>
+                        
+                        <div class="address-section">
+                            <div class="form-group">
+                                <label>Street/House No./Building <span class="required-asterisk">*</span></label>
+                                <textarea name="current_address" id="current_address" required rows="2"><?php echo htmlspecialchars($addresses['current']['address'] ?? ''); ?></textarea>
+                            </div>
+                        
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Province <span class="required-asterisk">*</span></label>
+                                    <select name="current_province" id="current_province" required>
+                                        <option value="">Select Province</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label>City/Municipality <span class="required-asterisk">*</span></label>
+                                    <select name="current_city" id="current_city" required disabled>
+                                        <option value="">Select Province First</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label>Barangay <span class="required-asterisk">*</span></label>
+                                    <select name="current_barangay" id="current_barangay" required disabled>
+                                        <option value="">Select City First</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Permanent Address -->
+                    <div class="form-card">
+                        <h3><i class="fas fa-home"></i> Permanent Address</h3>
+                        
+                        <div class="checkbox-group">
+                            <label>
+                                <input type="checkbox" id="same_address" name="same_address" onchange="copyAddress()">
+                                Same as Current Address
+                            </label>
+                        </div>
+                        
+                        <div class="address-section">
+                            <div class="form-group">
+                                <label>Street/House No./Building <span class="required-asterisk">*</span></label>
+                                <textarea name="permanent_address" id="permanent_address" required rows="2"><?php echo htmlspecialchars($addresses['permanent']['address'] ?? ''); ?></textarea>
+                            </div>
+                        
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Province <span class="required-asterisk">*</span></label>
+                                    <select name="permanent_province" id="permanent_province" required>
+                                        <option value="">Select Province</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label>City/Municipality <span class="required-asterisk">*</span></label>
+                                    <select name="permanent_city" id="permanent_city" required disabled>
+                                        <option value="">Select Province First</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label>Barangay <span class="required-asterisk">*</span></label>
+                                    <select name="permanent_barangay" id="permanent_barangay" required disabled>
+                                        <option value="">Select City First</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Employment Details -->
+                    <div class="form-card">
+                        <h3><i class="fas fa-briefcase"></i> Employment Details</h3>
                         
                         <div class="form-row">
                             <div class="form-group">
-                                <label for="position">Position <span class="required">*</span></label>
-                                <input type="text" id="position" name="position" required 
-                                       value="<?php echo htmlspecialchars($worker['position']); ?>">
+                                <label>Position <span class="required-asterisk">*</span></label>
+                                <input type="text" name="position" id="position" required 
+                                       value="<?php echo htmlspecialchars($worker['position']); ?>"
+                                       list="position-suggestions">
+                                <datalist id="position-suggestions">
+                                    <option value="Mason">
+                                    <option value="Carpenter">
+                                    <option value="Electrician">
+                                    <option value="Plumber">
+                                    <option value="Painter">
+                                    <option value="Laborer">
+                                    <option value="Foreman">
+                                    <option value="Heavy Equipment Operator">
+                                </datalist>
                             </div>
                             
                             <div class="form-group">
-                                <label for="experience_years">Years of Tenure</label>
-                                <input type="number" id="experience_years" name="experience_years" min="0" 
-                                       value="<?php echo htmlspecialchars($worker['experience_years']); ?>">
-                            </div>
-                        </div>
-                        
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="date_hired">Date Hired <span class="required">*</span></label>
-                                <input type="date" id="date_hired" name="date_hired" required
+                                <label>Date Hired <span class="required-asterisk">*</span></label>
+                                <input type="date" name="date_hired" id="date_hired" required 
                                        value="<?php echo htmlspecialchars($worker['date_hired']); ?>">
                             </div>
-                            
-                            <div class="form-group">
-                                <label for="daily_rate">Daily Rate (₱) <span class="required">*</span></label>
-                                <input type="number" id="daily_rate" name="daily_rate" required min="0" step="0.01" 
-                                       value="<?php echo htmlspecialchars($worker['daily_rate']); ?>">
-                            </div>
                         </div>
                         
                         <div class="form-row">
                             <div class="form-group">
-                                <label for="employment_status">Employment Status <span class="required">*</span></label>
-                                <select id="employment_status" name="employment_status" required>
-                                    <option value="active" <?php echo ($worker['employment_status'] === 'active') ? 'selected' : ''; ?>>Active</option>
-                                    <option value="on_leave" <?php echo ($worker['employment_status'] === 'on_leave') ? 'selected' : ''; ?>>On Leave</option>
-                                    <option value="blocklisted" <?php echo ($worker['employment_status'] === 'blocklisted') ? 'selected' : ''; ?>>Blocklisted</option>
-                                    <option value="terminated" <?php echo ($worker['employment_status'] === 'terminated') ? 'selected' : ''; ?>>Terminated</option>
+                                <label>Daily Rate (₱) <span class="required-asterisk">*</span></label>
+                                <input type="number" name="daily_rate" id="daily_rate" required 
+                                       step="0.01" min="0" value="<?php echo htmlspecialchars($worker['daily_rate']); ?>">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Experience (Years) <span class="required-asterisk">*</span></label>
+                                <input type="number" name="experience_years" id="experience_years" required 
+                                       min="0" value="<?php echo htmlspecialchars($worker['experience_years']); ?>">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Employment Status <span class="required-asterisk">*</span></label>
+                                <select name="employment_status" id="employment_status" required>
+                                    <option value="active" <?php echo $worker['employment_status'] === 'active' ? 'selected' : ''; ?>>Active</option>
+                                    <option value="on_leave" <?php echo $worker['employment_status'] === 'on_leave' ? 'selected' : ''; ?>>On Leave</option>
+                                    <option value="blocklisted" <?php echo $worker['employment_status'] === 'blocklisted' ? 'selected' : ''; ?>>Blocklisted</option>
+                                    <option value="terminated" <?php echo $worker['employment_status'] === 'terminated' ? 'selected' : ''; ?>>Terminated</option>
                                 </select>
-                                <small>Change worker's employment status</small>
                             </div>
                         </div>
                     </div>
                     
+                    <!-- Emergency Contact -->
                     <div class="form-card">
-                        <h3 class="form-section-title">
-                            <i class="fas fa-id-card"></i> Government IDs & Benefits
-                        </h3>
+                        <h3><i class="fas fa-phone-alt"></i> Emergency Contact</h3>
                         
                         <div class="form-row">
                             <div class="form-group">
-                                <label for="sss_number">SSS Number</label>
-                                <input type="text" id="sss_number" name="sss_number" placeholder="34-1234567-8"
+                                <label>Contact Name <span class="required-asterisk">*</span></label>
+                                <input type="text" name="emergency_contact_name" id="emergency_contact_name" required 
+                                       value="<?php echo htmlspecialchars($worker['emergency_contact_name']); ?>">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Contact Phone <span class="required-asterisk">*</span></label>
+                                <input type="tel" name="emergency_contact_phone" id="emergency_contact_phone" required 
+                                       placeholder="09XXXXXXXXX" maxlength="13"
+                                       value="<?php echo htmlspecialchars($worker['emergency_contact_phone']); ?>">
+                                <div class="error-message" id="emergency_phone-error"></div>
+                                <div class="success-message" id="emergency_phone-success"><i class="fas fa-check-circle"></i> Valid phone number</div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Relationship <span class="required-asterisk">*</span></label>
+                                <select name="emergency_contact_relationship" id="emergency_contact_relationship" required>
+                                    <option value="">Select Relationship</option>
+                                    <option value="Parent" <?php echo ($worker['emergency_contact_relationship'] ?? '') === 'Parent' ? 'selected' : ''; ?>>Parent</option>
+                                    <option value="Sibling" <?php echo ($worker['emergency_contact_relationship'] ?? '') === 'Sibling' ? 'selected' : ''; ?>>Sibling</option>
+                                    <option value="Spouse" <?php echo ($worker['emergency_contact_relationship'] ?? '') === 'Spouse' ? 'selected' : ''; ?>>Spouse</option>
+                                    <option value="Child" <?php echo ($worker['emergency_contact_relationship'] ?? '') === 'Child' ? 'selected' : ''; ?>>Child</option>
+                                    <option value="Guardian" <?php echo ($worker['emergency_contact_relationship'] ?? '') === 'Guardian' ? 'selected' : ''; ?>>Guardian</option>
+                                    <option value="Friend" <?php echo ($worker['emergency_contact_relationship'] ?? '') === 'Friend' ? 'selected' : ''; ?>>Friend</option>
+                                    <option value="Relative" <?php echo ($worker['emergency_contact_relationship'] ?? '') === 'Relative' ? 'selected' : ''; ?>>Relative</option>
+                                    <option value="Other" <?php echo ($worker['emergency_contact_relationship'] ?? '') === 'Other' ? 'selected' : ''; ?>>Other</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Identification -->
+                    <div class="form-card">
+                        <h3><i class="fas fa-id-card"></i> Identification</h3>
+                        
+                        <div class="id-section">
+                            <h4 style="margin-bottom: 15px;">Primary ID <span class="required-asterisk">*</span></h4>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>ID Type <span class="required-asterisk">*</span></label>
+                                    <select name="primary_id_type" id="primary_id_type" required>
+                                        <option value="">Select ID Type</option>
+                                        <option value="National ID" <?php echo ($ids['primary']['type'] ?? '') === 'National ID' ? 'selected' : ''; ?>>National ID</option>
+                                        <option value="Driver's License" <?php echo ($ids['primary']['type'] ?? '') === "Driver's License" ? 'selected' : ''; ?>>Driver's License</option>
+                                        <option value="Passport" <?php echo ($ids['primary']['type'] ?? '') === 'Passport' ? 'selected' : ''; ?>>Passport</option>
+                                        <option value="SSS ID" <?php echo ($ids['primary']['type'] ?? '') === 'SSS ID' ? 'selected' : ''; ?>>SSS ID</option>
+                                        <option value="PhilHealth ID" <?php echo ($ids['primary']['type'] ?? '') === 'PhilHealth ID' ? 'selected' : ''; ?>>PhilHealth ID</option>
+                                        <option value="Pag-IBIG ID" <?php echo ($ids['primary']['type'] ?? '') === 'Pag-IBIG ID' ? 'selected' : ''; ?>>Pag-IBIG ID</option>
+                                        <option value="Postal ID" <?php echo ($ids['primary']['type'] ?? '') === 'Postal ID' ? 'selected' : ''; ?>>Postal ID</option>
+                                        <option value="Voter's ID" <?php echo ($ids['primary']['type'] ?? '') === "Voter's ID" ? 'selected' : ''; ?>>Voter's ID</option>
+                                        <option value="PRC ID" <?php echo ($ids['primary']['type'] ?? '') === 'PRC ID' ? 'selected' : ''; ?>>PRC ID</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label>ID Number <span class="required-asterisk">*</span></label>
+                                    <input type="text" name="primary_id_number" id="primary_id_number" required 
+                                           value="<?php echo htmlspecialchars($ids['primary']['number'] ?? ''); ?>">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="id-section">
+                            <h4 style="margin-bottom: 15px;">Additional IDs (Optional)</h4>
+                            <div id="additional-ids-container">
+                                <?php if (!empty($ids['additional'])): ?>
+                                    <?php foreach ($ids['additional'] as $index => $additional_id): ?>
+                                        <div class="id-row" id="id-row-<?php echo $index; ?>">
+                                            <select name="additional_id_type[]" class="form-control">
+                                                <option value="">Select ID Type</option>
+                                                <option value="National ID" <?php echo $additional_id['type'] === 'National ID' ? 'selected' : ''; ?>>National ID</option>
+                                                <option value="Driver's License" <?php echo $additional_id['type'] === "Driver's License" ? 'selected' : ''; ?>>Driver's License</option>
+                                                <option value="Passport" <?php echo $additional_id['type'] === 'Passport' ? 'selected' : ''; ?>>Passport</option>
+                                                <option value="SSS ID" <?php echo $additional_id['type'] === 'SSS ID' ? 'selected' : ''; ?>>SSS ID</option>
+                                                <option value="PhilHealth ID" <?php echo $additional_id['type'] === 'PhilHealth ID' ? 'selected' : ''; ?>>PhilHealth ID</option>
+                                                <option value="Pag-IBIG ID" <?php echo $additional_id['type'] === 'Pag-IBIG ID' ? 'selected' : ''; ?>>Pag-IBIG ID</option>
+                                                <option value="Postal ID" <?php echo $additional_id['type'] === 'Postal ID' ? 'selected' : ''; ?>>Postal ID</option>
+                                                <option value="Voter's ID" <?php echo $additional_id['type'] === "Voter's ID" ? 'selected' : ''; ?>>Voter's ID</option>
+                                                <option value="PRC ID" <?php echo $additional_id['type'] === 'PRC ID' ? 'selected' : ''; ?>>PRC ID</option>
+                                            </select>
+                                            <input type="text" name="additional_id_number[]" class="form-control" 
+                                                   placeholder="ID Number" value="<?php echo htmlspecialchars($additional_id['number']); ?>">
+                                            <button type="button" class="btn-remove-id" onclick="removeId(<?php echo $index; ?>)">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
+                            </div>
+                            <button type="button" class="btn-add-id" onclick="addAdditionalId()">
+                                <i class="fas fa-plus"></i> Add Additional ID
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Government IDs -->
+                    <div class="form-card">
+                        <h3><i class="fas fa-id-badge"></i> Government IDs & Benefits</h3>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>SSS Number</label>
+                                <input type="text" name="sss_number" id="sss_number" 
                                        value="<?php echo htmlspecialchars($worker['sss_number'] ?? ''); ?>">
                             </div>
                             
                             <div class="form-group">
-                                <label for="philhealth_number">PhilHealth Number</label>
-                                <input type="text" id="philhealth_number" name="philhealth_number" placeholder="12-345678901-2"
+                                <label>PhilHealth Number</label>
+                                <input type="text" name="philhealth_number" id="philhealth_number" 
                                        value="<?php echo htmlspecialchars($worker['philhealth_number'] ?? ''); ?>">
                             </div>
                         </div>
                         
                         <div class="form-row">
                             <div class="form-group">
-                                <label for="pagibig_number">Pag-IBIG Number</label>
-                                <input type="text" id="pagibig_number" name="pagibig_number" placeholder="1234-5678-9012"
+                                <label>Pag-IBIG Number</label>
+                                <input type="text" name="pagibig_number" id="pagibig_number" 
                                        value="<?php echo htmlspecialchars($worker['pagibig_number'] ?? ''); ?>">
                             </div>
                             
                             <div class="form-group">
-                                <label for="tin_number">TIN</label>
-                                <input type="text" id="tin_number" name="tin_number" placeholder="123-456-789-000"
+                                <label>TIN (Tax Identification Number)</label>
+                                <input type="text" name="tin_number" id="tin_number" 
                                        value="<?php echo htmlspecialchars($worker['tin_number'] ?? ''); ?>">
                             </div>
                         </div>
                     </div>
                     
+                    <!-- Login Credentials -->
                     <div class="form-card">
-                        <h3 class="form-section-title">
-                            <i class="fas fa-phone-alt"></i> Emergency Contact
-                        </h3>
+                        <h3><i class="fas fa-lock"></i> Login Credentials</h3>
+                        <p style="color: #666; font-size: 14px; margin-bottom: 15px;">
+                            Leave password blank to keep current password
+                        </p>
                         
                         <div class="form-row">
                             <div class="form-group">
-                                <label for="emergency_contact_name">Contact Name</label>
-                                <input type="text" id="emergency_contact_name" name="emergency_contact_name"
-                                       value="<?php echo htmlspecialchars($worker['emergency_contact_name'] ?? ''); ?>">
-                            </div>
-                            
-                            <div class="form-group">
-                                <label for="emergency_contact_phone">Contact Phone</label>
-                                <input type="tel" id="emergency_contact_phone" name="emergency_contact_phone"
-                                       value="<?php echo htmlspecialchars($worker['emergency_contact_phone'] ?? ''); ?>">
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="form-card">
-                        <h3 class="form-section-title">
-                            <i class="fas fa-key"></i> Account Credentials
-                        </h3>
-                        
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="username">Username <span class="required">*</span></label>
-                                <input type="text" id="username" name="username" required
+                                <label>Username <span class="required-asterisk">*</span></label>
+                                <input type="text" name="username" id="username" required 
                                        value="<?php echo htmlspecialchars($worker['username']); ?>">
-                                <small>Worker will use this to login</small>
                             </div>
                             
                             <div class="form-group">
-                                <label for="password">New Password</label>
-                                <input type="password" id="password" name="password">
-                                <small>Leave blank to keep current password</small>
+                                <label>New Password (Optional)</label>
+                                <input type="password" name="password" id="password" 
+                                       placeholder="Leave blank to keep current">
                             </div>
                         </div>
                     </div>
                     
+                    <!-- Form Actions -->
                     <div class="form-actions">
-                        <button type="submit" class="btn btn-primary btn-lg">
-                            <i class="fas fa-save"></i> Update Worker
-                        </button>
-                        <button type="button" class="btn btn-secondary btn-lg" onclick="window.location.href='index.php'">
+                        <button type="button" class="btn btn-secondary" onclick="window.location.href='index.php'">
                             <i class="fas fa-times"></i> Cancel
                         </button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Update Worker
+                        </button>
                         <?php if (hasPermission($db, 'can_delete_workers')): ?>
-                        <button type="button" class="btn btn-danger btn-lg" onclick="confirmDelete(<?php echo $worker_id; ?>, '<?php echo htmlspecialchars($worker['first_name'] . ' ' . $worker['last_name']); ?>')" style="margin-left: auto;">
+                        <button type="button" class="btn btn-danger" style="margin-left: auto;" 
+                                onclick="confirmDelete(<?php echo $worker_id; ?>, '<?php echo htmlspecialchars($worker['first_name'] . ' ' . $worker['last_name']); ?>')">
                             <i class="fas fa-archive"></i> Archive Worker
                         </button>
                         <?php endif; ?>
                     </div>
                     
                 </form>
-                
             </div>
         </div>
     </div>
@@ -434,13 +867,335 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <script src="<?php echo JS_URL; ?>/dashboard.js"></script>
     <script src="<?php echo JS_URL; ?>/workers.js"></script>
     <script>
+        // Address data from PHP
+        const currentProvinceData = <?php echo json_encode($addresses['current']['province'] ?? ''); ?>;
+        const currentCityData = <?php echo json_encode($addresses['current']['city'] ?? ''); ?>;
+        const currentBarangayData = <?php echo json_encode($addresses['current']['barangay'] ?? ''); ?>;
+        
+        const permanentProvinceData = <?php echo json_encode($addresses['permanent']['province'] ?? ''); ?>;
+        const permanentCityData = <?php echo json_encode($addresses['permanent']['city'] ?? ''); ?>;
+        const permanentBarangayData = <?php echo json_encode($addresses['permanent']['barangay'] ?? ''); ?>;
+        
+        let provincesData = [];
+        let idCounter = <?php echo count($ids['additional'] ?? []); ?>;
+        
+        // Validation functions
+        function validatePhoneField(input, fieldId) {
+            const value = input.value.trim();
+            const cleanValue = value.replace(/[^\d+]/g, '');
+            
+            const errorElement = document.getElementById(fieldId + '-error');
+            const successElement = document.getElementById(fieldId + '-success');
+            
+            let isValid = false;
+            let digitCount = cleanValue.replace(/\+/g, '').length;
+            
+            if (cleanValue.startsWith('+63') && cleanValue.length === 13 && /^\+639\d{9}$/.test(cleanValue)) {
+                isValid = true;
+            } else if (cleanValue.startsWith('09') && cleanValue.length === 11 && /^09\d{9}$/.test(cleanValue)) {
+                isValid = true;
+            }
+            
+            if (isValid) {
+                input.classList.remove('invalid');
+                input.classList.add('valid');
+                errorElement.classList.remove('show');
+                successElement.classList.add('show');
+                return true;
+            } else {
+                input.classList.remove('valid');
+                input.classList.add('invalid');
+                errorElement.textContent = `Must be exactly 11 digits. Current: ${digitCount}`;
+                errorElement.classList.add('show');
+                successElement.classList.remove('show');
+                return false;
+            }
+        }
+        
+        function validateEmailField(input) {
+            const value = input.value.trim();
+            const errorElement = document.getElementById('email-error');
+            const successElement = document.getElementById('email-success');
+            
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            
+            if (emailRegex.test(value)) {
+                input.classList.remove('invalid');
+                input.classList.add('valid');
+                errorElement.classList.remove('show');
+                successElement.classList.add('show');
+                return true;
+            } else {
+                input.classList.remove('valid');
+                input.classList.add('invalid');
+                errorElement.textContent = 'Please enter a valid email address';
+                errorElement.classList.add('show');
+                successElement.classList.remove('show');
+                return false;
+            }
+        }
+        
+        function validateRequiredField(field) {
+            if (field.value.trim() === '') {
+                field.classList.add('invalid');
+                field.classList.remove('valid');
+                return false;
+            } else {
+                field.classList.remove('invalid');
+                field.classList.add('valid');
+                return true;
+            }
+        }
+        
+        function initializeRealTimeValidation() {
+            const phoneInput = document.getElementById('phone');
+            phoneInput.addEventListener('input', function(e) {
+                e.target.classList.remove('valid');
+                document.getElementById('phone-success').classList.remove('show');
+                formatPhoneInput(e.target);
+            });
+            phoneInput.addEventListener('blur', function(e) {
+                validatePhoneField(e.target, 'phone');
+            });
+            
+            const emergencyPhoneInput = document.getElementById('emergency_contact_phone');
+            emergencyPhoneInput.addEventListener('input', function(e) {
+                e.target.classList.remove('valid');
+                document.getElementById('emergency_phone-success').classList.remove('show');
+                formatPhoneInput(e.target);
+            });
+            emergencyPhoneInput.addEventListener('blur', function(e) {
+                validatePhoneField(e.target, 'emergency_phone');
+            });
+            
+            const emailInput = document.getElementById('email');
+            emailInput.addEventListener('input', function(e) {
+                e.target.classList.remove('valid', 'invalid');
+                document.getElementById('email-error').classList.remove('show');
+                document.getElementById('email-success').classList.remove('show');
+            });
+            emailInput.addEventListener('blur', function(e) {
+                validateEmailField(e.target);
+            });
+            
+            const requiredFields = document.querySelectorAll('input[required], select[required], textarea[required]');
+            requiredFields.forEach(field => {
+                field.addEventListener('input', function(e) {
+                    if (e.target.id !== 'phone' && e.target.id !== 'emergency_contact_phone' && e.target.id !== 'email') {
+                        e.target.classList.remove('valid', 'invalid');
+                    }
+                });
+                field.addEventListener('blur', function(e) {
+                    if (e.target.id !== 'phone' && e.target.id !== 'emergency_contact_phone' && e.target.id !== 'email') {
+                        validateRequiredField(e.target);
+                    }
+                });
+            });
+        }
+        
+        function formatPhoneInput(input) {
+            let value = input.value.replace(/\D/g, '');
+            if (value.startsWith('63') && value.length > 2) {
+                value = '+' + value;
+            } else if (value.length > 0 && !value.startsWith('0') && !value.startsWith('+')) {
+                value = '0' + value;
+            }
+            if (value.startsWith('+')) {
+                value = value.substring(0, 13);
+            } else {
+                value = value.substring(0, 11);
+            }
+            input.value = value;
+        }
+        
+        // Load provinces on page load
+        async function loadProvinces() {
+            try {
+                const response = await fetch('https://psgc.gitlab.io/api/provinces/');
+                provincesData = await response.json();
+                
+                const currentProvinceSelect = document.getElementById('current_province');
+                const permanentProvinceSelect = document.getElementById('permanent_province');
+                
+                provincesData.forEach(province => {
+                    const option1 = new Option(province.name, province.name);
+                    option1.dataset.code = province.code;
+                    if (province.name === currentProvinceData) option1.selected = true;
+                    currentProvinceSelect.appendChild(option1);
+                    
+                    const option2 = new Option(province.name, province.name);
+                    option2.dataset.code = province.code;
+                    if (province.name === permanentProvinceData) option2.selected = true;
+                    permanentProvinceSelect.appendChild(option2);
+                });
+                
+                if (currentProvinceData) {
+                    const selectedOption = currentProvinceSelect.querySelector(`option[value="${currentProvinceData}"]`);
+                    if (selectedOption) await loadCities(selectedOption.dataset.code, 'current');
+                }
+                
+                if (permanentProvinceData) {
+                    const selectedOption = permanentProvinceSelect.querySelector(`option[value="${permanentProvinceData}"]`);
+                    if (selectedOption) await loadCities(selectedOption.dataset.code, 'permanent');
+                }
+                
+            } catch (error) {
+                console.error('Error loading provinces:', error);
+            }
+        }
+        
+        async function loadCities(provinceCode, prefix) {
+            const citySelect = document.getElementById(prefix + '_city');
+            const barangaySelect = document.getElementById(prefix + '_barangay');
+            
+            citySelect.innerHTML = '<option value="">Loading...</option>';
+            citySelect.disabled = true;
+            barangaySelect.innerHTML = '<option value="">Select City First</option>';
+            barangaySelect.disabled = true;
+            
+            try {
+                const response = await fetch(`https://psgc.gitlab.io/api/provinces/${provinceCode}/cities-municipalities/`);
+                const cities = await response.json();
+                
+                citySelect.innerHTML = '<option value="">Select City/Municipality</option>';
+                cities.forEach(city => {
+                    const option = new Option(city.name, city.name);
+                    option.dataset.code = city.code;
+                    
+                    if (prefix === 'current' && city.name === currentCityData) option.selected = true;
+                    else if (prefix === 'permanent' && city.name === permanentCityData) option.selected = true;
+                    
+                    citySelect.appendChild(option);
+                });
+                
+                citySelect.disabled = false;
+                
+                const preselectedCity = prefix === 'current' ? currentCityData : permanentCityData;
+                if (preselectedCity) {
+                    const selectedOption = citySelect.querySelector(`option[value="${preselectedCity}"]`);
+                    if (selectedOption) await loadBarangays(selectedOption.dataset.code, prefix);
+                }
+                
+            } catch (error) {
+                console.error('Error loading cities:', error);
+            }
+        }
+        
+        async function loadBarangays(cityCode, prefix) {
+            const barangaySelect = document.getElementById(prefix + '_barangay');
+            
+            barangaySelect.innerHTML = '<option value="">Loading...</option>';
+            barangaySelect.disabled = true;
+            
+            try {
+                const response = await fetch(`https://psgc.gitlab.io/api/cities-municipalities/${cityCode}/barangays/`);
+                const barangays = await response.json();
+                
+                barangaySelect.innerHTML = '<option value="">Select Barangay</option>';
+                barangays.forEach(barangay => {
+                    const option = new Option(barangay.name, barangay.name);
+                    
+                    if (prefix === 'current' && barangay.name === currentBarangayData) option.selected = true;
+                    else if (prefix === 'permanent' && barangay.name === permanentBarangayData) option.selected = true;
+                    
+                    barangaySelect.appendChild(option);
+                });
+                
+                barangaySelect.disabled = false;
+                
+            } catch (error) {
+                console.error('Error loading barangays:', error);
+            }
+        }
+        
+        // Event listeners for address cascading
+        document.getElementById('current_province').addEventListener('change', function() {
+            const selectedOption = this.options[this.selectedIndex];
+            const provinceCode = selectedOption.dataset.code;
+            if (provinceCode) loadCities(provinceCode, 'current');
+        });
+        
+        document.getElementById('current_city').addEventListener('change', function() {
+            const selectedOption = this.options[this.selectedIndex];
+            const cityCode = selectedOption.dataset.code;
+            if (cityCode) loadBarangays(cityCode, 'current');
+        });
+        
+        document.getElementById('permanent_province').addEventListener('change', function() {
+            const selectedOption = this.options[this.selectedIndex];
+            const provinceCode = selectedOption.dataset.code;
+            if (provinceCode) loadCities(provinceCode, 'permanent');
+        });
+        
+        document.getElementById('permanent_city').addEventListener('change', function() {
+            const selectedOption = this.options[this.selectedIndex];
+            const cityCode = selectedOption.dataset.code;
+            if (cityCode) loadBarangays(cityCode, 'permanent');
+        });
+        
+        function copyAddress() {
+            const sameAddress = document.getElementById('same_address').checked;
+            
+            if (sameAddress) {
+                document.getElementById('permanent_address').value = document.getElementById('current_address').value;
+                
+                const currentProvince = document.getElementById('current_province');
+                const permanentProvince = document.getElementById('permanent_province');
+                permanentProvince.value = currentProvince.value;
+                permanentProvince.dispatchEvent(new Event('change'));
+                
+                setTimeout(() => {
+                    const currentCity = document.getElementById('current_city');
+                    const permanentCity = document.getElementById('permanent_city');
+                    permanentCity.value = currentCity.value;
+                    permanentCity.dispatchEvent(new Event('change'));
+                    
+                    setTimeout(() => {
+                        const currentBarangay = document.getElementById('current_barangay');
+                        const permanentBarangay = document.getElementById('permanent_barangay');
+                        permanentBarangay.value = currentBarangay.value;
+                    }, 500);
+                }, 500);
+            }
+        }
+        
+        function addAdditionalId() {
+            const container = document.getElementById('additional-ids-container');
+            const newRow = document.createElement('div');
+            newRow.className = 'id-row';
+            newRow.id = 'id-row-' + idCounter;
+            newRow.innerHTML = `
+                <select name="additional_id_type[]" class="form-control">
+                    <option value="">Select ID Type</option>
+                    <option value="National ID">National ID</option>
+                    <option value="Driver's License">Driver's License</option>
+                    <option value="Passport">Passport</option>
+                    <option value="SSS ID">SSS ID</option>
+                    <option value="PhilHealth ID">PhilHealth ID</option>
+                    <option value="Pag-IBIG ID">Pag-IBIG ID</option>
+                    <option value="Postal ID">Postal ID</option>
+                    <option value="Voter's ID">Voter's ID</option>
+                    <option value="PRC ID">PRC ID</option>
+                </select>
+                <input type="text" name="additional_id_number[]" class="form-control" placeholder="ID Number">
+                <button type="button" class="btn-remove-id" onclick="removeId(${idCounter})">
+                    <i class="fas fa-trash"></i>
+                </button>
+            `;
+            container.appendChild(newRow);
+            idCounter++;
+        }
+        
+        function removeId(id) {
+            const row = document.getElementById('id-row-' + id);
+            if (row) row.remove();
+        }
+        
         function confirmDelete(workerId, workerName) {
             if (confirm(`Archive ${workerName}?\n\nThis will move the worker to the archive. Super Admin can restore it later if needed.`)) {
                 fetch('../../../api/workers.php', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                    },
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                     body: `action=delete&id=${workerId}`
                 })
                 .then(response => response.json())
@@ -458,6 +1213,45 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 });
             }
         }
+        
+        // Form submission validation
+        document.getElementById('workerForm').addEventListener('submit', function(e) {
+            let isValid = true;
+            
+            const phoneInput = document.getElementById('phone');
+            const emergencyPhoneInput = document.getElementById('emergency_contact_phone');
+            
+            if (!validatePhoneField(phoneInput, 'phone')) isValid = false;
+            if (!validatePhoneField(emergencyPhoneInput, 'emergency_phone')) isValid = false;
+            
+            const emailInput = document.getElementById('email');
+            if (!validateEmailField(emailInput)) isValid = false;
+            
+            const requiredFields = this.querySelectorAll('[required]');
+            requiredFields.forEach(field => {
+                if (field.value.trim() === '') {
+                    field.classList.add('invalid');
+                    isValid = false;
+                }
+            });
+            
+            if (!isValid) {
+                e.preventDefault();
+                alert('Please fix all validation errors before submitting.');
+                
+                const firstInvalid = this.querySelector('.invalid');
+                if (firstInvalid) {
+                    firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    firstInvalid.focus();
+                }
+            }
+        });
+        
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadProvinces();
+            initializeRealTimeValidation();
+        });
     </script>
 </body>
 </html>
