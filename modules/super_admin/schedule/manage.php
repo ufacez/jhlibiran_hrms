@@ -124,21 +124,6 @@ try {
                     </div>
                 </div>
                 
-                <!-- Debug Info (Remove after testing) -->
-                <div style="background: #fff3cd; padding: 10px; border-radius: 5px; margin-bottom: 20px; font-size: 12px;">
-                    <strong>Debug:</strong> Total workers loaded: <?php echo count($workers); ?>
-                    <?php
-                    // Check for duplicates
-                    $worker_ids = array_column($workers, 'worker_id');
-                    $unique_ids = array_unique($worker_ids);
-                    if (count($worker_ids) !== count($unique_ids)) {
-                        echo ' <span style="color: red;">⚠️ DUPLICATES DETECTED!</span>';
-                    } else {
-                        echo ' <span style="color: green;">✓ No duplicates</span>';
-                    }
-                    ?>
-                </div>
-                
                 <!-- Schedule Grid -->
                 <div class="schedule-grid">
                     <?php if (empty($workers)): ?>

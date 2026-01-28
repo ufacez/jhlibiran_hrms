@@ -1,6 +1,6 @@
 <?php
 /**
- * Worker Management - List Page
+ * Worker Management - List Page - UPDATED WITH ENHANCED VIEW MODAL
  * TrackSite Construction Management System
  */
 
@@ -11,6 +11,7 @@ require_once __DIR__ . '/../../../config/settings.php';
 require_once __DIR__ . '/../../../config/session.php';
 require_once __DIR__ . '/../../../includes/functions.php';
 require_once __DIR__ . '/../../../includes/auth.php';
+require_once __DIR__ . '/../../../includes/address_helper.php';
 
 requireSuperAdmin();
 
@@ -143,6 +144,91 @@ try {
     <link rel="stylesheet" href="<?php echo CSS_URL; ?>/workers.css">
     <link rel="stylesheet" href="<?php echo CSS_URL; ?>/buttons.css">
     <link rel="stylesheet" href="<?php echo CSS_URL; ?>/payroll.css">
+    <style>
+        /* Enhanced Modal Styles */
+        .modal-body-content {
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+        
+        .worker-detail-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .worker-detail-section h4 {
+            font-size: 16px;
+            font-weight: 600;
+            color: #1a1a1a;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #DAA520;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .worker-detail-section h4 i {
+            color: #DAA520;
+        }
+        
+        .detail-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+        }
+        
+        .detail-item {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        
+        .detail-label {
+            font-size: 11px;
+            color: #666;
+            text-transform: uppercase;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+        
+        .detail-value {
+            font-size: 14px;
+            color: #1a1a1a;
+            font-weight: 500;
+        }
+        
+        .address-full {
+            background: #fff;
+            padding: 12px;
+            border-radius: 6px;
+            border: 1px solid #e0e0e0;
+            margin-top: 8px;
+        }
+        
+        .id-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            background: #fff;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            margin: 5px 5px 5px 0;
+        }
+        
+        .id-badge i {
+            color: #DAA520;
+        }
+        
+        @media (max-width: 768px) {
+            .detail-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
 </head>
 <body>
     <div class="container">
@@ -270,7 +356,7 @@ try {
                                             </div>
                                         </td>
                                         <td><?php echo htmlspecialchars($worker['position']); ?></td>
-                                        <td><?php echo htmlspecialchars($worker['phone']); ?></td>
+                                        <td><?php echo formatPhoneNumber($worker['phone']); ?></td>
                                         <td><?php echo $worker['experience_years']; ?> years</td>
                                         <td class="daily-rate"><?php echo formatCurrency($worker['daily_rate']); ?></td>
                                         <td>
@@ -313,16 +399,16 @@ try {
         </div>
     </div>
     
-    <!-- View Worker Modal -->
+    <!-- View Worker Modal - ENHANCED -->
     <div id="viewModal" class="modal">
         <div class="modal-content modal-large">
             <div class="modal-header">
-                <h2>Worker Details</h2>
+                <h2><i class="fas fa-user-circle"></i> Worker Details</h2>
                 <button class="modal-close" onclick="closeModal('viewModal')">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
-            <div class="modal-body" id="modalBody">
+            <div class="modal-body modal-body-content" id="modalBody">
                 <!-- Worker details will be loaded here -->
             </div>
         </div>
@@ -330,5 +416,228 @@ try {
     
     <script src="<?php echo JS_URL; ?>/dashboard.js"></script>
     <script src="<?php echo JS_URL; ?>/workers.js"></script>
+    <script>
+        // Enhanced view worker function
+        function viewWorker(workerId) {
+            showLoading('Loading worker details...');
+            
+            fetch(`../../../api/workers.php?action=view&id=${workerId}`)
+                .then(response => response.json())
+                .then(data => {
+                    hideLoading();
+                    
+                    if (data.success) {
+                        displayEnhancedWorkerDetails(data.data);
+                        showModal('viewModal');
+                    } else {
+                        alert(data.message);
+                    }
+                })
+                .catch(error => {
+                    hideLoading();
+                    console.error('Error:', error);
+                    alert('Failed to load worker details');
+                });
+        }
+        
+        // Display enhanced worker details
+        function displayEnhancedWorkerDetails(worker) {
+            const modalBody = document.getElementById('modalBody');
+            
+            const initials = worker.first_name.charAt(0) + worker.last_name.charAt(0);
+            const statusClass = 'status-' + worker.employment_status.replace('_', '-');
+            const statusText = worker.employment_status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
+            
+            // Parse addresses and IDs
+            const addresses = worker.addresses ? JSON.parse(worker.addresses) : null;
+            const ids = worker.identification_data ? JSON.parse(worker.identification_data) : null;
+            
+            let html = `
+                <div class="worker-details-grid">
+                    <div class="worker-profile-card">
+                        <div class="worker-profile-avatar">${initials}</div>
+                        <div class="worker-profile-name">${worker.first_name}${worker.middle_name ? ' ' + worker.middle_name : ''} ${worker.last_name}</div>
+                        <div class="worker-profile-code">${worker.worker_code}</div>
+                        <span class="status-badge ${statusClass}">${statusText}</span>
+                    </div>
+                    
+                    <div>
+                        <!-- Personal Information -->
+                        <div class="worker-detail-section">
+                            <h4><i class="fas fa-user"></i> Personal Information</h4>
+                            <div class="detail-grid">
+                                <div class="detail-item">
+                                    <span class="detail-label">Full Name</span>
+                                    <span class="detail-value">${worker.first_name}${worker.middle_name ? ' ' + worker.middle_name : ''} ${worker.last_name}</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="detail-label">Date of Birth</span>
+                                    <span class="detail-value">${worker.date_of_birth || 'N/A'}</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="detail-label">Gender</span>
+                                    <span class="detail-value">${worker.gender ? worker.gender.charAt(0).toUpperCase() + worker.gender.slice(1) : 'N/A'}</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="detail-label">Phone</span>
+                                    <span class="detail-value">${formatPhone(worker.phone)}</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="detail-label">Email</span>
+                                    <span class="detail-value">${worker.email || 'N/A'}</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Addresses -->
+                        <div class="worker-detail-section">
+                            <h4><i class="fas fa-map-marker-alt"></i> Address Information</h4>
+                            
+                            <div class="detail-item" style="margin-bottom: 15px;">
+                                <span class="detail-label">Current Address</span>
+                                <div class="address-full">
+                                    ${addresses && addresses.current ? formatAddress(addresses.current) : 'N/A'}
+                                </div>
+                            </div>
+                            
+                            <div class="detail-item">
+                                <span class="detail-label">Permanent Address</span>
+                                <div class="address-full">
+                                    ${addresses && addresses.permanent ? formatAddress(addresses.permanent) : 'N/A'}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Employment Details -->
+                        <div class="worker-detail-section">
+                            <h4><i class="fas fa-briefcase"></i> Employment Details</h4>
+                            <div class="detail-grid">
+                                <div class="detail-item">
+                                    <span class="detail-label">Position</span>
+                                    <span class="detail-value">${worker.position}</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="detail-label">Experience</span>
+                                    <span class="detail-value">${worker.experience_years} years</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="detail-label">Daily Rate</span>
+                                    <span class="detail-value">₱${parseFloat(worker.daily_rate).toFixed(2)}</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="detail-label">Date Hired</span>
+                                    <span class="detail-value">${worker.date_hired}</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Emergency Contact -->
+                        <div class="worker-detail-section">
+                            <h4><i class="fas fa-phone-alt"></i> Emergency Contact</h4>
+                            <div class="detail-grid">
+                                <div class="detail-item">
+                                    <span class="detail-label">Contact Name</span>
+                                    <span class="detail-value">${worker.emergency_contact_name || 'Not provided'}</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="detail-label">Contact Phone</span>
+                                    <span class="detail-value">${formatPhone(worker.emergency_contact_phone) || 'Not provided'}</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="detail-label">Relationship</span>
+                                    <span class="detail-value">${worker.emergency_contact_relationship || 'Not provided'}</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Identification -->
+                        <div class="worker-detail-section">
+                            <h4><i class="fas fa-id-card"></i> Identification</h4>
+                            
+                            <div class="detail-item" style="margin-bottom: 15px;">
+                                <span class="detail-label">Primary ID</span>
+                                <div class="id-badge">
+                                    <i class="fas fa-id-card-alt"></i>
+                                    <span>${ids && ids.primary ? ids.primary.type + ': ' + ids.primary.number : 'Not provided'}</span>
+                                </div>
+                            </div>
+                            
+                            ${ids && ids.additional && ids.additional.length > 0 ? `
+                                <div class="detail-item">
+                                    <span class="detail-label">Additional IDs</span>
+                                    <div>
+                                        ${ids.additional.map(id => `
+                                            <div class="id-badge">
+                                                <i class="fas fa-id-card"></i>
+                                                <span>${id.type}: ${id.number}</span>
+                                            </div>
+                                        `).join('')}
+                                    </div>
+                                </div>
+                            ` : ''}
+                        </div>
+                        
+                        <!-- Government IDs -->
+                        <div class="worker-detail-section">
+                            <h4><i class="fas fa-id-badge"></i> Government IDs & Benefits</h4>
+                            <div class="detail-grid">
+                                <div class="detail-item">
+                                    <span class="detail-label">SSS Number</span>
+                                    <span class="detail-value">${worker.sss_number || 'Not provided'}</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="detail-label">PhilHealth Number</span>
+                                    <span class="detail-value">${worker.philhealth_number || 'Not provided'}</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="detail-label">Pag-IBIG Number</span>
+                                    <span class="detail-value">${worker.pagibig_number || 'Not provided'}</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="detail-label">TIN</span>
+                                    <span class="detail-value">${worker.tin_number || 'Not provided'}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            modalBody.innerHTML = html;
+        }
+        
+        // Format address helper
+        function formatAddress(address) {
+            if (!address) return 'N/A';
+            
+            const parts = [];
+            if (address.address) parts.push(address.address);
+            if (address.barangay) parts.push('Brgy. ' + address.barangay);
+            if (address.city) parts.push(address.city);
+            if (address.province) parts.push(address.province);
+            
+            return parts.length > 0 ? parts.join(', ') : 'N/A';
+        }
+        
+        // Format phone helper
+        function formatPhone(phone) {
+            if (!phone) return 'N/A';
+            
+            // Remove any non-numeric characters except +
+            phone = phone.replace(/[^\d+]/g, '');
+            
+            // Format: +63 912 345 6789
+            if (/^\+63(\d{3})(\d{3})(\d{4})$/.test(phone)) {
+                return phone.replace(/^\+63(\d{3})(\d{3})(\d{4})$/, '+63 $1 $2 $3');
+            }
+            
+            // Format: 0912 345 6789
+            if (/^0(\d{3})(\d{3})(\d{4})$/.test(phone)) {
+                return phone.replace(/^0(\d{3})(\d{3})(\d{4})$/, '0$1 $2 $3');
+            }
+            
+            return phone;
+        }
+    </script>
 </body>
 </html>

@@ -392,6 +392,47 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             margin-top: 5px;
             display: block;
         }
+        
+        /* Real-time validation styles */
+        .form-group input.invalid,
+        .form-group select.invalid,
+        .form-group textarea.invalid {
+            border-color: #dc3545 !important;
+            background: #fff5f5 !important;
+        }
+        
+        .form-group input.valid,
+        .form-group select.valid,
+        .form-group textarea.valid {
+            border-color: #28a745 !important;
+            background: #f0fff4 !important;
+        }
+        
+        .field-error {
+            display: none;
+            color: #dc3545;
+            font-size: 12px;
+            margin-top: 5px;
+            font-weight: 500;
+        }
+        
+        .field-error.show {
+            display: block;
+        }
+        
+        .field-success {
+            display: none;
+            color: #28a745;
+            font-size: 12px;
+            margin-top: 5px;
+            font-weight: 500;
+        }
+        
+        .field-success.show {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
     </style>
 </head>
 <body>
@@ -480,16 +521,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 <label for="phone">Phone Number <span class="required">*</span></label>
                                 <input type="text" id="phone" name="phone" required 
                                        placeholder="09123456789 or +639123456789"
-                                       pattern="^(\+639|09)\d{9}$"
                                        maxlength="13"
                                        value="<?php echo isset($_POST['phone']) ? htmlspecialchars($_POST['phone']) : ''; ?>">
                                 <small class="phone-hint">Must be exactly 11 digits (e.g., 09123456789)</small>
+                                <span class="field-error" id="phone-error"></span>
+                                <span class="field-success" id="phone-success"><i class="fas fa-check-circle"></i> Valid phone number</span>
                             </div>
                             
                             <div class="form-group">
                                 <label for="email">Email Address <span class="required">*</span></label>
                                 <input type="email" id="email" name="email" required placeholder="worker@example.com"
                                        value="<?php echo isset($_POST['email']) ? htmlspecialchars($_POST['email']) : ''; ?>">
+                                <span class="field-error" id="email-error"></span>
+                                <span class="field-success" id="email-success"><i class="fas fa-check-circle"></i> Valid email</span>
                             </div>
                         </div>
                     </div>
@@ -631,10 +675,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 <label for="emergency_contact_phone">Contact Phone <span class="required">*</span></label>
                                 <input type="text" id="emergency_contact_phone" name="emergency_contact_phone" required
                                        placeholder="09123456789 or +639123456789"
-                                       pattern="^(\+639|09)\d{9}$"
                                        maxlength="13"
                                        value="<?php echo isset($_POST['emergency_contact_phone']) ? htmlspecialchars($_POST['emergency_contact_phone']) : ''; ?>">
                                 <small class="phone-hint">Must be exactly 11 digits</small>
+                                <span class="field-error" id="emergency_phone-error"></span>
+                                <span class="field-success" id="emergency_phone-success"><i class="fas fa-check-circle"></i> Valid phone number</span>
                             </div>
                         </div>
                         
@@ -782,7 +827,192 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         document.addEventListener('DOMContentLoaded', function() {
             loadPhilippinesData();
             updatePermanentAddressRequired();
+            initializeRealTimeValidation();
         });
+        
+        // Initialize real-time validation for all fields
+        function initializeRealTimeValidation() {
+            // Phone number validation (personal)
+            const phoneInput = document.getElementById('phone');
+            
+            // Remove green immediately on input
+            phoneInput.addEventListener('input', function(e) {
+                e.target.classList.remove('valid');
+                const successElement = document.getElementById('phone-success');
+                successElement.classList.remove('show');
+                formatPhoneInput(e.target);
+            });
+            
+            // Validate only on blur
+            phoneInput.addEventListener('blur', function(e) {
+                validatePhoneField(e.target, 'phone');
+            });
+            
+            // Phone number validation (emergency)
+            const emergencyPhoneInput = document.getElementById('emergency_contact_phone');
+            
+            // Remove green immediately on input
+            emergencyPhoneInput.addEventListener('input', function(e) {
+                e.target.classList.remove('valid');
+                const successElement = document.getElementById('emergency_phone-success');
+                successElement.classList.remove('show');
+                formatPhoneInput(e.target);
+            });
+            
+            // Validate only on blur
+            emergencyPhoneInput.addEventListener('blur', function(e) {
+                validatePhoneField(e.target, 'emergency_phone');
+            });
+            
+            // Email validation
+            const emailInput = document.getElementById('email');
+            emailInput.addEventListener('input', function(e) {
+                // Clear validation states while typing
+                e.target.classList.remove('valid', 'invalid');
+                const errorElement = document.getElementById('email-error');
+                const successElement = document.getElementById('email-success');
+                errorElement.classList.remove('show');
+                successElement.classList.remove('show');
+            });
+            emailInput.addEventListener('blur', function(e) {
+                validateEmailField(e.target);
+            });
+            
+            // Required fields validation
+            const requiredFields = document.querySelectorAll('input[required], select[required], textarea[required]');
+            requiredFields.forEach(field => {
+                // Clear validation while typing
+                field.addEventListener('input', function(e) {
+                    if (e.target.id !== 'phone' && e.target.id !== 'emergency_contact_phone' && e.target.id !== 'email') {
+                        e.target.classList.remove('valid', 'invalid');
+                    }
+                });
+                
+                // Validate on blur
+                field.addEventListener('blur', function(e) {
+                    if (e.target.id !== 'phone' && e.target.id !== 'emergency_contact_phone' && e.target.id !== 'email') {
+                        validateRequiredField(e.target);
+                    }
+                });
+            });
+        }
+        
+        // Validate phone field
+        function validatePhoneField(input, errorId) {
+            const value = input.value.trim();
+            const errorElement = document.getElementById(errorId + '-error');
+            const successElement = document.getElementById(errorId + '-success');
+            
+            // Clear previous states
+            input.classList.remove('invalid', 'valid');
+            errorElement.classList.remove('show');
+            successElement.classList.remove('show');
+            
+            if (value === '') {
+                if (input.hasAttribute('required')) {
+                    input.classList.add('invalid');
+                    errorElement.textContent = 'Phone number is required';
+                    errorElement.classList.add('show');
+                }
+                return false;
+            }
+            
+            // Remove any spaces or dashes for validation
+            const cleanValue = value.replace(/[\s\-]/g, '');
+            
+            // Must be exactly 11 digits (starting with 0) OR 13 characters (+63 + 10 digits)
+            let isValid = false;
+            let exactLength = false;
+            
+            // Check +63 format (must be exactly 13 characters)
+            if (cleanValue.startsWith('+63')) {
+                exactLength = cleanValue.length === 13; // +63 + 10 digits = 13
+                isValid = /^\+639\d{9}$/.test(cleanValue);
+            }
+            // Check 09 format (must be exactly 11 digits)
+            else if (cleanValue.startsWith('0')) {
+                exactLength = cleanValue.length === 11;
+                isValid = /^09\d{9}$/.test(cleanValue);
+            }
+            // Check if starts with 9 (should be converted to 09)
+            else if (cleanValue.startsWith('9')) {
+                exactLength = cleanValue.length === 10;
+                isValid = /^9\d{9}$/.test(cleanValue);
+            }
+            
+            // If length is wrong, show specific error
+            if (!exactLength || !isValid) {
+                input.classList.add('invalid');
+                
+                if (cleanValue.startsWith('+63')) {
+                    errorElement.textContent = `Must be exactly 13 characters (+639XXXXXXXXX). Current: ${cleanValue.length}`;
+                } else {
+                    errorElement.textContent = `Must be exactly 11 digits (09XXXXXXXXX). Current: ${cleanValue.length}`;
+                }
+                
+                errorElement.classList.add('show');
+                return false;
+            }
+            
+            // Valid
+            input.classList.add('valid');
+            successElement.classList.add('show');
+            return true;
+        }
+        
+        // Validate email field
+        function validateEmailField(input) {
+            const value = input.value.trim();
+            const errorElement = document.getElementById('email-error');
+            const successElement = document.getElementById('email-success');
+            
+            // Clear previous states
+            input.classList.remove('invalid', 'valid');
+            errorElement.classList.remove('show');
+            successElement.classList.remove('show');
+            
+            if (value === '') {
+                input.classList.add('invalid');
+                errorElement.textContent = 'Email is required';
+                errorElement.classList.add('show');
+                return false;
+            }
+            
+            // Email validation regex
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            
+            if (!emailRegex.test(value)) {
+                input.classList.add('invalid');
+                errorElement.textContent = 'Please enter a valid email address';
+                errorElement.classList.add('show');
+                return false;
+            }
+            
+            // Valid
+            input.classList.add('valid');
+            successElement.classList.add('show');
+            return true;
+        }
+        
+        // Validate required field
+        function validateRequiredField(input) {
+            const value = input.value.trim();
+            
+            // Clear previous states
+            input.classList.remove('invalid', 'valid');
+            
+            if (value === '' && input.hasAttribute('required')) {
+                input.classList.add('invalid');
+                return false;
+            }
+            
+            if (value !== '') {
+                input.classList.add('valid');
+                return true;
+            }
+            
+            return true;
+        }
         
         // Load Philippines data from API
         async function loadPhilippinesData() {
@@ -956,29 +1186,66 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
         
-        // Phone number validation (real-time)
-        document.getElementById('phone').addEventListener('input', function(e) {
-            let value = e.target.value.replace(/\D/g, ''); // Remove non-digits
-            
-            if (value.startsWith('63')) {
-                value = '+' + value;
-            } else if (value.length > 0 && !value.startsWith('0')) {
-                value = '0' + value;
-            }
-            
-            e.target.value = value;
-        });
         
-        document.getElementById('emergency_contact_phone').addEventListener('input', function(e) {
-            let value = e.target.value.replace(/\D/g, ''); // Remove non-digits
+        // Format phone input helper function
+        function formatPhoneInput(input) {
+            let value = input.value.replace(/\D/g, ''); // Remove non-digits
             
-            if (value.startsWith('63')) {
+            // Handle +63 format
+            if (value.startsWith('63') && value.length > 2) {
                 value = '+' + value;
-            } else if (value.length > 0 && !value.startsWith('0')) {
+            } 
+            // Handle 0 prefix
+            else if (value.length > 0 && !value.startsWith('0') && !value.startsWith('+')) {
                 value = '0' + value;
             }
             
-            e.target.value = value;
+            // Limit length
+            if (value.startsWith('+')) {
+                value = value.substring(0, 13); // +63 + 10 digits
+            } else {
+                value = value.substring(0, 11); // 11 digits
+            }
+            
+            input.value = value;
+        }
+        
+        // Form submission validation
+        document.getElementById('workerForm').addEventListener('submit', function(e) {
+            let isValid = true;
+            
+            // Validate phone numbers
+            if (!validatePhoneField(document.getElementById('phone'), 'phone')) {
+                isValid = false;
+            }
+            if (!validatePhoneField(document.getElementById('emergency_contact_phone'), 'emergency_phone')) {
+                isValid = false;
+            }
+            
+            // Validate email
+            if (!validateEmailField(document.getElementById('email'))) {
+                isValid = false;
+            }
+            
+            // Validate all required fields
+            const requiredFields = this.querySelectorAll('input[required], select[required], textarea[required]');
+            requiredFields.forEach(field => {
+                if (!validateRequiredField(field)) {
+                    isValid = false;
+                }
+            });
+            
+            if (!isValid) {
+                e.preventDefault();
+                alert('Please fill in all required fields correctly before submitting.');
+                
+                // Scroll to first error
+                const firstError = this.querySelector('.invalid');
+                if (firstError) {
+                    firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    firstError.focus();
+                }
+            }
         });
     </script>
 </body>
