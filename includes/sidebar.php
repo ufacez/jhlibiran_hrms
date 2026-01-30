@@ -325,16 +325,6 @@ $current_dir = basename(dirname($_SERVER['PHP_SELF']));
                 <div class="title">Cash Advance</div>
             </a>
         </li>
-
-        <!-- NEW: Tax Configuration -->
-
-        <li>
-            <a href="<?php echo BASE_URL; ?>/modules/super_admin/tax_config/index.php"
-            class="<?php echo ($current_dir === 'tax_config') ? 'active' : ''; ?>">
-                <i class="fas fa-calculator"></i>
-                <div class="title">Tax Configuration</div>
-            </a>
-        </li>
         
         <div class="menu-separator"></div>
         
