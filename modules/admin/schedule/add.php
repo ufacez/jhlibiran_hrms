@@ -1,6 +1,6 @@
 <?php
 /**
- * Add Schedule Page - Admin
+ * Add Schedule Page
  * TrackSite Construction Management System
  */
 
@@ -13,7 +13,6 @@ require_once __DIR__ . '/../../../includes/functions.php';
 require_once __DIR__ . '/../../../includes/auth.php';
 require_once __DIR__ . '/../../../includes/admin_functions.php';
 
-// Check if logged in as admin
 if (!isLoggedIn()) {
     header('Location: ' . BASE_URL . '/login.php');
     exit();
@@ -25,10 +24,14 @@ if ($user_level !== 'admin' && $user_level !== 'super_admin') {
     exit();
 }
 
-// Check permission
-requirePermission($db, 'can_manage_schedule', 'You do not have permission to add schedules');
+requirePermission($db, 'can_view_schedule', 'You do not have permission to view schedules');
 
 $full_name = $_SESSION['full_name'] ?? 'Administrator';
+$flash = getFlashMessage();
+
+// Get URL parameters for pre-filling
+$preselect_worker_id = isset($_GET['worker_id']) ? intval($_GET['worker_id']) : 0;
+$preselect_day = isset($_GET['day']) ? sanitizeString($_GET['day']) : '';
 
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -112,7 +115,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $db->commit();
             
             setFlashMessage("Schedule created successfully! {$created_count} new, {$updated_count} updated.", 'success');
-            redirect(BASE_URL . '/modules/admin/schedule/index.php');
+            redirect(BASE_URL . '/modules/super_admin/schedule/index.php');
             
         } catch (PDOException $e) {
             $db->rollBack();
@@ -139,7 +142,9 @@ try {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Add Schedule - <?php echo SYSTEM_NAME; ?></title>
-    <link rel="stylesheet" href="https://pro.fontawesome.com/releases/v5.10.0/css/all.css"/>
+    <link rel="stylesheet" href="https://pro.fontawesome.com/releases/v5.10.0/css/all.css" 
+          integrity="sha384-AYmEC3Yw5cVb3ZcuHtOA93w35dYTsvhLPVnYs9eStHfGJvOvKxVfELGroGkvsg+p" 
+          crossorigin="anonymous" />
     <link rel="stylesheet" href="<?php echo CSS_URL; ?>/dashboard.css">
     <link rel="stylesheet" href="<?php echo CSS_URL; ?>/schedule.css">
     <link rel="stylesheet" href="<?php echo CSS_URL; ?>/forms.css">
@@ -162,7 +167,7 @@ try {
         <?php include __DIR__ . '/../../../includes/admin_sidebar.php'; ?>
         
         <div class="main">
-           <?php include __DIR__ . '/../../../includes/admin_topbar.php'; ?>
+            <?php include __DIR__ . '/../../../includes/admin_topbar.php'; ?>
             
             <div class="schedule-content">
                 
@@ -204,6 +209,7 @@ try {
                                 <option value="">Select a worker</option>
                                 <?php foreach ($workers as $worker): ?>
                                     <option value="<?php echo $worker['worker_id']; ?>"
+                                            <?php echo ($preselect_worker_id > 0 && $preselect_worker_id == $worker['worker_id']) ? 'selected' : ''; ?>
                                             <?php echo (isset($_POST['worker_id']) && $_POST['worker_id'] == $worker['worker_id']) ? 'selected' : ''; ?>>
                                         <?php echo htmlspecialchars($worker['first_name'] . ' ' . $worker['last_name'] . ' (' . $worker['worker_code'] . ') - ' . $worker['position']); ?>
                                     </option>
@@ -224,50 +230,42 @@ try {
                         </div>
                         
                         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 15px;">
-                            <div class="form-check">
-                                <input type="checkbox" class="day-checkbox" id="monday" name="days[]" value="monday"
-                                       <?php echo (isset($_POST['days']) && in_array('monday', $_POST['days'])) ? 'checked' : 'checked'; ?>>
-                                <label for="monday">Monday</label>
-                            </div>
+                            <?php
+                            $days_map = [
+                                'monday' => 'Monday',
+                                'tuesday' => 'Tuesday', 
+                                'wednesday' => 'Wednesday',
+                                'thursday' => 'Thursday',
+                                'friday' => 'Friday',
+                                'saturday' => 'Saturday',
+                                'sunday' => 'Sunday'
+                            ];
                             
+                            foreach ($days_map as $day_value => $day_label):
+                                // Check if this day should be pre-selected
+                                $is_preselected = (!empty($preselect_day) && $preselect_day === $day_value);
+                                // Default checked days (Mon-Sat) if no pre-selection
+                                $default_checked = ($day_value !== 'sunday' && empty($preselect_day));
+                                // Post data takes precedence
+                                $is_checked = (isset($_POST['days']) && in_array($day_value, $_POST['days'])) || 
+                                              (!isset($_POST['days']) && ($is_preselected || $default_checked));
+                            ?>
                             <div class="form-check">
-                                <input type="checkbox" class="day-checkbox" id="tuesday" name="days[]" value="tuesday"
-                                       <?php echo (isset($_POST['days']) && in_array('tuesday', $_POST['days'])) ? 'checked' : 'checked'; ?>>
-                                <label for="tuesday">Tuesday</label>
+                                <input type="checkbox" class="day-checkbox" id="<?php echo $day_value; ?>" 
+                                       name="days[]" value="<?php echo $day_value; ?>"
+                                       <?php echo $is_checked ? 'checked' : ''; ?>>
+                                <label for="<?php echo $day_value; ?>"><?php echo $day_label; ?></label>
                             </div>
-                            
-                            <div class="form-check">
-                                <input type="checkbox" class="day-checkbox" id="wednesday" name="days[]" value="wednesday"
-                                       <?php echo (isset($_POST['days']) && in_array('wednesday', $_POST['days'])) ? 'checked' : 'checked'; ?>>
-                                <label for="wednesday">Wednesday</label>
-                            </div>
-                            
-                            <div class="form-check">
-                                <input type="checkbox" class="day-checkbox" id="thursday" name="days[]" value="thursday"
-                                       <?php echo (isset($_POST['days']) && in_array('thursday', $_POST['days'])) ? 'checked' : 'checked'; ?>>
-                                <label for="thursday">Thursday</label>
-                            </div>
-                            
-                            <div class="form-check">
-                                <input type="checkbox" class="day-checkbox" id="friday" name="days[]" value="friday"
-                                       <?php echo (isset($_POST['days']) && in_array('friday', $_POST['days'])) ? 'checked' : 'checked'; ?>>
-                                <label for="friday">Friday</label>
-                            </div>
-                            
-                            <div class="form-check">
-                                <input type="checkbox" class="day-checkbox" id="saturday" name="days[]" value="saturday"
-                                       <?php echo (isset($_POST['days']) && in_array('saturday', $_POST['days'])) ? 'checked' : 'checked'; ?>>
-                                <label for="saturday">Saturday</label>
-                            </div>
-                            
-                            <div class="form-check">
-                                <input type="checkbox" class="day-checkbox" id="sunday" name="days[]" value="sunday"
-                                       <?php echo (isset($_POST['days']) && in_array('sunday', $_POST['days'])) ? 'checked' : ''; ?>>
-                                <label for="sunday">Sunday</label>
-                            </div>
+                            <?php endforeach; ?>
                         </div>
                         
-                        <small style="display: block; margin-top: 10px; color: #666;">Default: Monday - Saturday (6 days)</small>
+                        <small style="display: block; margin-top: 10px; color: #666;">
+                            <?php if (!empty($preselect_day)): ?>
+                                Pre-selected: <?php echo ucfirst($preselect_day); ?>
+                            <?php else: ?>
+                                Default: Monday - Saturday (6 days)
+                            <?php endif; ?>
+                        </small>
                     </div>
                     
                     <!-- Working Hours -->
@@ -343,14 +341,6 @@ try {
         window.addEventListener('load', function() {
             calculateHours();
         });
-        
-        function closeAlert(id) {
-            const alert = document.getElementById(id);
-            if (alert) {
-                alert.style.animation = 'slideUp 0.3s ease-in';
-                setTimeout(() => alert.remove(), 300);
-            }
-        }
     </script>
 </body>
 </html>
