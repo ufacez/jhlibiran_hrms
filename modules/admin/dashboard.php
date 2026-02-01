@@ -1,7 +1,10 @@
 <?php
 /**
- * Admin Dashboard - FIXED (Using Admin Sidebar)
+ * Admin Dashboard - FIXED VERSION
  * TrackSite Construction Management System
+ * - Removed overtime statistics
+ * - Added next payroll notification
+ * - Fixed icon alignment
  */
 
 define('TRACKSITE_INCLUDED', true);
@@ -44,17 +47,35 @@ try {
     $stmt = $db->query("SELECT COUNT(*) as total FROM workers WHERE employment_status = 'on_leave' AND is_archived = FALSE");
     $on_leave = $stmt->fetch()['total'];
     
-    $stmt = $db->query("SELECT COUNT(DISTINCT a.worker_id) as total FROM attendance a
-                        JOIN workers w ON a.worker_id = w.worker_id
-                        WHERE a.attendance_date = CURDATE() AND a.status = 'overtime'
-                        AND a.is_archived = FALSE AND w.is_archived = FALSE");
-    $overtime_today = $stmt->fetch()['total'];
-    
     $attendance_rate = $total_workers > 0 ? round(($on_site_today / $total_workers) * 100) : 0;
+    
+    // Calculate next payroll date (15th and end of month)
+    $today = date('j');
+    $current_month = date('n');
+    $current_year = date('Y');
+    
+    if ($today <= 15) {
+        $next_payroll_date = date('F 15, Y', mktime(0, 0, 0, $current_month, 15, $current_year));
+        $days_until_payroll = 15 - $today;
+    } else {
+        $last_day = date('t'); // Last day of current month
+        if ($today < $last_day) {
+            $next_payroll_date = date('F t, Y');
+            $days_until_payroll = $last_day - $today;
+        } else {
+            // Next payroll is 15th of next month
+            $next_month = $current_month == 12 ? 1 : $current_month + 1;
+            $next_year = $current_month == 12 ? $current_year + 1 : $current_year;
+            $next_payroll_date = date('F 15, Y', mktime(0, 0, 0, $next_month, 15, $next_year));
+            $days_until_payroll = (date('t') - $today) + 15;
+        }
+    }
     
 } catch (PDOException $e) {
     error_log("Dashboard Error: " . $e->getMessage());
-    $total_workers = $on_site_today = $on_leave = $overtime_today = $attendance_rate = 0;
+    $total_workers = $on_site_today = $on_leave = $attendance_rate = 0;
+    $next_payroll_date = 'N/A';
+    $days_until_payroll = 0;
 }
 ?>
 <!DOCTYPE html>
@@ -66,6 +87,79 @@ try {
     <link rel="stylesheet" href="https://pro.fontawesome.com/releases/v5.10.0/css/all.css"/>
     <link rel="stylesheet" href="<?php echo CSS_URL; ?>/dashboard.css">
     <link rel="stylesheet" href="<?php echo CSS_URL; ?>/dashboard-enhanced.css">
+    <style>
+        /* Fix icon alignment */
+        .stat-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            width: 100%;
+        }
+        
+        .stat-icon {
+            margin-left: auto;
+        }
+        
+        /* Payroll notification styles */
+        .payroll-notification {
+            background: linear-gradient(135deg, #3b3434 0%, #a79922 100%);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 30px;
+            color: white;
+            box-shadow: 0 10px 30px rgba(218, 165, 32, 0.3);
+            animation: fadeInDown 0.6s ease;
+        }
+        
+        .payroll-notification-content {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        
+        .payroll-notification-icon {
+            width: 60px;
+            height: 60px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            flex-shrink: 0;
+        }
+        
+        .payroll-notification-text h3 {
+            margin: 0 0 8px 0;
+            font-size: 20px;
+            font-weight: 600;
+        }
+        
+        .payroll-notification-text p {
+            margin: 0;
+            font-size: 14px;
+            opacity: 0.95;
+        }
+        
+        .payroll-notification-date {
+            margin-left: auto;
+            text-align: right;
+        }
+        
+        .payroll-notification-date .date {
+            font-size: 24px;
+            font-weight: 700;
+            display: block;
+            margin-bottom: 5px;
+        }
+        
+        .payroll-notification-date .label {
+            font-size: 12px;
+            opacity: 0.9;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+    </style>
 </head>
 <body>
     <div class="container">
@@ -109,8 +203,28 @@ try {
                     </div>
                 </div>
 
-                <!-- Statistics Cards -->
-                <div class="stats-grid">
+                <!-- Payroll Notification -->
+                <div class="payroll-notification">
+                    <div class="payroll-notification-content">
+                        <div class="payroll-notification-icon">
+                            <i class="fas fa-calendar-check"></i>
+                        </div>
+                        <div class="payroll-notification-text">
+                            <h3>Next Payroll Schedule</h3>
+                            <p>
+                                <i class="fas fa-clock"></i> 
+                                <?php echo $days_until_payroll; ?> day<?php echo $days_until_payroll != 1 ? 's' : ''; ?> remaining until next payroll
+                            </p>
+                        </div>
+                        <div class="payroll-notification-date">
+                            <span class="date"><?php echo $next_payroll_date; ?></span>
+                            <span class="label">Payout Date</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Statistics Cards - 3 Cards Only -->
+                <div class="stats-grid" style="grid-template-columns: repeat(3, 1fr);">
                     <div class="stat-card card-blue">
                         <div class="stat-header">
                             <div>
@@ -155,22 +269,6 @@ try {
                             </div>
                             <div class="stat-icon">
                                 <i class="fas fa-calendar-times"></i>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="stat-card card-purple">
-                        <div class="stat-header">
-                            <div>
-                                <div class="card-label">Overtime Today</div>
-                                <div class="card-value"><?php echo $overtime_today; ?></div>
-                                <div class="card-change">
-                                    <i class="fas fa-clock"></i>
-                                    <span>Extended hours</span>
-                                </div>
-                            </div>
-                            <div class="stat-icon">
-                                <i class="fas fa-business-time"></i>
                             </div>
                         </div>
                     </div>

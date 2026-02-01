@@ -1,6 +1,6 @@
 <?php
 /**
- * Admin Worker Management - List Page - UPDATED WITH ENHANCED VIEW MODAL
+ * Worker Management - List Page - UPDATED WITH ENHANCED VIEW MODAL
  * TrackSite Construction Management System
  */
 
@@ -11,10 +11,10 @@ require_once __DIR__ . '/../../../config/settings.php';
 require_once __DIR__ . '/../../../config/session.php';
 require_once __DIR__ . '/../../../includes/functions.php';
 require_once __DIR__ . '/../../../includes/auth.php';
+require_once __DIR__ . '/../../../includes/address_helper.php';
 require_once __DIR__ . '/../../../includes/admin_functions.php';
 require_once __DIR__ . '/../../../includes/address_helper.php';
 
-// Require admin or higher
 if (!isLoggedIn() || (!isAdmin() && !isSuperAdmin())) {
     header('Location: ' . BASE_URL . '/login.php');
     exit();
@@ -30,11 +30,12 @@ if (!hasPermission($db, 'can_view_workers')) {
 $user_id = getCurrentUserId();
 $full_name = $_SESSION['full_name'] ?? 'Administrator';
 
-// Handle delete (only if has permission)
-if (isset($_GET['delete']) && hasPermission($db, 'can_delete_workers')) {
+// Handle delete from URL parameter (from edit page)
+if (isset($_GET['delete'])) {
     $delete_id = intval($_GET['delete']);
     
     try {
+        // Get worker details
         $stmt = $db->prepare("SELECT w.*, u.user_id FROM workers w JOIN users u ON w.user_id = u.user_id WHERE w.worker_id = ?");
         $stmt->execute([$delete_id]);
         $worker_to_delete = $stmt->fetch();
@@ -42,16 +43,18 @@ if (isset($_GET['delete']) && hasPermission($db, 'can_delete_workers')) {
         if ($worker_to_delete) {
             $db->beginTransaction();
             
-            // Soft delete - archive instead of hard delete
+            // Delete worker
+           // Soft delete - archive instead of hard delete
             $stmt = $db->prepare("UPDATE workers SET is_archived = TRUE, archived_at = NOW(), archived_by = ? WHERE worker_id = ?");
             $stmt->execute([$user_id, $delete_id]);
-            
+
             // Deactivate user account
             $stmt = $db->prepare("UPDATE users SET status = 'inactive' WHERE user_id = ?");
             $stmt->execute([$worker_to_delete['user_id']]);
-            
+
+            // Log activity
             logActivity($db, $user_id, 'archive_worker', 'workers', $delete_id,
-                       "Archived worker: {$worker_to_delete['first_name']} {$worker_to_delete['last_name']} ({$worker_to_delete['worker_code']})");
+                    "Archived worker: {$worker_to_delete['first_name']} {$worker_to_delete['last_name']} ({$worker_to_delete['worker_code']})");
             
             $db->commit();
             setFlashMessage('Worker archived successfully', 'success');
@@ -62,8 +65,8 @@ if (isset($_GET['delete']) && hasPermission($db, 'can_delete_workers')) {
         if ($db->inTransaction()) {
             $db->rollBack();
         }
-        error_log("Archive Worker Error: " . $e->getMessage());
-        setFlashMessage('Failed to archive worker', 'error');
+        error_log("Delete Worker Error: " . $e->getMessage());
+        setFlashMessage('Failed to delete worker', 'error');
     }
     
     redirect(BASE_URL . '/modules/admin/workers/index.php');
@@ -135,7 +138,7 @@ try {
 
 // Get unique positions for filter
 try {
-    $stmt = $db->query("SELECT DISTINCT position FROM workers WHERE is_archived = FALSE ORDER BY position");
+    $stmt = $db->query("SELECT DISTINCT position FROM workers ORDER BY position");
     $positions = $stmt->fetchAll(PDO::FETCH_COLUMN);
 } catch (PDOException $e) {
     $positions = [];
@@ -147,7 +150,9 @@ try {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Worker Management - <?php echo SYSTEM_NAME; ?></title>
-    <link rel="stylesheet" href="https://pro.fontawesome.com/releases/v5.10.0/css/all.css"/>
+    <link rel="stylesheet" href="https://pro.fontawesome.com/releases/v5.10.0/css/all.css" 
+          integrity="sha384-AYmEC3Yw5cVb3ZcuHtOA93w35dYTsvhLPVnYs9eStHfGJvOvKxVfELGroGkvsg+p" 
+          crossorigin="anonymous" />
     <link rel="stylesheet" href="<?php echo CSS_URL; ?>/dashboard.css">
     <link rel="stylesheet" href="<?php echo CSS_URL; ?>/workers.css">
     <link rel="stylesheet" href="<?php echo CSS_URL; ?>/buttons.css">
@@ -247,6 +252,7 @@ try {
             
             <div class="workers-content">
                 
+                <!-- Flash Message -->
                 <?php if ($flash): ?>
                 <div class="alert alert-<?php echo $flash['type']; ?>" id="flashMessage">
                     <i class="fas fa-<?php echo $flash['type'] === 'success' ? 'check-circle' : 'info-circle'; ?>"></i>
@@ -257,6 +263,7 @@ try {
                 </div>
                 <?php endif; ?>
                 
+                <!-- Header -->
                 <div class="page-header">
                     <div class="header-left">
                         <h1>Worker Management</h1>
@@ -268,7 +275,7 @@ try {
                     </button>
                     <?php endif; ?>
                 </div>
-                
+                <!-- Filters -->
                 <div class="filter-card">
                     <form method="GET" action="" id="filterForm">
                         <div class="filter-row">
@@ -314,6 +321,7 @@ try {
                     </form>
                 </div>
                 
+                <!-- Workers Table -->
                 <div class="workers-table-card">
                     <div class="table-info">
                         <span>Showing <?php echo $total_workers; ?> of <?php echo $total_workers; ?> workers</span>
@@ -338,11 +346,9 @@ try {
                                     <td colspan="7" class="no-data">
                                         <i class="fas fa-users"></i>
                                         <p>No workers found</p>
-                                        <?php if (hasPermission($db, 'can_add_workers')): ?>
                                         <button class="btn btn-sm btn-primary" onclick="window.location.href='add.php'">
                                             <i class="fas fa-plus"></i> Add Your First Worker
                                         </button>
-                                        <?php endif; ?>
                                     </td>
                                 </tr>
                                 <?php else: ?>
@@ -383,7 +389,7 @@ try {
                                                         title="View Details">
                                                     <i class="fas fa-eye"></i>
                                                 </button>
-                                                <?php if (hasPermission($db, 'can_edit_workers')): ?>
+                                               <?php if (hasPermission($db, 'can_edit_workers')): ?>
                                                 <button class="action-btn btn-edit" 
                                                         onclick="window.location.href='edit.php?id=<?php echo $worker['worker_id']; ?>'"
                                                         title="Edit">
@@ -411,6 +417,7 @@ try {
         </div>
     </div>
     
+    <!-- View Worker Modal - ENHANCED -->
     <div id="viewModal" class="modal">
         <div class="modal-content modal-large">
             <div class="modal-header">
@@ -648,12 +655,6 @@ try {
             }
             
             return phone;
-        }
-        
-        function confirmDelete(workerId, workerName) {
-            if (confirm(`Archive ${workerName}?\n\nThis will move the worker to the archive. Super Admin can restore it later if needed.`)) {
-                window.location.href = `index.php?delete=${workerId}`;
-            }
         }
     </script>
 </body>

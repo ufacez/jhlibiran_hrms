@@ -1,9 +1,9 @@
 <?php
 /**
- * Edit Worker Page - ENHANCED VERSION (Admin)
+ * Edit Worker Page - ENHANCED VERSION WITH VALIDATION
  * TrackSite Construction Management System
  * 
- * Features matching Super Admin version:
+ * Features:
  * - All required fields with red asterisks
  * - Validation ONLY on blur (leaving field)
  * - 11-digit phone number validation (Philippines)
@@ -20,8 +20,8 @@ require_once __DIR__ . '/../../../config/session.php';
 require_once __DIR__ . '/../../../includes/functions.php';
 require_once __DIR__ . '/../../../includes/auth.php';
 require_once __DIR__ . '/../../../includes/admin_functions.php';
+require_once __DIR__ . '/../../../includes/address_helper.php';
 
-// Require admin permission
 if (!isLoggedIn() || (!isAdmin() && !isSuperAdmin())) {
     header('Location: ' . BASE_URL . '/login.php');
     exit();
@@ -46,7 +46,7 @@ try {
         SELECT w.*, u.email, u.username 
         FROM workers w 
         JOIN users u ON w.user_id = u.user_id 
-        WHERE w.worker_id = ? AND w.is_archived = FALSE
+        WHERE w.worker_id = ?
     ");
     $stmt->execute([$worker_id]);
     $worker = $stmt->fetch();
@@ -404,31 +404,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             margin: 0;
             padding-left: 20px;
         }
-        
-        .address-section {
-            background: #f8f9fa;
-            padding: 20px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-        }
-        
-        .checkbox-group {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin: 15px 0;
-            padding: 12px;
-            background: #fff;
-            border-radius: 6px;
-            border: 2px solid #e0e0e0;
-        }
-        
-        .checkbox-group input[type="checkbox"] {
-            width: 20px;
-            height: 20px;
-            cursor: pointer;
-            accent-color: #DAA520;
-        }
     </style>
 </head>
 <body>
@@ -530,33 +505,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <div class="form-card">
                         <h3><i class="fas fa-map-marker-alt"></i> Current Address</h3>
                         
-                        <div class="address-section">
+                        <div class="form-row">
                             <div class="form-group">
                                 <label>Street/House No./Building <span class="required-asterisk">*</span></label>
                                 <textarea name="current_address" id="current_address" required rows="2"><?php echo htmlspecialchars($addresses['current']['address'] ?? ''); ?></textarea>
                             </div>
+                        </div>
                         
-                            <div class="form-row">
-                                <div class="form-group">
-                                    <label>Province <span class="required-asterisk">*</span></label>
-                                    <select name="current_province" id="current_province" required>
-                                        <option value="">Select Province</option>
-                                    </select>
-                                </div>
-                                
-                                <div class="form-group">
-                                    <label>City/Municipality <span class="required-asterisk">*</span></label>
-                                    <select name="current_city" id="current_city" required disabled>
-                                        <option value="">Select Province First</option>
-                                    </select>
-                                </div>
-                                
-                                <div class="form-group">
-                                    <label>Barangay <span class="required-asterisk">*</span></label>
-                                    <select name="current_barangay" id="current_barangay" required disabled>
-                                        <option value="">Select City First</option>
-                                    </select>
-                                </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Province <span class="required-asterisk">*</span></label>
+                                <select name="current_province" id="current_province" required>
+                                    <option value="">Select Province</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>City/Municipality <span class="required-asterisk">*</span></label>
+                                <select name="current_city" id="current_city" required disabled>
+                                    <option value="">Select Province First</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Barangay <span class="required-asterisk">*</span></label>
+                                <select name="current_barangay" id="current_barangay" required disabled>
+                                    <option value="">Select City First</option>
+                                </select>
                             </div>
                         </div>
                     </div>
@@ -572,33 +547,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             </label>
                         </div>
                         
-                        <div class="address-section">
+                        <div class="form-row">
                             <div class="form-group">
                                 <label>Street/House No./Building <span class="required-asterisk">*</span></label>
                                 <textarea name="permanent_address" id="permanent_address" required rows="2"><?php echo htmlspecialchars($addresses['permanent']['address'] ?? ''); ?></textarea>
                             </div>
+                        </div>
                         
-                            <div class="form-row">
-                                <div class="form-group">
-                                    <label>Province <span class="required-asterisk">*</span></label>
-                                    <select name="permanent_province" id="permanent_province" required>
-                                        <option value="">Select Province</option>
-                                    </select>
-                                </div>
-                                
-                                <div class="form-group">
-                                    <label>City/Municipality <span class="required-asterisk">*</span></label>
-                                    <select name="permanent_city" id="permanent_city" required disabled>
-                                        <option value="">Select Province First</option>
-                                    </select>
-                                </div>
-                                
-                                <div class="form-group">
-                                    <label>Barangay <span class="required-asterisk">*</span></label>
-                                    <select name="permanent_barangay" id="permanent_barangay" required disabled>
-                                        <option value="">Select City First</option>
-                                    </select>
-                                </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Province <span class="required-asterisk">*</span></label>
+                                <select name="permanent_province" id="permanent_province" required>
+                                    <option value="">Select Province</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>City/Municipality <span class="required-asterisk">*</span></label>
+                                <select name="permanent_city" id="permanent_city" required disabled>
+                                    <option value="">Select Province First</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Barangay <span class="required-asterisk">*</span></label>
+                                <select name="permanent_barangay" id="permanent_barangay" required disabled>
+                                    <option value="">Select City First</option>
+                                </select>
                             </div>
                         </div>
                     </div>
@@ -812,12 +787,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <button type="submit" class="btn btn-primary">
                             <i class="fas fa-save"></i> Update Worker
                         </button>
-                        <?php if (hasPermission($db, 'can_delete_workers')): ?>
-                        <button type="button" class="btn btn-danger" style="margin-left: auto;" 
-                                onclick="confirmDelete(<?php echo $worker_id; ?>, '<?php echo htmlspecialchars($worker['first_name'] . ' ' . $worker['last_name']); ?>')">
-                            <i class="fas fa-archive"></i> Archive Worker
-                        </button>
-                        <?php endif; ?>
                     </div>
                     
                 </form>
@@ -825,22 +794,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
     </div>
     
-    <script src="<?php echo JS_URL; ?>/dashboard.js"></script>
-    <script src="<?php echo JS_URL; ?>/workers.js"></script>
     <script>
-        // Address data from PHP
-        const currentProvinceData = <?php echo json_encode($addresses['current']['province'] ?? ''); ?>;
-        const currentCityData = <?php echo json_encode($addresses['current']['city'] ?? ''); ?>;
-        const currentBarangayData = <?php echo json_encode($addresses['current']['barangay'] ?? ''); ?>;
+        // ==========================================
+        // VALIDATION - ONLY ON BLUR (LEAVING FIELD)
+        // ==========================================
         
-        const permanentProvinceData = <?php echo json_encode($addresses['permanent']['province'] ?? ''); ?>;
-        const permanentCityData = <?php echo json_encode($addresses['permanent']['city'] ?? ''); ?>;
-        const permanentBarangayData = <?php echo json_encode($addresses['permanent']['barangay'] ?? ''); ?>;
-        
-        let provincesData = [];
-        let idCounter = <?php echo count($ids['additional'] ?? []); ?>;
-        
-        // Validation functions
+        // Phone validation function
         function validatePhoneField(input, fieldId) {
             const value = input.value.trim();
             const cleanValue = value.replace(/[^\d+]/g, '');
@@ -848,6 +807,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             const errorElement = document.getElementById(fieldId + '-error');
             const successElement = document.getElementById(fieldId + '-success');
             
+            // Check exact length
             let isValid = false;
             let digitCount = cleanValue.replace(/\+/g, '').length;
             
@@ -873,6 +833,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
         
+        // Email validation function
         function validateEmailField(input) {
             const value = input.value.trim();
             const errorElement = document.getElementById('email-error');
@@ -896,6 +857,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
         
+        // Required field validation
         function validateRequiredField(field) {
             if (field.value.trim() === '') {
                 field.classList.add('invalid');
@@ -908,44 +870,65 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
         
+        // Initialize real-time validation for all fields
         function initializeRealTimeValidation() {
+            // Phone number validation (personal)
             const phoneInput = document.getElementById('phone');
+            
+            // Remove green immediately on input
             phoneInput.addEventListener('input', function(e) {
                 e.target.classList.remove('valid');
-                document.getElementById('phone-success').classList.remove('show');
+                const successElement = document.getElementById('phone-success');
+                successElement.classList.remove('show');
                 formatPhoneInput(e.target);
             });
+            
+            // Validate only on blur
             phoneInput.addEventListener('blur', function(e) {
                 validatePhoneField(e.target, 'phone');
             });
             
+            // Phone number validation (emergency)
             const emergencyPhoneInput = document.getElementById('emergency_contact_phone');
+            
+            // Remove green immediately on input
             emergencyPhoneInput.addEventListener('input', function(e) {
                 e.target.classList.remove('valid');
-                document.getElementById('emergency_phone-success').classList.remove('show');
+                const successElement = document.getElementById('emergency_phone-success');
+                successElement.classList.remove('show');
                 formatPhoneInput(e.target);
             });
+            
+            // Validate only on blur
             emergencyPhoneInput.addEventListener('blur', function(e) {
                 validatePhoneField(e.target, 'emergency_phone');
             });
             
+            // Email validation
             const emailInput = document.getElementById('email');
             emailInput.addEventListener('input', function(e) {
+                // Clear validation states while typing
                 e.target.classList.remove('valid', 'invalid');
-                document.getElementById('email-error').classList.remove('show');
-                document.getElementById('email-success').classList.remove('show');
+                const errorElement = document.getElementById('email-error');
+                const successElement = document.getElementById('email-success');
+                errorElement.classList.remove('show');
+                successElement.classList.remove('show');
             });
             emailInput.addEventListener('blur', function(e) {
                 validateEmailField(e.target);
             });
             
+            // Required fields validation
             const requiredFields = document.querySelectorAll('input[required], select[required], textarea[required]');
             requiredFields.forEach(field => {
+                // Clear validation while typing
                 field.addEventListener('input', function(e) {
                     if (e.target.id !== 'phone' && e.target.id !== 'emergency_contact_phone' && e.target.id !== 'email') {
                         e.target.classList.remove('valid', 'invalid');
                     }
                 });
+                
+                // Validate on blur
                 field.addEventListener('blur', function(e) {
                     if (e.target.id !== 'phone' && e.target.id !== 'emergency_contact_phone' && e.target.id !== 'email') {
                         validateRequiredField(e.target);
@@ -954,20 +937,86 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             });
         }
         
+        // Format phone input helper function
         function formatPhoneInput(input) {
-            let value = input.value.replace(/\D/g, '');
+            let value = input.value.replace(/\D/g, ''); // Remove non-digits
+            
+            // Handle +63 format
             if (value.startsWith('63') && value.length > 2) {
                 value = '+' + value;
-            } else if (value.length > 0 && !value.startsWith('0') && !value.startsWith('+')) {
+            } 
+            // Handle 0 prefix
+            else if (value.length > 0 && !value.startsWith('0') && !value.startsWith('+')) {
                 value = '0' + value;
             }
+            
+            // Limit length
             if (value.startsWith('+')) {
-                value = value.substring(0, 13);
+                value = value.substring(0, 13); // +63 + 10 digits
             } else {
-                value = value.substring(0, 11);
+                value = value.substring(0, 11); // 11 digits
             }
+            
             input.value = value;
         }
+        
+        // Form submission validation
+        document.getElementById('workerForm').addEventListener('submit', function(e) {
+            let isValid = true;
+            
+            // Validate phone numbers
+            const phoneInput = document.getElementById('phone');
+            const emergencyPhoneInput = document.getElementById('emergency_contact_phone');
+            
+            if (!validatePhoneField(phoneInput, 'phone')) {
+                isValid = false;
+            }
+            
+            if (!validatePhoneField(emergencyPhoneInput, 'emergency_phone')) {
+                isValid = false;
+            }
+            
+            // Validate email
+            const emailInput = document.getElementById('email');
+            if (!validateEmailField(emailInput)) {
+                isValid = false;
+            }
+            
+            // Validate required fields
+            const requiredFields = this.querySelectorAll('[required]');
+            requiredFields.forEach(field => {
+                if (field.value.trim() === '') {
+                    field.classList.add('invalid');
+                    isValid = false;
+                }
+            });
+            
+            if (!isValid) {
+                e.preventDefault();
+                alert('Please fix all validation errors before submitting.');
+                
+                // Scroll to first error
+                const firstInvalid = this.querySelector('.invalid');
+                if (firstInvalid) {
+                    firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    firstInvalid.focus();
+                }
+            }
+        });
+        
+        // ==========================================
+        // ADDRESS API FUNCTIONS
+        // ==========================================
+        
+        const currentProvinceData = <?php echo json_encode($addresses['current']['province'] ?? ''); ?>;
+        const currentCityData = <?php echo json_encode($addresses['current']['city'] ?? ''); ?>;
+        const currentBarangayData = <?php echo json_encode($addresses['current']['barangay'] ?? ''); ?>;
+        
+        const permanentProvinceData = <?php echo json_encode($addresses['permanent']['province'] ?? ''); ?>;
+        const permanentCityData = <?php echo json_encode($addresses['permanent']['city'] ?? ''); ?>;
+        const permanentBarangayData = <?php echo json_encode($addresses['permanent']['barangay'] ?? ''); ?>;
+        
+        let provincesData = [];
         
         // Load provinces on page load
         async function loadProvinces() {
@@ -975,36 +1024,54 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 const response = await fetch('https://psgc.gitlab.io/api/provinces/');
                 provincesData = await response.json();
                 
+                // Populate current province
                 const currentProvinceSelect = document.getElementById('current_province');
-                const permanentProvinceSelect = document.getElementById('permanent_province');
-                
                 provincesData.forEach(province => {
-                    const option1 = new Option(province.name, province.name);
-                    option1.dataset.code = province.code;
-                    if (province.name === currentProvinceData) option1.selected = true;
-                    currentProvinceSelect.appendChild(option1);
-                    
-                    const option2 = new Option(province.name, province.name);
-                    option2.dataset.code = province.code;
-                    if (province.name === permanentProvinceData) option2.selected = true;
-                    permanentProvinceSelect.appendChild(option2);
+                    const option = document.createElement('option');
+                    option.value = province.name;
+                    option.textContent = province.name;
+                    option.dataset.code = province.code;
+                    if (province.name === currentProvinceData) {
+                        option.selected = true;
+                    }
+                    currentProvinceSelect.appendChild(option);
                 });
                 
+                // Populate permanent province
+                const permanentProvinceSelect = document.getElementById('permanent_province');
+                provincesData.forEach(province => {
+                    const option = document.createElement('option');
+                    option.value = province.name;
+                    option.textContent = province.name;
+                    option.dataset.code = province.code;
+                    if (province.name === permanentProvinceData) {
+                        option.selected = true;
+                    }
+                    permanentProvinceSelect.appendChild(option);
+                });
+                
+                // Load cities if province is already selected
                 if (currentProvinceData) {
                     const selectedOption = currentProvinceSelect.querySelector(`option[value="${currentProvinceData}"]`);
-                    if (selectedOption) await loadCities(selectedOption.dataset.code, 'current');
+                    if (selectedOption) {
+                        await loadCities(selectedOption.dataset.code, 'current');
+                    }
                 }
                 
                 if (permanentProvinceData) {
                     const selectedOption = permanentProvinceSelect.querySelector(`option[value="${permanentProvinceData}"]`);
-                    if (selectedOption) await loadCities(selectedOption.dataset.code, 'permanent');
+                    if (selectedOption) {
+                        await loadCities(selectedOption.dataset.code, 'permanent');
+                    }
                 }
                 
             } catch (error) {
                 console.error('Error loading provinces:', error);
+                alert('Failed to load provinces. Please refresh the page.');
             }
         }
         
+        // Load cities based on province
         async function loadCities(provinceCode, prefix) {
             const citySelect = document.getElementById(prefix + '_city');
             const barangaySelect = document.getElementById(prefix + '_barangay');
@@ -1020,28 +1087,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 
                 citySelect.innerHTML = '<option value="">Select City/Municipality</option>';
                 cities.forEach(city => {
-                    const option = new Option(city.name, city.name);
+                    const option = document.createElement('option');
+                    option.value = city.name;
+                    option.textContent = city.name;
                     option.dataset.code = city.code;
                     
-                    if (prefix === 'current' && city.name === currentCityData) option.selected = true;
-                    else if (prefix === 'permanent' && city.name === permanentCityData) option.selected = true;
+                    if (prefix === 'current' && city.name === currentCityData) {
+                        option.selected = true;
+                    } else if (prefix === 'permanent' && city.name === permanentCityData) {
+                        option.selected = true;
+                    }
                     
                     citySelect.appendChild(option);
                 });
                 
                 citySelect.disabled = false;
                 
+                // Load barangays if city is already selected
                 const preselectedCity = prefix === 'current' ? currentCityData : permanentCityData;
                 if (preselectedCity) {
                     const selectedOption = citySelect.querySelector(`option[value="${preselectedCity}"]`);
-                    if (selectedOption) await loadBarangays(selectedOption.dataset.code, prefix);
+                    if (selectedOption) {
+                        await loadBarangays(selectedOption.dataset.code, prefix);
+                    }
                 }
                 
             } catch (error) {
                 console.error('Error loading cities:', error);
+                citySelect.innerHTML = '<option value="">Error loading cities</option>';
             }
         }
         
+        // Load barangays based on city
         async function loadBarangays(cityCode, prefix) {
             const barangaySelect = document.getElementById(prefix + '_barangay');
             
@@ -1054,10 +1131,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 
                 barangaySelect.innerHTML = '<option value="">Select Barangay</option>';
                 barangays.forEach(barangay => {
-                    const option = new Option(barangay.name, barangay.name);
+                    const option = document.createElement('option');
+                    option.value = barangay.name;
+                    option.textContent = barangay.name;
                     
-                    if (prefix === 'current' && barangay.name === currentBarangayData) option.selected = true;
-                    else if (prefix === 'permanent' && barangay.name === permanentBarangayData) option.selected = true;
+                    if (prefix === 'current' && barangay.name === currentBarangayData) {
+                        option.selected = true;
+                    } else if (prefix === 'permanent' && barangay.name === permanentBarangayData) {
+                        option.selected = true;
+                    }
                     
                     barangaySelect.appendChild(option);
                 });
@@ -1066,6 +1148,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 
             } catch (error) {
                 console.error('Error loading barangays:', error);
+                barangaySelect.innerHTML = '<option value="">Error loading barangays</option>';
             }
         }
         
@@ -1073,31 +1156,61 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         document.getElementById('current_province').addEventListener('change', function() {
             const selectedOption = this.options[this.selectedIndex];
             const provinceCode = selectedOption.dataset.code;
-            if (provinceCode) loadCities(provinceCode, 'current');
+            
+            if (provinceCode) {
+                loadCities(provinceCode, 'current');
+            } else {
+                document.getElementById('current_city').innerHTML = '<option value="">Select Province First</option>';
+                document.getElementById('current_city').disabled = true;
+                document.getElementById('current_barangay').innerHTML = '<option value="">Select City First</option>';
+                document.getElementById('current_barangay').disabled = true;
+            }
         });
         
         document.getElementById('current_city').addEventListener('change', function() {
             const selectedOption = this.options[this.selectedIndex];
             const cityCode = selectedOption.dataset.code;
-            if (cityCode) loadBarangays(cityCode, 'current');
+            
+            if (cityCode) {
+                loadBarangays(cityCode, 'current');
+            } else {
+                document.getElementById('current_barangay').innerHTML = '<option value="">Select City First</option>';
+                document.getElementById('current_barangay').disabled = true;
+            }
         });
         
         document.getElementById('permanent_province').addEventListener('change', function() {
             const selectedOption = this.options[this.selectedIndex];
             const provinceCode = selectedOption.dataset.code;
-            if (provinceCode) loadCities(provinceCode, 'permanent');
+            
+            if (provinceCode) {
+                loadCities(provinceCode, 'permanent');
+            } else {
+                document.getElementById('permanent_city').innerHTML = '<option value="">Select Province First</option>';
+                document.getElementById('permanent_city').disabled = true;
+                document.getElementById('permanent_barangay').innerHTML = '<option value="">Select City First</option>';
+                document.getElementById('permanent_barangay').disabled = true;
+            }
         });
         
         document.getElementById('permanent_city').addEventListener('change', function() {
             const selectedOption = this.options[this.selectedIndex];
             const cityCode = selectedOption.dataset.code;
-            if (cityCode) loadBarangays(cityCode, 'permanent');
+            
+            if (cityCode) {
+                loadBarangays(cityCode, 'permanent');
+            } else {
+                document.getElementById('permanent_barangay').innerHTML = '<option value="">Select City First</option>';
+                document.getElementById('permanent_barangay').disabled = true;
+            }
         });
         
+        // Copy address function
         function copyAddress() {
             const sameAddress = document.getElementById('same_address').checked;
             
             if (sameAddress) {
+                // Copy current to permanent
                 document.getElementById('permanent_address').value = document.getElementById('current_address').value;
                 
                 const currentProvince = document.getElementById('current_province');
@@ -1105,12 +1218,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 permanentProvince.value = currentProvince.value;
                 permanentProvince.dispatchEvent(new Event('change'));
                 
+                // Wait for cities to load, then copy
                 setTimeout(() => {
                     const currentCity = document.getElementById('current_city');
                     const permanentCity = document.getElementById('permanent_city');
                     permanentCity.value = currentCity.value;
                     permanentCity.dispatchEvent(new Event('change'));
                     
+                    // Wait for barangays to load, then copy
                     setTimeout(() => {
                         const currentBarangay = document.getElementById('current_barangay');
                         const permanentBarangay = document.getElementById('permanent_barangay');
@@ -1119,6 +1234,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }, 500);
             }
         }
+        
+        // ==========================================
+        // ADDITIONAL IDs MANAGEMENT
+        // ==========================================
+        
+        let idCounter = <?php echo count($ids['additional'] ?? []); ?>;
         
         function addAdditionalId() {
             const container = document.getElementById('additional-ids-container');
@@ -1149,64 +1270,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         function removeId(id) {
             const row = document.getElementById('id-row-' + id);
-            if (row) row.remove();
-        }
-        
-        function confirmDelete(workerId, workerName) {
-            if (confirm(`Archive ${workerName}?\n\nThis will move the worker to the archive. Super Admin can restore it later if needed.`)) {
-                fetch('../../../api/workers.php', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                    body: `action=delete&id=${workerId}`
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        alert(data.message);
-                        window.location.href = 'index.php';
-                    } else {
-                        alert(data.message);
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    alert('Failed to archive worker');
-                });
+            if (row) {
+                row.remove();
             }
         }
         
-        // Form submission validation
-        document.getElementById('workerForm').addEventListener('submit', function(e) {
-            let isValid = true;
-            
-            const phoneInput = document.getElementById('phone');
-            const emergencyPhoneInput = document.getElementById('emergency_contact_phone');
-            
-            if (!validatePhoneField(phoneInput, 'phone')) isValid = false;
-            if (!validatePhoneField(emergencyPhoneInput, 'emergency_phone')) isValid = false;
-            
-            const emailInput = document.getElementById('email');
-            if (!validateEmailField(emailInput)) isValid = false;
-            
-            const requiredFields = this.querySelectorAll('[required]');
-            requiredFields.forEach(field => {
-                if (field.value.trim() === '') {
-                    field.classList.add('invalid');
-                    isValid = false;
-                }
-            });
-            
-            if (!isValid) {
-                e.preventDefault();
-                alert('Please fix all validation errors before submitting.');
-                
-                const firstInvalid = this.querySelector('.invalid');
-                if (firstInvalid) {
-                    firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    firstInvalid.focus();
-                }
-            }
-        });
+        // ==========================================
+        // INITIALIZATION
+        // ==========================================
         
         // Initialize on page load
         document.addEventListener('DOMContentLoaded', function() {
