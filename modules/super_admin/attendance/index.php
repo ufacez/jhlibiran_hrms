@@ -248,11 +248,6 @@ try {
                                                         title="View Details">
                                                     <i class="fas fa-eye"></i>
                                                 </button>
-                                                <button class="action-btn btn-edit" 
-                                                        onclick="window.location.href='edit.php?id=<?php echo $record['attendance_id']; ?>'"
-                                                        title="Edit">
-                                                    <i class="fas fa-edit"></i>
-                                                </button>
                                                 <button class="action-btn btn-delete" 
                                                         onclick="archiveAttendance(<?php echo $record['attendance_id']; ?>, '<?php echo htmlspecialchars(addslashes($record['first_name'] . ' ' . $record['last_name'])); ?>')"
                                                         title="Archive">

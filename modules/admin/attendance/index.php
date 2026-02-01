@@ -255,11 +255,6 @@ try {
                                                     <i class="fas fa-eye"></i>
                                                 </button>
                                                 <?php if (hasPermission($db, 'can_edit_attendance')): ?>
-                                                <button class="action-btn btn-edit" 
-                                                        onclick="window.location.href='edit.php?id=<?php echo $record['attendance_id']; ?>'"
-                                                        title="Edit">
-                                                    <i class="fas fa-edit"></i>
-                                                </button>
                                                 <?php endif; ?>
                                                 <?php if (hasPermission($db, 'can_delete_attendance')): ?>
                                                 <button class="action-btn btn-delete" 

@@ -290,14 +290,87 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <link rel="stylesheet" href="<?php echo CSS_URL; ?>/dashboard.css">
     <link rel="stylesheet" href="<?php echo CSS_URL; ?>/workers.css">
     <link rel="stylesheet" href="<?php echo CSS_URL; ?>/forms.css">
+    <link rel="stylesheet" href="<?php echo CSS_URL; ?>/buttons.css">
     <style>
+        /* ==========================================
+        CENTERED FORM LAYOUT
+        ========================================== */
+        
+        .workers-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .page-header {
+            width: 100%;
+            margin-bottom: 30px;
+        }
+        
+        .worker-form {
+            width: 100%;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        
+        .alert-danger {
+            width: 100%;
+            max-width: 1000px;
+            margin: 0 auto 20px auto;
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 8px;
+        }
+        
+        .alert-danger ul {
+            margin: 0;
+            padding-left: 20px;
+        }
+        
+        /* ==========================================
+        REQUIRED FIELD INDICATOR
+        ========================================== */
+        
         .required-asterisk {
             color: #dc3545;
             font-weight: bold;
             margin-left: 3px;
         }
         
-        /* Validation Styles - ONLY SHOW ON BLUR */
+        /* ==========================================
+        FORM SECTIONS
+        ========================================== */
+        
+        .form-card {
+            background: #fff;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+            margin-bottom: 25px;
+        }
+        
+        .form-card h3 {
+            font-size: 18px;
+            color: #1a1a1a;
+            font-weight: 600;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #DAA520;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .form-card h3 i {
+            color: #DAA520;
+        }
+        
+        /* ==========================================
+        VALIDATION STYLES - ONLY SHOW ON BLUR
+        ========================================== */
+        
         .form-group input.invalid,
         .form-group select.invalid,
         .form-group textarea.invalid {
@@ -336,8 +409,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             gap: 5px;
         }
         
+        /* ==========================================
+        CHECKBOX GROUP
+        ========================================== */
+        
         .checkbox-group {
             margin: 15px 0;
+            padding: 12px;
+            background: #fff;
+            border-radius: 6px;
+            border: 2px solid #e0e0e0;
         }
         
         .checkbox-group label {
@@ -346,7 +427,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             gap: 8px;
             font-size: 14px;
             cursor: pointer;
+            margin: 0;
+            font-weight: 500;
         }
+        
+        .checkbox-group input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+            accent-color: #DAA520;
+        }
+        
+        /* ==========================================
+        ID MANAGEMENT
+        ========================================== */
         
         .id-section {
             border: 1px solid #e0e0e0;
@@ -354,6 +448,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             border-radius: 8px;
             margin-bottom: 15px;
             background: #f8f9fa;
+        }
+        
+        .id-section h4 {
+            margin-bottom: 15px;
+            color: #1a1a1a;
+            font-size: 16px;
+            font-weight: 600;
         }
         
         .id-row {
@@ -372,6 +473,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             border-radius: 6px;
             cursor: pointer;
             font-size: 14px;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-remove-id:hover {
+            background: #c82333;
+            transform: translateY(-2px);
         }
         
         .btn-add-id {
@@ -385,24 +492,138 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             display: flex;
             align-items: center;
             gap: 5px;
+            transition: all 0.3s ease;
         }
         
         .btn-add-id:hover {
             background: #0056b3;
+            transform: translateY(-2px);
         }
         
-        .alert-danger {
-            background: #f8d7da;
-            border: 1px solid #f5c6cb;
-            color: #721c24;
-            padding: 15px;
+        /* ==========================================
+        FORM ACTIONS - BELOW THE FORM (CENTERED)
+        ========================================== */
+        
+        .form-actions {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            padding: 30px 0;
+            margin-top: 30px;
+            border-top: 2px solid #e0e0e0;
+        }
+        
+        .btn-lg {
+            padding: 14px 32px;
+            font-size: 15px;
+            min-width: 180px;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #DAA520, #B8860B);
+            color: #1a1a1a;
+            border: none;
             border-radius: 8px;
-            margin-bottom: 20px;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.3s ease;
         }
         
-        .alert-danger ul {
-            margin: 0;
-            padding-left: 20px;
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(218, 165, 32, 0.3);
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-secondary:hover {
+            background: #5a6268;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(108, 117, 125, 0.3);
+        }
+        
+        /* ==========================================
+        BACK BUTTON STYLING
+        ========================================== */
+        
+        .btn-back {
+            background: #6c757d;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+            margin-right: 15px;
+        }
+        
+        .btn-back:hover {
+            background: #5a6268;
+            transform: translateY(-2px);
+        }
+        
+        .page-header .header-left {
+            display: flex;
+            align-items: center;
+            gap: 0;
+        }
+        
+        .page-header .header-left > div {
+            margin-left: 15px;
+        }
+        
+        /* ==========================================
+        RESPONSIVE DESIGN
+        ========================================== */
+        
+        @media (max-width: 768px) {
+            .workers-content {
+                padding: 15px;
+            }
+            
+            .id-row {
+                grid-template-columns: 1fr;
+            }
+            
+            .form-actions {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .form-actions .btn {
+                width: 100%;
+                justify-content: center;
+            }
+            
+            .page-header .header-left {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .btn-back {
+                margin-bottom: 10px;
+            }
         }
     </style>
 </head>

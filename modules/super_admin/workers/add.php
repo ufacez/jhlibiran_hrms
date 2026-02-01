@@ -277,12 +277,47 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <link rel="stylesheet" href="<?php echo CSS_URL; ?>/dashboard.css">
     <link rel="stylesheet" href="<?php echo CSS_URL; ?>/workers.css">
     <link rel="stylesheet" href="<?php echo CSS_URL; ?>/forms.css">
-    <style>
+        <style>
+        /* ==========================================
+        CENTERED FORM LAYOUT
+        ========================================== */
+        
+        .workers-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .page-header {
+            width: 100%;
+            margin-bottom: 30px;
+        }
+        
+        .worker-form {
+            width: 100%;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        
+        .alert {
+            width: 100%;
+            max-width: 1000px;
+            margin: 0 auto 20px auto;
+        }
+        
+        /* ==========================================
+        REQUIRED FIELD INDICATOR
+        ========================================== */
+        
         .required {
             color: #dc3545;
             font-size: 16px;
             margin-left: 3px;
         }
+        
+        /* ==========================================
+        FORM SECTIONS
+        ========================================== */
         
         .address-section {
             background: #f8f9fa;
@@ -297,6 +332,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             font-size: 16px;
             font-weight: 600;
         }
+        
+        /* ==========================================
+        CHECKBOX GROUP
+        ========================================== */
         
         .checkbox-group {
             display: flex;
@@ -321,6 +360,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             font-weight: 500;
             cursor: pointer;
         }
+        
+        /* ==========================================
+        ID MANAGEMENT
+        ========================================== */
         
         .id-entry {
             background: #f8f9fa;
@@ -355,11 +398,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         .btn-remove-id:hover {
             background: #c82333;
+            transform: translateY(-2px);
         }
         
         .btn-add-id {
             padding: 10px 20px;
-            background: #28a745;
+            background: #007bff;
             color: #fff;
             border: none;
             border-radius: 6px;
@@ -373,9 +417,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         
         .btn-add-id:hover {
-            background: #218838;
+            background: #0056b3;
             transform: translateY(-2px);
         }
+        
+        /* ==========================================
+        PHONE HINT
+        ========================================== */
         
         .phone-hint {
             font-size: 12px;
@@ -384,7 +432,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             display: block;
         }
         
-        /* Real-time validation styles */
+        /* ==========================================
+        REAL-TIME VALIDATION STYLES
+        ========================================== */
+        
         .form-group input.invalid,
         .form-group select.invalid,
         .form-group textarea.invalid {
@@ -423,6 +474,84 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             display: flex;
             align-items: center;
             gap: 5px;
+        }
+        
+        /* ==========================================
+        FORM ACTIONS - BELOW THE FORM
+        ========================================== */
+        
+        .form-actions {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            padding: 30px 0;
+            margin-top: 30px;
+            border-top: 2px solid #e0e0e0;
+        }
+        
+        .btn-lg {
+            padding: 14px 32px;
+            font-size: 15px;
+            min-width: 180px;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #DAA520, #B8860B);
+            color: #1a1a1a;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(218, 165, 32, 0.3);
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-secondary:hover {
+            background: #5a6268;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(108, 117, 125, 0.3);
+        }
+        
+        /* ==========================================
+        RESPONSIVE DESIGN
+        ========================================== */
+        
+        @media (max-width: 768px) {
+            .workers-content {
+                padding: 15px;
+            }
+            
+            .form-actions {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .form-actions .btn {
+                width: 100%;
+                justify-content: center;
+            }
         }
     </style>
 </head>

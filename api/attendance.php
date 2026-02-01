@@ -1,9 +1,9 @@
 <?php
 /**
- * Attendance API - Complete Version
+ * Attendance API - SECURITY HARDENED
  * TrackSite Construction Management System
  * 
- * Handles all attendance-related AJAX requests
+ * SECURITY: Time fields (time_in, time_out) cannot be edited to prevent abuse
  */
 
 define('TRACKSITE_INCLUDED', true);
@@ -180,8 +180,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
                 
                 $attendance_id = isset($_POST['id']) ? intval($_POST['id']) : 0;
-                $time_in = isset($_POST['time_in']) ? sanitizeString($_POST['time_in']) : null;
-                $time_out = isset($_POST['time_out']) ? sanitizeString($_POST['time_out']) : null;
+                
+                // SECURITY: Only allow updating status and notes - NOT time_in or time_out
                 $status = isset($_POST['status']) ? sanitizeString($_POST['status']) : 'present';
                 $notes = isset($_POST['notes']) ? sanitizeString($_POST['notes']) : null;
                 
@@ -190,31 +190,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     jsonError('Invalid attendance ID');
                 }
                 
-                // Calculate hours worked
-                $hours_worked = 0;
-                if ($time_in && $time_out) {
-                    $hours_worked = calculateHours($time_in, $time_out);
-                }
-                
-                // Update attendance
+                // Update only status and notes - preserve original times
                 $stmt = $db->prepare("UPDATE attendance 
-                                     SET time_in = ?, 
-                                         time_out = ?, 
-                                         status = ?, 
-                                         hours_worked = ?,
+                                     SET status = ?, 
                                          notes = ?,
                                          updated_at = NOW()
                                      WHERE attendance_id = ?");
-                $stmt->execute([$time_in, $time_out, $status, $hours_worked, $notes, $attendance_id]);
+                $stmt->execute([$status, $notes, $attendance_id]);
+                
+                // Get updated record with hours worked
+                $stmt = $db->prepare("SELECT hours_worked FROM attendance WHERE attendance_id = ?");
+                $stmt->execute([$attendance_id]);
+                $result = $stmt->fetch();
                 
                 // Log activity
                 logActivity($db, $user_id, 'update_attendance', 'attendance', $attendance_id,
-                           'Updated attendance record');
+                           'Updated attendance status/notes (times protected from editing)');
                 
                 http_response_code(200);
                 jsonSuccess('Attendance record updated successfully', [
                     'attendance_id' => $attendance_id,
-                    'hours_worked' => $hours_worked
+                    'hours_worked' => $result['hours_worked'] ?? 0
                 ]);
                 break;
                 
