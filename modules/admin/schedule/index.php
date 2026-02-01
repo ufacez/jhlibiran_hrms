@@ -313,9 +313,6 @@ $can_manage = hasPermission($db, 'can_manage_schedule');
                     <p class="subtitle">Weekly schedule for all active workers</p>
                 </div>
                 <?php if ($can_manage): ?>
-                <button class="btn btn-secondary" onclick="window.location.href='manage.php'">
-                    <i class="fas fa-cog"></i> Manage
-                </button>
                 <button class="btn btn-add-worker" onclick="window.location.href='add.php'">
                     <i class="fas fa-plus"></i> Add Schedule
                 </button>
