@@ -36,7 +36,7 @@ $flash = getFlashMessage();
 
 // Filters
 $worker_filter = isset($_GET['worker']) ? intval($_GET['worker']) : 0;
-$status_filter = isset($_GET['status']) ? sanitizeString($_GET['status']) : 'active';
+$status_filter = isset($_GET['status']) ? sanitizeString($_GET['status']) : 'all';
 
 // ─── STEP 1: Get distinct workers (each appears ONCE) ───
 $workerSql = "SELECT DISTINCT w.worker_id, w.worker_code, w.first_name, w.last_name, w.position
@@ -324,8 +324,7 @@ $can_manage = hasPermission($db, 'can_manage_schedule');
                 <form method="GET" action="" id="filterForm">
                     <div class="filter-row">
                         <div class="filter-group">
-                            <label>Worker</label>
-                            <select name="worker" onchange="document.getElementById('filterForm').submit()">
+                            <select name="worker">
                                 <option value="">All Workers</option>
                                 <?php foreach ($allWorkers as $w): ?>
                                 <option value="<?php echo $w['worker_id']; ?>" <?php echo $worker_filter == $w['worker_id'] ? 'selected' : ''; ?>>
@@ -336,23 +335,16 @@ $can_manage = hasPermission($db, 'can_manage_schedule');
                         </div>
 
                         <div class="filter-group">
-                            <label>Schedule Status</label>
-                            <select name="status" onchange="document.getElementById('filterForm').submit()">
+                            <select name="status">
                                 <option value="all"      <?php echo $status_filter === 'all'      ? 'selected' : ''; ?>>All Schedules</option>
                                 <option value="active"   <?php echo $status_filter === 'active'   ? 'selected' : ''; ?>>Active Only</option>
                                 <option value="inactive" <?php echo $status_filter === 'inactive' ? 'selected' : ''; ?>>Inactive Only</option>
                             </select>
                         </div>
 
-                        <button type="submit" class="btn btn-filter">
+                        <button type="submit" class="btn-filter">
                             <i class="fas fa-filter"></i> Apply
                         </button>
-
-                        <?php if ($worker_filter || $status_filter !== 'all'): ?>
-                        <button type="button" class="btn btn-secondary" onclick="window.location.href='index.php'">
-                            <i class="fas fa-times"></i> Clear
-                        </button>
-                        <?php endif; ?>
                     </div>
                 </form>
             </div>
@@ -443,7 +435,7 @@ $can_manage = hasPermission($db, 'can_manage_schedule');
                                             <?php endif; ?>
                                         </div>
                                     <?php elseif ($can_manage): ?>
-                                        <a href="add.php?worker_id=<?php echo $w['worker_id']; ?>"
+                                        <a href="add.php?worker_id=<?php echo $w['worker_id']; ?>&day=<?php echo $day; ?>"
                                            class="sched-empty" title="Add schedule for <?php echo ucfirst($day); ?>">+</a>
                                     <?php endif; ?>
                                 </td>
