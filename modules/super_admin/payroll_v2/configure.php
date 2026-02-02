@@ -337,6 +337,9 @@ $pageTitle = 'Payroll Settings';
                 <div class="page-header">
                     <h1 class="page-title">Payroll Settings</h1>
                     <div class="header-actions">
+                        <a href="<?php echo BASE_URL; ?>/modules/super_admin/payroll_v2/payroll_slips.php" class="btn btn-outline">
+                            <i class="fas fa-receipt"></i> View Slips
+                        </a>
                         <a href="<?php echo BASE_URL; ?>/modules/super_admin/payroll_v2/holiday_settings.php" class="btn btn-outline">
                             <i class="fas fa-calendar-alt"></i> Manage Holidays
                         </a>

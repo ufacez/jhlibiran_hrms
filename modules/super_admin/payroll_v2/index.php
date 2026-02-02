@@ -749,6 +749,9 @@ $pageTitle = 'Payroll Management';
                         <p>Generate weekly payroll with transparent calculations. All rates are configurable.</p>
                     </div>
                     <div class="header-actions">
+                        <a href="<?php echo BASE_URL; ?>/modules/super_admin/payroll_v2/payroll_slips.php" class="action-btn">
+                            <i class="fas fa-receipt"></i> View Slips
+                        </a>
                         <a href="<?php echo BASE_URL; ?>/modules/super_admin/payroll_v2/configure.php" class="action-btn">
                             <i class="fas fa-cog"></i> Settings
                         </a>
