@@ -1258,6 +1258,16 @@ $pageTitle = 'Payroll Management';
             
             // Deductions breakdown
             let deductionsHtml = '';
+            
+                // Add SSS breakdown note if applicable
+            if (payroll.deductions && payroll.deductions.sss_details && payroll.deductions.sss_details.monthly_total) {
+                const sssDetails = payroll.deductions.sss_details;
+                deductionsHtml += `
+                    <div style="background: #f0f9ff; border-left: 4px solid #0ea5e9; padding: 10px 12px; margin-bottom: 10px; border-radius: 4px; font-size: 11px; color: #0369a1;">
+                        <i class="fas fa-info-circle"></i> <strong>SSS Breakdown:</strong> ₱${sssDetails.monthly_total.toFixed(2)}/month ÷ 4 weeks = ₱${sssDetails.employee_contribution.toFixed(2)}/week
+                    </div>`;
+            }
+            
             if (payroll.deductions && payroll.deductions.items && payroll.deductions.items.length > 0) {
                 payroll.deductions.items.forEach(deduction => {
                     let deductionLabel = deduction.description || deduction.type.toUpperCase();

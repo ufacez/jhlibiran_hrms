@@ -201,6 +201,7 @@ class PayrollCalculator {
             AND is_active = 1 
             AND status = 'pending'
             AND (frequency = 'per_payroll' OR frequency = 'one_time')
+            AND deduction_type NOT IN ('sss', 'philhealth', 'pagibig')
         ");
         $stmt->execute([$workerId]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -208,35 +209,68 @@ class PayrollCalculator {
     
     /**
      * Calculate SSS contribution based on salary bracket
+     * SSS is deducted EVERY WEEK but divided by 4 weeks
+     * This spreads the monthly SSS amount across all 4 weeks to avoid heavy deduction
+     * 
+     * Example:
+     * - Monthly SSS for ₱5,400 salary = ₱240 (Bracket 2)
+     * - Weekly SSS = ₱240 / 4 = ₱60 per week
+     * - This is deducted every payroll, not just at month-end
      * 
      * @param float $grossPay Gross pay for SSS bracket calculation
-     * @return array SSS calculation details
+     * @return array SSS calculation details (weekly amount)
      */
-    public function calculateSSSContribution($grossPay) {
+    public function calculateSSSContribution($grossPay, $periodEnd = null) {
         try {
-            $stmt = $this->pdo->query("
+            // Look up the monthly SSS bracket based on monthly salary range
+            // Note: We use the WEEKLY gross to estimate monthly (multiply by 4.333)
+            $estimatedMonthlySalary = $grossPay * self::WEEKLY_DIVISOR;
+            
+            $stmt = $this->pdo->prepare("
                 SELECT * FROM sss_contribution_matrix 
                 WHERE is_active = 1 
                 AND ? BETWEEN lower_range AND upper_range 
                 ORDER BY bracket_number ASC 
                 LIMIT 1
             ");
-            $stmt->execute([$grossPay]);
+            $stmt->execute([$estimatedMonthlySalary]);
             $bracket = $stmt->fetch(PDO::FETCH_ASSOC);
             
+            if (!$bracket) {
+                // If salary exceeds max range, use highest bracket
+                $stmt = $this->pdo->query("
+                    SELECT * FROM sss_contribution_matrix 
+                    WHERE is_active = 1 
+                    ORDER BY upper_range DESC 
+                    LIMIT 1
+                ");
+                $bracket = $stmt->fetch(PDO::FETCH_ASSOC);
+            }
+            
             if ($bracket) {
+                // Get monthly SSS contribution amount
+                $monthlySSS = floatval($bracket['employee_contribution']);
+                $monthlyEmployerSSS = floatval($bracket['employer_contribution']);
+                $monthlyECSSS = floatval($bracket['ec_contribution']);
+                
+                // Divide by 4 weeks to get weekly amount
+                // Week 1-4 will each deduct this amount, totaling the monthly contribution
+                $weeklySSS = round($monthlySSS / 4, 2);
+                $weeklyEmployerSSS = round($monthlyEmployerSSS / 4, 2);
+                $weeklyECSSS = round($monthlyECSSS / 4, 2);
+                
                 return [
                     'bracket_number' => $bracket['bracket_number'],
                     'lower_range' => $bracket['lower_range'],
                     'upper_range' => $bracket['upper_range'],
-                    'employee_contribution' => floatval($bracket['employee_contribution']),
-                    'employer_contribution' => floatval($bracket['employer_contribution']),
-                    'ec_contribution' => floatval($bracket['ec_contribution']),
-                    'total_contribution' => floatval($bracket['total_contribution']),
+                    'employee_contribution' => $weeklySSS,
+                    'employer_contribution' => $weeklyEmployerSSS,
+                    'ec_contribution' => $weeklyECSSS,
+                    'total_contribution' => round(($weeklySSS + $weeklyEmployerSSS + $weeklyECSSS), 2),
+                    'monthly_total' => round($monthlySSS, 2),
                     'formula' => sprintf(
-                        "Bracket %d: Salary ₱%.2f falls between ₱%.2f - ₱%.2f = ₱%.2f (Employee)",
-                        $bracket['bracket_number'], $grossPay, $bracket['lower_range'], 
-                        $bracket['upper_range'], $bracket['employee_contribution']
+                        "Bracket %d: Monthly salary ₱%.2f = ₱%.2f/month ÷ 4 weeks = ₱%.2f/week (Employee)",
+                        $bracket['bracket_number'], $estimatedMonthlySalary, $monthlySSS, $weeklySSS
                     )
                 ];
             }
@@ -247,6 +281,7 @@ class PayrollCalculator {
                 'employer_contribution' => 0,
                 'ec_contribution' => 0,
                 'total_contribution' => 0,
+                'monthly_total' => 0,
                 'formula' => 'No SSS bracket found for this salary'
             ];
         } catch (Exception $e) {
@@ -256,7 +291,8 @@ class PayrollCalculator {
                 'employer_contribution' => 0,
                 'ec_contribution' => 0,
                 'total_contribution' => 0,
-                'formula' => 'Error calculating SSS'
+                'monthly_total' => 0,
+                'formula' => 'Error calculating SSS: ' . $e->getMessage()
             ];
         }
     }
@@ -268,13 +304,13 @@ class PayrollCalculator {
      * @param float $grossPay Gross pay for tax and SSS calculation
      * @return array All deductions with totals
      */
-    public function calculateAllDeductions($workerId, $grossPay) {
+    public function calculateAllDeductions($workerId, $grossPay, $periodEnd = null) {
         // Get manual deductions
         $manualDeductions = $this->getWorkerDeductions($workerId);
         
         // Calculate automatic deductions
         $taxCalculation = $this->calculateWithholdingTax($grossPay);
-        $sssCalculation = $this->calculateSSSContribution($grossPay);
+        $sssCalculation = $this->calculateSSSContribution($grossPay, $periodEnd);
         
         // Organize deductions by type
         $deductions = [
@@ -290,17 +326,15 @@ class PayrollCalculator {
             'sss_details' => $sssCalculation
         ];
         
-        // Add SSS as first item
-        if ($sssCalculation['employee_contribution'] > 0) {
-            $deductions['items'][] = [
-                'id' => null,
-                'type' => 'sss',
-                'amount' => $sssCalculation['employee_contribution'],
-                'description' => 'SSS Contribution',
-                'frequency' => 'per_payroll',
-                'formula' => $sssCalculation['formula']
-            ];
-        }
+        // Add SSS as first item (always show for transparency)
+        $deductions['items'][] = [
+            'id' => null,
+            'type' => 'sss',
+            'amount' => $sssCalculation['employee_contribution'],
+            'description' => 'SSS Contribution',
+            'frequency' => 'per_payroll',
+            'formula' => $sssCalculation['formula']
+        ];
         
         // Process manual deductions
         foreach ($manualDeductions as $d) {
@@ -920,7 +954,7 @@ class PayrollCalculator {
         }
         
         // Calculate all deductions including automatic tax
-        $deductions = $this->calculateAllDeductions($workerId, $totals['gross_pay']);
+        $deductions = $this->calculateAllDeductions($workerId, $totals['gross_pay'], $periodEnd);
         
         // Calculate net pay
         $netPay = $totals['gross_pay'] - $deductions['total'];

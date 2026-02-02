@@ -142,6 +142,59 @@ try {
                 'history' => $history
             ]);
             break;
+
+        case 'save_sss_settings':
+            // POST: Save SSS contribution settings
+            if ($method !== 'POST') {
+                throw new Exception('Method not allowed');
+            }
+
+            $ecpMinimum = floatval($input['ecp_minimum'] ?? 0);
+            $ecpBoundary = floatval($input['ecp_boundary'] ?? 0);
+            $ecpMaximum = floatval($input['ecp_maximum'] ?? 0);
+            $mpfMinimum = floatval($input['mpf_minimum'] ?? 0);
+            $mpfMaximum = floatval($input['mpf_maximum'] ?? 0);
+            $employeeRate = floatval($input['employee_contribution_rate'] ?? 0);
+            $employerRate = floatval($input['employer_contribution_rate'] ?? 0);
+            $effectiveDate = $input['effective_date'] ?? '';
+
+            if (!$ecpMinimum || !$ecpBoundary || !$ecpMaximum || !$mpfMinimum || !$mpfMaximum || !$employeeRate || !$employerRate || empty($effectiveDate)) {
+                throw new Exception('All SSS settings fields are required');
+            }
+
+            $pdo->beginTransaction();
+
+            // Deactivate old settings
+            $stmt = $pdo->prepare("UPDATE sss_settings SET is_active = 0");
+            $stmt->execute();
+
+            // Insert new settings
+            $stmt = $pdo->prepare("
+                INSERT INTO sss_settings (
+                    ecp_minimum, ecp_boundary, ecp_maximum,
+                    mpf_minimum, mpf_maximum,
+                    employee_contribution_rate, employer_contribution_rate,
+                    effective_date, is_active
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)
+            ");
+            $stmt->execute([
+                $ecpMinimum,
+                $ecpBoundary,
+                $ecpMaximum,
+                $mpfMinimum,
+                $mpfMaximum,
+                $employeeRate,
+                $employerRate,
+                $effectiveDate
+            ]);
+
+            $pdo->commit();
+
+            echo json_encode([
+                'success' => true,
+                'message' => 'SSS settings saved successfully'
+            ]);
+            break;
             
         // ==========================================
         // RATES DISPLAY ENDPOINTS

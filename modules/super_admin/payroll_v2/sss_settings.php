@@ -106,11 +106,19 @@ $pageTitle = 'SSS Contribution Settings';
                                 </div>
                                 
                                 <div class="form-group">
-                                    <label class="form-label">ECP Boundary Value <span style="color: #ef4444;">*</span></label>
+                                    <label class="form-label">MSC ECP Boundary Value <span style="color: #ef4444;">*</span></label>
                                     <span class="input-prefix">₱</span>
                                     <input type="number" name="ecp_boundary" class="form-input form-input-with-prefix" 
                                            value="<?php echo $settings['ecp_boundary'] ?? ''; ?>" step="0.01" required>
                                     <small style="color: #666; font-size: 11px;">Salary level for ECP coverage</small>
+                                </div>
+
+                                <div class="form-group">
+                                    <label class="form-label">ECP Maximum Value <span style="color: #ef4444;">*</span></label>
+                                    <span class="input-prefix">₱</span>
+                                    <input type="number" name="ecp_maximum" class="form-input form-input-with-prefix" 
+                                           value="<?php echo $settings['ecp_maximum'] ?? ''; ?>" step="0.01" required>
+                                    <small style="color: #666; font-size: 11px;">Maximum ECP contribution amount</small>
                                 </div>
                                 
                                 <div class="form-group">
@@ -181,6 +189,7 @@ $pageTitle = 'SSS Contribution Settings';
                 mpf_maximum: parseFloat(formData.get('mpf_maximum')),
                 employee_contribution_rate: parseFloat(formData.get('employee_contribution_rate')),
                 employer_contribution_rate: parseFloat(formData.get('employer_contribution_rate')),
+                ecp_maximum: parseFloat(formData.get('ecp_maximum')),
                 effective_date: formData.get('effective_date')
             };
             
