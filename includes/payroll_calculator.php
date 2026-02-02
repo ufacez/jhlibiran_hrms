@@ -248,14 +248,17 @@ class PayrollCalculator {
             }
             
             if ($bracket) {
-                // Get monthly SSS contribution amount
+                // Get monthly SSS contribution amounts
                 $monthlySSS = floatval($bracket['employee_contribution']);
+                $monthlyMPF = floatval($bracket['mpf_contribution'] ?? 0);
+                $monthlyEmployeeTotal = $monthlySSS + $monthlyMPF;
                 $monthlyEmployerSSS = floatval($bracket['employer_contribution']);
                 $monthlyECSSS = floatval($bracket['ec_contribution']);
                 
                 // Divide by 4 weeks to get weekly amount
                 // Week 1-4 will each deduct this amount, totaling the monthly contribution
-                $weeklySSS = round($monthlySSS / 4, 2);
+                $weeklySSS = round($monthlyEmployeeTotal / 4, 2);
+                $weeklyMPF = round($monthlyMPF / 4, 2);
                 $weeklyEmployerSSS = round($monthlyEmployerSSS / 4, 2);
                 $weeklyECSSS = round($monthlyECSSS / 4, 2);
                 
@@ -264,13 +267,14 @@ class PayrollCalculator {
                     'lower_range' => $bracket['lower_range'],
                     'upper_range' => $bracket['upper_range'],
                     'employee_contribution' => $weeklySSS,
+                    'mpf_contribution' => $weeklyMPF,
                     'employer_contribution' => $weeklyEmployerSSS,
                     'ec_contribution' => $weeklyECSSS,
                     'total_contribution' => round(($weeklySSS + $weeklyEmployerSSS + $weeklyECSSS), 2),
-                    'monthly_total' => round($monthlySSS, 2),
+                    'monthly_total' => round($monthlyEmployeeTotal, 2),
                     'formula' => sprintf(
-                        "Bracket %d: Monthly salary ₱%.2f = ₱%.2f/month ÷ 4 weeks = ₱%.2f/week (Employee)",
-                        $bracket['bracket_number'], $estimatedMonthlySalary, $monthlySSS, $weeklySSS
+                        "Bracket %d: Monthly salary ₱%.2f = ₱%.2f/month (SSS+MPF) ÷ 4 weeks = ₱%.2f/week (Employee)",
+                        $bracket['bracket_number'], $estimatedMonthlySalary, $monthlyEmployeeTotal, $weeklySSS
                     )
                 ];
             }

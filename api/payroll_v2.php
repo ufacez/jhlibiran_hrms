@@ -195,6 +195,85 @@ try {
                 'message' => 'SSS settings saved successfully'
             ]);
             break;
+
+        case 'save_sss_matrix':
+            // POST: Save SSS contribution matrix
+            if ($method !== 'POST') {
+                throw new Exception('Method not allowed');
+            }
+
+            $matrix = $input['matrix'] ?? [];
+            if (empty($matrix)) {
+                throw new Exception('No matrix data provided');
+            }
+
+            $pdo->beginTransaction();
+
+            try {
+                foreach ($matrix as $bracket) {
+                    $bracketId = $bracket['bracket_id'] ?? 0;
+                    $bracketNumber = $bracket['bracket_number'] ?? 0;
+                    $lowerRange = floatval($bracket['lower_range'] ?? 0);
+                    $upperRange = floatval($bracket['upper_range'] ?? 0);
+                    $employeeContribution = floatval($bracket['employee_contribution'] ?? 0);
+                    $ecContribution = floatval($bracket['ec_contribution'] ?? 0);
+                    $mpfContribution = floatval($bracket['mpf_contribution'] ?? 0);
+                    
+                    // Calculate total contribution
+                    $totalContribution = $employeeContribution + $ecContribution + $mpfContribution;
+                    
+                    // For backward compatibility, check if employer_contribution was explicitly provided
+                    $employerContribution = floatval($bracket['employer_contribution'] ?? 0);
+                    
+                    if ($bracketId) {
+                        // Preserve employer_contribution if not explicitly provided
+                        $current = $pdo->prepare("SELECT employer_contribution FROM sss_contribution_matrix WHERE bracket_id = ?");
+                        $current->execute([$bracketId]);
+                        $currentRow = $current->fetch(PDO::FETCH_ASSOC);
+                        if ($currentRow && $employerContribution <= 0) {
+                            $employerContribution = floatval($currentRow['employer_contribution']);
+                        }
+                    }
+
+                    $stmt = $pdo->prepare("
+                        UPDATE sss_contribution_matrix SET
+                            bracket_number = ?,
+                            lower_range = ?,
+                            upper_range = ?,
+                            employee_contribution = ?,
+                            employer_contribution = ?,
+                            ec_contribution = ?,
+                            mpf_contribution = ?,
+                            total_contribution = ?,
+                            updated_at = NOW()
+                        WHERE bracket_id = ?
+                    ");
+                    
+                    $stmt->execute([
+                        $bracketNumber,
+                        $lowerRange,
+                        $upperRange,
+                        $employeeContribution,
+                        $employerContribution,
+                        $ecContribution,
+                        $mpfContribution,
+                        $totalContribution,
+                        $bracketId
+                    ]);
+                }
+
+                $pdo->commit();
+
+                echo json_encode([
+                    'success' => true,
+                    'message' => 'SSS matrix saved successfully'
+                ]);
+
+            } catch (Exception $e) {
+                $pdo->rollBack();
+                throw $e;
+            }
+            break;
             
         // ==========================================
         // RATES DISPLAY ENDPOINTS

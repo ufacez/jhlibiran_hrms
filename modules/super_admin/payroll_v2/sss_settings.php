@@ -132,7 +132,7 @@ $pageTitle = 'SSS Contribution Settings';
                             <!-- Right Column -->
                             <div>
                                 <div class="form-group">
-                                    <label class="form-label">MPF Minimum Value (Maximum SSY) <span style="color: #ef4444;">*</span></label>
+                                    <label class="form-label">MPF Minimum Value (Maximum SS) <span style="color: #ef4444;">*</span></label>
                                     <span class="input-prefix">₱</span>
                                     <input type="number" name="mpf_minimum" class="form-input form-input-with-prefix" 
                                            value="<?php echo $settings['mpf_minimum'] ?? ''; ?>" step="0.01" required>
@@ -144,7 +144,7 @@ $pageTitle = 'SSS Contribution Settings';
                                     <span class="input-prefix">₱</span>
                                     <input type="number" name="mpf_maximum" class="form-input form-input-with-prefix" 
                                            value="<?php echo $settings['mpf_maximum'] ?? ''; ?>" step="0.01" required>
-                                    <small style="color: #666; font-size: 11px;">Maximum salary for SSY contributions</small>
+                                    <small style="color: #666; font-size: 11px;">Maximum salary for SS contributions</small>
                                 </div>
                                 
                                 <div class="form-group">
