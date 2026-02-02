@@ -96,7 +96,7 @@ class PayrollPDFGenerator {
             }
             
             // Add content
-            $this->addPayslipHeader($worker, $period);
+            $this->addPayslipHeader($worker, $period, $record);
             $this->addEarningsSection($record, $earnings);
             $this->addDeductionsSection($record);
             $this->addSignatureSection($worker);
@@ -121,7 +121,7 @@ class PayrollPDFGenerator {
             $stmt = $this->pdo->prepare("
                 SELECT pr.*, 
                        p.period_start, p.period_end,
-                       w.first_name, w.last_name, w.worker_code, w.position, w.employment_type
+                       w.first_name, w.last_name, w.worker_code, w.position, w.employment_type, w.tin_number AS tin
                 FROM payroll_records pr
                 JOIN payroll_periods p ON pr.period_id = p.period_id
                 JOIN workers w ON pr.worker_id = w.worker_id
@@ -282,8 +282,9 @@ class PayrollPDFGenerator {
      * 
      * @param array $worker Worker details
      * @param array $period Period details
+     * @param array $record Payroll record details
      */
-    private function addPayslipHeader($worker, $period) {
+    private function addPayslipHeader($worker, $period, $record) {
         if (!class_exists('TCPDF')) {
             return; // Skip if TCPDF not available
         }
@@ -320,6 +321,23 @@ class PayrollPDFGenerator {
         $this->pdf->Cell(90, 6, 'ID No.: ', 0, 0, 'L');
         $this->pdf->SetFont('helvetica', '', 10);
         $this->pdf->Cell(0, 6, $worker['worker_code'], 0, 1, 'L');
+        
+        $this->pdf->Ln(2);
+        
+        // Work Hours Summary
+        $this->pdf->SetFont('helvetica', 'B', 9);
+        $this->pdf->SetFillColor(245, 245, 245);
+        $this->pdf->Cell(45, 6, 'Regular Hrs', 1, 0, 'L', true);
+        $this->pdf->Cell(45, 6, 'OT Hrs', 1, 0, 'L', true);
+        $this->pdf->Cell(0, 6, 'Total Hours', 1, 1, 'L', true);
+        
+        $this->pdf->SetFont('helvetica', '', 9);
+        $totalHours = $period['total_hours'] ?? ($record['regular_hours'] + $record['overtime_hours'] + 
+                     $record['night_diff_hours'] + $record['rest_day_hours'] + 
+                     $record['regular_holiday_hours'] + $record['special_holiday_hours']);
+        $this->pdf->Cell(45, 6, number_format($record['regular_hours'], 2), 1, 0, 'R');
+        $this->pdf->Cell(45, 6, number_format($record['overtime_hours'], 2), 1, 0, 'R');
+        $this->pdf->Cell(0, 6, number_format($totalHours, 2), 1, 1, 'R');
         
         $this->pdf->Ln(4);
     }
@@ -426,6 +444,37 @@ class PayrollPDFGenerator {
         $this->pdf->SetFont('helvetica', 'B', 12);
         $this->pdf->Cell(0, 8, '₱' . number_format($record['net_pay'], 2), 1, 1, 'R', true);
         
+        // Government deductions summary
+        $sss = (float)($record['sss_contribution'] ?? 0);
+        $philhealth = (float)($record['philhealth_contribution'] ?? 0);
+        $pagibig = (float)($record['pagibig_contribution'] ?? 0);
+        $tax = (float)($record['tax_withholding'] ?? 0);
+        $govTotal = $sss + $philhealth + $pagibig + $tax;
+
+        $this->pdf->Ln(4);
+        $this->pdf->SetFont('helvetica', 'B', 10);
+        $this->pdf->SetFillColor(218, 165, 32); // Gold color
+        $this->pdf->SetTextColor(255, 255, 255); // White text
+        $this->pdf->Cell(0, 6, 'GOVERNMENT DEDUCTIONS SUMMARY', 0, 1, 'L', true);
+        $this->pdf->SetTextColor(0, 0, 0); // Back to black
+
+        $this->pdf->SetFont('helvetica', 'B', 9);
+        $this->pdf->SetFillColor(245, 245, 245);
+        $this->pdf->Cell(45, 6, 'SSS', 1, 0, 'L', true);
+        $this->pdf->Cell(45, 6, 'PhilHealth', 1, 0, 'L', true);
+        $this->pdf->Cell(45, 6, 'Pag-IBIG', 1, 0, 'L', true);
+        $this->pdf->Cell(0, 6, 'Withholding Tax', 1, 1, 'L', true);
+
+        $this->pdf->SetFont('helvetica', '', 9);
+        $this->pdf->Cell(45, 6, '₱' . number_format($sss, 2), 1, 0, 'R');
+        $this->pdf->Cell(45, 6, '₱' . number_format($philhealth, 2), 1, 0, 'R');
+        $this->pdf->Cell(45, 6, '₱' . number_format($pagibig, 2), 1, 0, 'R');
+        $this->pdf->Cell(0, 6, '₱' . number_format($tax, 2), 1, 1, 'R');
+
+        $this->pdf->SetFont('helvetica', 'B', 9);
+        $this->pdf->SetFillColor(220, 220, 220);
+        $this->pdf->Cell(0, 6, 'Total Government Deductions: ₱' . number_format($govTotal, 2), 0, 1, 'R', true);
+
         $this->pdf->Ln(3);
     }
     

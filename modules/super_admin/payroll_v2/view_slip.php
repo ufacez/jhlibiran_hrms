@@ -23,31 +23,39 @@ if (!$recordId || !is_numeric($recordId)) {
 }
 
 // Get record
-$stmt = $pdo->prepare("
-    SELECT pr.*, 
-           p.period_start, p.period_end,
-           w.first_name, w.last_name, w.worker_code, w.position, w.sss_number, w.philhealth_number, w.pagibig_number, w.tin
-    FROM payroll_records pr
-    JOIN payroll_periods p ON pr.period_id = p.period_id
-    JOIN workers w ON pr.worker_id = w.worker_id
-    WHERE pr.record_id = ?
-");
-$stmt->execute([$recordId]);
-$record = $stmt->fetch(PDO::FETCH_ASSOC);
-
-if (!$record) {
-    die('Record not found');
+try {
+    $stmt = $pdo->prepare("
+        SELECT pr.*, 
+               p.period_start, p.period_end,
+               w.first_name, w.last_name, w.worker_code, w.position, w.sss_number, w.philhealth_number, w.pagibig_number, w.tin_number AS tin
+        FROM payroll_records pr
+        JOIN payroll_periods p ON pr.period_id = p.period_id
+        JOIN workers w ON pr.worker_id = w.worker_id
+        WHERE pr.record_id = ?
+    ");
+    $stmt->execute([$recordId]);
+    $record = $stmt->fetch(PDO::FETCH_ASSOC);
+    
+    if (!$record) {
+        die('Payroll record not found.');
+    }
+} catch (Exception $e) {
+    die('Error loading payroll record: ' . $e->getMessage());
 }
 
 // Get earnings
-$stmt = $pdo->prepare("
-    SELECT earning_type, description, hours, rate_used, multiplier_used, amount, earning_date
-    FROM payroll_earnings
-    WHERE record_id = ?
-    ORDER BY earning_date ASC, earning_type ASC
-");
-$stmt->execute([$recordId]);
-$earnings = $stmt->fetchAll(PDO::FETCH_ASSOC);
+try {
+    $stmt = $pdo->prepare("
+        SELECT earning_type, description, hours, rate_used, multiplier_used, amount, earning_date
+        FROM payroll_earnings
+        WHERE record_id = ?
+        ORDER BY earning_date ASC, earning_type ASC
+    ");
+    $stmt->execute([$recordId]);
+    $earnings = $stmt->fetchAll(PDO::FETCH_ASSOC);
+} catch (Exception $e) {
+    $earnings = [];
+}
 
 // Calculate totals by earning type
 $earningTotals = [];
@@ -151,47 +159,52 @@ foreach ($earnings as $earning) {
         .section-title {
             background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
             color: white;
-            padding: 10px 15px;
+            padding: 12px 15px;
             font-weight: 700;
             font-size: 12px;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
+            letter-spacing: 1px;
             margin-bottom: 15px;
             border-radius: 4px;
+            border-left: 4px solid #DAA520;
         }
         
         table {
             width: 100%;
             border-collapse: collapse;
             margin-bottom: 10px;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
         }
         
         th {
-            background: #f5f5f5;
-            padding: 10px;
+            background: #f9f9f9;
+            padding: 12px;
             text-align: left;
             font-size: 12px;
             font-weight: 700;
-            color: #666;
+            color: #1a1a1a;
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            border-bottom: 2px solid #ddd;
+            border-bottom: 2px solid #DAA520;
         }
         
         td {
-            padding: 10px;
+            padding: 12px;
             font-size: 13px;
             border-bottom: 1px solid #f0f0f0;
         }
         
         th.amount, td.amount {
             text-align: right;
+            font-family: 'Courier New', monospace;
         }
         
         tr.total-row {
             font-weight: 700;
-            background: #f5f5f5;
-            border-top: 2px solid #ddd;
+            background: #f9f9f9;
+            border-top: 2px solid #DAA520;
         }
         
         tr.net-pay-row {
@@ -234,6 +247,65 @@ foreach ($earnings as $earning) {
         
         .summary-value.primary {
             color: #DAA520;
+        }
+
+        .gov-summary {
+            margin-top: 30px;
+            padding: 20px;
+            border: 2px solid #DAA520;
+            border-radius: 8px;
+            background: linear-gradient(135deg, #fffdf7 0%, #fffdf7 100%);
+        }
+
+        .gov-title {
+            font-size: 12px;
+            font-weight: 700;
+            color: #DAA520;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #DAA520;
+        }
+
+        .gov-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            margin-bottom: 15px;
+        }
+
+        .gov-item {
+            background: white;
+            padding: 12px;
+            border-radius: 6px;
+            border: 1px solid #DAA520;
+            text-align: center;
+            box-shadow: 0 1px 3px rgba(218, 165, 32, 0.1);
+        }
+
+        .gov-label {
+            font-size: 10px;
+            color: #DAA520;
+            text-transform: uppercase;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
+        }
+
+        .gov-value {
+            font-size: 16px;
+            font-weight: 800;
+            color: #1a1a1a;
+        }
+
+        .gov-total {
+            margin-top: 15px;
+            padding-top: 12px;
+            border-top: 2px solid #DAA520;
+            text-align: right;
+            color: #1a1a1a;
+            font-size: 13px;
         }
         
         .signatures {
@@ -368,6 +440,29 @@ foreach ($earnings as $earning) {
             </div>
         </div>
         
+        <!-- Work Hours Summary -->
+        <div class="info-section" style="background: #f9f9f9; padding: 15px; border-radius: 6px; border: 1px solid #eee; margin-bottom: 20px;">
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px;">
+                <div class="info-item">
+                    <div class="info-label">Regular Hours</div>
+                    <div class="info-value" style="font-size: 18px;"><?php echo number_format($record['regular_hours'], 2); ?> hrs</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Overtime Hours</div>
+                    <div class="info-value" style="font-size: 18px;"><?php echo number_format($record['overtime_hours'], 2); ?> hrs</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Total Hours Worked</div>
+                    <div class="info-value" style="font-size: 18px; color: #DAA520; font-weight: 800;">
+                        <?php 
+                        $totalHours = $record['regular_hours'] + $record['overtime_hours'] + $record['night_diff_hours'] + 
+                                     $record['rest_day_hours'] + $record['regular_holiday_hours'] + $record['special_holiday_hours'];
+                        echo number_format($totalHours, 2); ?> hrs
+                    </div>
+                </div>
+            </div>
+        </div>
+        
         <!-- Earnings Section -->
         <div class="earnings-section">
             <div class="section-title">EARNINGS</div>
@@ -430,7 +525,7 @@ foreach ($earnings as $earning) {
                         'SSS Contribution' => $record['sss_contribution'],
                         'PhilHealth Contribution' => $record['philhealth_contribution'],
                         'Pag-IBIG Contribution' => $record['pagibig_contribution'],
-                        'Withholding Tax' => $record['tax_withholding'],
+                        'Withholding Tax (BIR)' => $record['tax_withholding'],
                         'Other Deductions' => $record['other_deductions'],
                     ];
                     
@@ -475,6 +570,43 @@ foreach ($earnings as $earning) {
             <div class="summary-item">
                 <div class="summary-label">Net Pay</div>
                 <div class="summary-value primary">₱<?php echo number_format($record['net_pay'], 0); ?></div>
+            </div>
+        </div>
+
+        <?php
+            $sss = (float)($record['sss_contribution'] ?? 0);
+            $philhealth = (float)($record['philhealth_contribution'] ?? 0);
+            $pagibig = (float)($record['pagibig_contribution'] ?? 0);
+            $tax = (float)($record['tax_withholding'] ?? 0);
+            $govTotal = $sss + $philhealth + $pagibig + $tax;
+        ?>
+
+        <div class="gov-summary">
+            <div class="gov-title">Government Deductions Summary</div>
+            <div class="gov-grid">
+                <div class="gov-item">
+                    <div class="gov-label">SSS</div>
+                    <div class="gov-value">₱<?php echo number_format($sss, 2); ?></div>
+                    <div style="font-size: 9px; color: #999; margin-top: 4px;">Social Security</div>
+                </div>
+                <div class="gov-item">
+                    <div class="gov-label">PhilHealth</div>
+                    <div class="gov-value">₱<?php echo number_format($philhealth, 2); ?></div>
+                    <div style="font-size: 9px; color: #999; margin-top: 4px;">Health Insurance</div>
+                </div>
+                <div class="gov-item">
+                    <div class="gov-label">Pag-IBIG</div>
+                    <div class="gov-value">₱<?php echo number_format($pagibig, 2); ?></div>
+                    <div style="font-size: 9px; color: #999; margin-top: 4px;">Housing Fund</div>
+                </div>
+                <div class="gov-item">
+                    <div class="gov-label">Withholding Tax</div>
+                    <div class="gov-value">₱<?php echo number_format($tax, 2); ?></div>
+                    <div style="font-size: 9px; color: #999; margin-top: 4px;">BIR Tax</div>
+                </div>
+            </div>
+            <div class="gov-total">
+                <strong>Total Government Deductions: ₱<?php echo number_format($govTotal, 2); ?></strong>
             </div>
         </div>
         

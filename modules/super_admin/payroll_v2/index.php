@@ -490,8 +490,18 @@ $pageTitle = 'Payroll Management';
         }
         
         .day-row.rest-day {
-            background: #e0f2fe;
-            border-left: 3px solid #0ea5e9;
+            background: #f5f5f5;
+            border-left: 3px solid #bbb;
+        }
+
+        .info-note {
+            background: #f7f7f7;
+            border-left: 4px solid #cfcfcf;
+            padding: 10px 12px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+            font-size: 11px;
+            color: #555;
         }
         
         /* Payroll Table */
@@ -728,6 +738,27 @@ $pageTitle = 'Payroll Management';
             display: flex;
             gap: 10px;
         }
+
+        .action-btn {
+            background: #1a1a1a;
+            color: #fff;
+            border: 1px solid #1a1a1a;
+            border-radius: 6px;
+            padding: 8px 12px;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+        }
+
+        .action-btn:hover {
+            background: #2d2d2d;
+            border-color: #2d2d2d;
+            transform: translateY(-1px);
+        }
     </style>
 </head>
 <body>
@@ -758,19 +789,6 @@ $pageTitle = 'Payroll Management';
                         <button class="btn-gold" onclick="showBatchGenerate()">
                             <i class="fas fa-users"></i> Batch Generate
                         </button>
-                    </div>
-                </div>
-                
-                <!-- Current Rates Banner -->
-                <div class="rates-banner">
-                    <h3>
-                        <i class="fas fa-info-circle"></i> Current Payroll Rates
-                        <a href="<?php echo BASE_URL; ?>/modules/super_admin/payroll_v2/configure.php">
-                            Edit Rates →
-                        </a>
-                    </h3>
-                    <div class="rates-display" id="ratesDisplay">
-                        <!-- Populated by JavaScript -->
                     </div>
                 </div>
                 
@@ -1266,7 +1284,7 @@ $pageTitle = 'Payroll Management';
             if (payroll.deductions && payroll.deductions.sss_details && payroll.deductions.sss_details.monthly_total) {
                 const sssDetails = payroll.deductions.sss_details;
                 deductionsHtml += `
-                    <div style="background: #f0f9ff; border-left: 4px solid #0ea5e9; padding: 10px 12px; margin-bottom: 10px; border-radius: 4px; font-size: 11px; color: #0369a1;">
+                    <div class="info-note">
                         <i class="fas fa-info-circle"></i> <strong>SSS Breakdown:</strong> ₱${sssDetails.monthly_total.toFixed(2)}/month ÷ 4 weeks = ₱${sssDetails.employee_contribution.toFixed(2)}/week
                     </div>`;
             }

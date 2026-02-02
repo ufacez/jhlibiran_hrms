@@ -56,27 +56,40 @@ if (!empty($filter_status)) {
 
 $query .= " ORDER BY p.period_end DESC, w.first_name ASC";
 
-$stmt = $pdo->prepare($query);
-$stmt->execute($params);
-$payrollRecords = $stmt->fetchAll(PDO::FETCH_ASSOC);
+try {
+    $stmt = $pdo->prepare($query);
+    $stmt->execute($params);
+    $payrollRecords = $stmt->fetchAll(PDO::FETCH_ASSOC);
+} catch (Exception $e) {
+    $payrollRecords = [];
+    $errorMessage = 'Error loading payroll records: ' . $e->getMessage();
+}
 
 // Get workers for filter dropdown
-$stmt = $pdo->query("
-    SELECT worker_id, CONCAT(first_name, ' ', last_name) as full_name, worker_code
-    FROM workers
-    WHERE is_archived = 0
-    ORDER BY first_name, last_name
-");
-$workers = $stmt->fetchAll(PDO::FETCH_ASSOC);
+try {
+    $stmt = $pdo->query("
+        SELECT worker_id, CONCAT(first_name, ' ', last_name) as full_name, worker_code
+        FROM workers
+        WHERE is_archived = 0
+        ORDER BY first_name, last_name
+    ");
+    $workers = $stmt->fetchAll(PDO::FETCH_ASSOC);
+} catch (Exception $e) {
+    $workers = [];
+}
 
 // Get periods for filter dropdown
-$stmt = $pdo->query("
-    SELECT period_id, period_start, period_end
-    FROM payroll_periods
-    ORDER BY period_end DESC
-    LIMIT 20
-");
-$periods = $stmt->fetchAll(PDO::FETCH_ASSOC);
+try {
+    $stmt = $pdo->query("
+        SELECT period_id, period_start, period_end
+        FROM payroll_periods
+        ORDER BY period_end DESC
+        LIMIT 20
+    ");
+    $periods = $stmt->fetchAll(PDO::FETCH_ASSOC);
+} catch (Exception $e) {
+    $periods = [];
+}
 
 $pageTitle = 'Payroll Slips';
 ?>
@@ -97,6 +110,8 @@ $pageTitle = 'Payroll Slips';
             justify-content: space-between;
             align-items: center;
             margin-bottom: 30px;
+            gap: 15px;
+            flex-wrap: wrap;
         }
         
         .page-title {
@@ -205,7 +220,7 @@ $pageTitle = 'Payroll Slips';
             padding: 15px 20px;
             font-weight: 600;
             display: grid;
-            grid-template-columns: 100px 180px 120px 100px 100px 100px 80px;
+            grid-template-columns: 130px 220px minmax(110px, 1fr) minmax(110px, 1fr) minmax(110px, 1fr) 110px 90px;
             gap: 15px;
             align-items: center;
             font-size: 13px;
@@ -216,7 +231,7 @@ $pageTitle = 'Payroll Slips';
         .list-item {
             padding: 15px 20px;
             display: grid;
-            grid-template-columns: 100px 180px 120px 100px 100px 100px 80px;
+            grid-template-columns: 130px 220px minmax(110px, 1fr) minmax(110px, 1fr) minmax(110px, 1fr) 110px 90px;
             gap: 15px;
             align-items: center;
             border-bottom: 1px solid #f0f0f0;
@@ -367,19 +382,72 @@ $pageTitle = 'Payroll Slips';
             color: #999;
             margin-bottom: 15px;
         }
+
+        .header-actions .btn-back {
+            padding: 10px 16px;
+            background: #1a1a1a;
+            color: #fff;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .header-actions .btn-back:hover {
+            background: #2d2d2d;
+        }
+
+        @media (max-width: 1200px) {
+            .list-header,
+            .list-item {
+                grid-template-columns: 140px 1fr 110px 110px 110px 90px;
+            }
+
+            .list-header div:nth-child(6),
+            .list-item div:nth-child(6) {
+                display: none;
+            }
+        }
+
+        @media (max-width: 900px) {
+            .list-header {
+                display: none;
+            }
+
+            .list-item {
+                grid-template-columns: 1fr 1fr;
+                gap: 10px 15px;
+            }
+
+            .item-amount {
+                text-align: left;
+            }
+
+            .item-actions {
+                justify-content: flex-start;
+            }
+        }
     </style>
 </head>
 <body>
-    <!-- Sidebar -->
-    <?php include __DIR__ . '/../../../includes/admin_sidebar.php'; ?>
-    
-    <!-- Main Content -->
-    <div class="main-content">
-        <!-- Topbar -->
-        <?php include __DIR__ . '/../../../includes/admin_topbar.php'; ?>
+    <div class="container">
+        <!-- Sidebar -->
+        <?php include __DIR__ . '/../../../includes/sidebar.php'; ?>
+        
+        <!-- Main Content -->
+        <div class="main">
+            <!-- Topbar -->
+            <?php include __DIR__ . '/../../../includes/topbar.php'; ?>
         
         <!-- Content -->
         <div class="content">
+            <?php if (isset($errorMessage)): ?>
+                <div style="background: #fee; color: #c33; padding: 10px; border: 1px solid #fcc; border-radius: 4px; margin-bottom: 20px;">
+                    <?php echo htmlspecialchars($errorMessage); ?>
+                </div>
+            <?php endif; ?>
             <!-- Page Header -->
             <div class="page-header">
                 <h1 class="page-title">
@@ -387,7 +455,7 @@ $pageTitle = 'Payroll Slips';
                     Payroll Slips
                 </h1>
                 <div class="header-actions">
-                    <a href="index.php" class="btn" style="padding: 10px 20px; background: #f0f0f0; color: #666; text-decoration: none; border-radius: 6px; font-weight: 600;">
+                    <a href="index.php" class="btn-back">
                         <i class="fas fa-arrow-left"></i> Back
                     </a>
                 </div>
@@ -525,5 +593,7 @@ $pageTitle = 'Payroll Slips';
             window.open('view_slip.php?id=' + recordId, 'payslip_' + recordId, 'width=900,height=600,scrollbars=yes');
         }
     </script>
+    </div>
+</div>
 </body>
 </html>

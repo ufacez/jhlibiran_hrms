@@ -1151,6 +1151,11 @@ function savePayrollRecord($pdo, $periodId, $calculation, $userId = null) {
                 regular_holiday_pay = ?,
                 special_holiday_pay = ?,
                 gross_pay = ?,
+                sss_contribution = ?,
+                philhealth_contribution = ?,
+                pagibig_contribution = ?,
+                tax_withholding = ?,
+                other_deductions = ?,
                 total_deductions = ?,
                 net_pay = ?,
                 generated_by = ?,
@@ -1175,6 +1180,11 @@ function savePayrollRecord($pdo, $periodId, $calculation, $userId = null) {
             $totals['regular_holiday_pay'],
             $totals['special_holiday_pay'],
             $totals['gross_pay'],
+            $calculation['deductions']['sss'],
+            $calculation['deductions']['philhealth'],
+            $calculation['deductions']['pagibig'],
+            $calculation['deductions']['tax'],
+            $calculation['deductions']['other'],
             $calculation['deductions']['total'],
             $calculation['net_pay'],
             $userId,
@@ -1197,9 +1207,11 @@ function savePayrollRecord($pdo, $periodId, $calculation, $userId = null) {
                 rest_day_hours, regular_holiday_hours, special_holiday_hours,
                 regular_pay, overtime_pay, night_diff_pay,
                 rest_day_pay, regular_holiday_pay, special_holiday_pay,
-                gross_pay, total_deductions, net_pay,
+                gross_pay, sss_contribution, philhealth_contribution, 
+                pagibig_contribution, tax_withholding, other_deductions,
+                total_deductions, net_pay,
                 generated_by, status
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft')
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft')
         ");
         
         $stmt->execute([
@@ -1221,6 +1233,11 @@ function savePayrollRecord($pdo, $periodId, $calculation, $userId = null) {
             $totals['regular_holiday_pay'],
             $totals['special_holiday_pay'],
             $totals['gross_pay'],
+            $calculation['deductions']['sss'],
+            $calculation['deductions']['philhealth'],
+            $calculation['deductions']['pagibig'],
+            $calculation['deductions']['tax'],
+            $calculation['deductions']['other'],
             $calculation['deductions']['total'],
             $calculation['net_pay'],
             $userId

@@ -13,27 +13,9 @@ require_once __DIR__ . '/../../../includes/functions.php';
 require_once __DIR__ . '/../../../includes/auth.php';
 require_once __DIR__ . '/../../../includes/payroll_pdf_generator.php';
 
-// Check if user is super admin
-if (!isset($_SESSION['user_id'])) {
-    http_response_code(401);
-    die('Unauthorized');
-}
+requireSuperAdmin();
 
-// Verify super admin access
-try {
-    $pdo = getDBConnection();
-    $stmt = $pdo->prepare("SELECT role FROM users WHERE user_id = ?");
-    $stmt->execute([$_SESSION['user_id']]);
-    $user = $stmt->fetch(PDO::FETCH_ASSOC);
-    
-    if (!$user || $user['role'] !== 'super_admin') {
-        http_response_code(403);
-        die('Forbidden');
-    }
-} catch (Exception $e) {
-    http_response_code(500);
-    die('Error');
-}
+$pdo = getDBConnection();
 
 // Get record ID
 $recordId = $_GET['id'] ?? null;
@@ -377,6 +359,31 @@ function generateHTMLPayslip($pdo, $recordId) {
                     <tr class="net-pay-row">
                         <td>NET PAY</td>
                         <td class="amount">₱' . number_format($record['net_pay'], 2) . '</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="section">
+            <div class="section-title">GOVERNMENT DEDUCTIONS SUMMARY</div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>SSS</th>
+                        <th>PhilHealth</th>
+                        <th>Pag-IBIG</th>
+                        <th>Withholding Tax</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="amount">₱' . number_format($record['sss_contribution'], 2) . '</td>
+                        <td class="amount">₱' . number_format($record['philhealth_contribution'], 2) . '</td>
+                        <td class="amount">₱' . number_format($record['pagibig_contribution'], 2) . '</td>
+                        <td class="amount">₱' . number_format($record['tax_withholding'], 2) . '</td>
+                    </tr>
+                    <tr class="total-row">
+                        <td colspan="4" class="amount">TOTAL GOVERNMENT DEDUCTIONS: ₱' . number_format($record['sss_contribution'] + $record['philhealth_contribution'] + $record['pagibig_contribution'] + $record['tax_withholding'], 2) . '</td>
                     </tr>
                 </tbody>
             </table>
