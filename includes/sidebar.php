@@ -326,6 +326,24 @@ $current_dir = basename(dirname($_SERVER['PHP_SELF']));
             </a>
         </li>
         
+        <!-- SSS Settings -->
+        <li>
+            <a href="<?php echo BASE_URL; ?>/modules/super_admin/payroll_v2/sss_settings.php"
+               class="<?php echo ($current_dir === 'payroll_v2' && $current_page === 'sss_settings.php') ? 'active' : ''; ?>">
+                <i class="fas fa-cog"></i>
+                <div class="title">SSS Settings</div>
+            </a>
+        </li>
+        
+        <!-- SSS Matrix -->
+        <li>
+            <a href="<?php echo BASE_URL; ?>/modules/super_admin/payroll_v2/sss_matrix.php"
+               class="<?php echo ($current_dir === 'payroll_v2' && $current_page === 'sss_matrix.php') ? 'active' : ''; ?>">
+                <i class="fas fa-table"></i>
+                <div class="title">SSS Matrix</div>
+            </a>
+        </li>
+        
         <div class="menu-separator"></div>
         
         <!-- SYSTEM MANAGEMENT -->

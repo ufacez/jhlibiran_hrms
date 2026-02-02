@@ -366,6 +366,24 @@ $module_path = $is_super_admin ? '/modules/super_admin' : '/modules/admin';
                 <div class="title">BIR Tax Settings</div>
             </a>
         </li>
+        
+        <!-- SSS Settings -->
+        <li>
+            <a href="<?php echo BASE_URL; ?>/modules/super_admin/payroll_v2/sss_settings.php"
+               class="<?php echo ($current_dir === 'payroll_v2' && $current_page === 'sss_settings.php') ? 'active' : ''; ?>">
+                <i class="fas fa-cog"></i>
+                <div class="title">SSS Settings</div>
+            </a>
+        </li>
+        
+        <!-- SSS Matrix -->
+        <li>
+            <a href="<?php echo BASE_URL; ?>/modules/super_admin/payroll_v2/sss_matrix.php"
+               class="<?php echo ($current_dir === 'payroll_v2' && $current_page === 'sss_matrix.php') ? 'active' : ''; ?>">
+                <i class="fas fa-table"></i>
+                <div class="title">SSS Matrix</div>
+            </a>
+        </li>
         <?php endif; ?>
         
         <!-- SYSTEM SECTION (only if has permission) -->

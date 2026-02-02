@@ -16,6 +16,10 @@ class PayrollCalculator {
     private $settings = [];
     private $rates = [];
     private $holidays = [];
+    private $taxBrackets = [];
+    
+    // Weekly divisor for converting monthly to weekly
+    const WEEKLY_DIVISOR = 4.333;
     
     /**
      * Constructor - Initialize with database connection
@@ -25,6 +29,7 @@ class PayrollCalculator {
     public function __construct($pdo) {
         $this->pdo = $pdo;
         $this->loadSettings();
+        $this->loadTaxBrackets();
     }
     
     /**
@@ -46,6 +51,296 @@ class PayrollCalculator {
             error_log("PayrollCalculator: Failed to load settings - " . $e->getMessage());
             throw new Exception("Failed to load payroll settings from database");
         }
+    }
+    
+    /**
+     * Load BIR tax brackets from database
+     * Converts monthly values to weekly for calculation
+     */
+    private function loadTaxBrackets() {
+        try {
+            $stmt = $this->pdo->query("
+                SELECT bracket_level, lower_bound, upper_bound, base_tax, tax_rate, is_exempt 
+                FROM bir_tax_brackets 
+                WHERE is_active = 1 
+                ORDER BY bracket_level ASC
+            ");
+            $this->taxBrackets = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            error_log("PayrollCalculator: Failed to load tax brackets - " . $e->getMessage());
+            $this->taxBrackets = [];
+        }
+    }
+    
+    /**
+     * Get tax brackets (converted to weekly)
+     * 
+     * @return array Tax brackets with weekly values
+     */
+    public function getTaxBrackets() {
+        $weeklyBrackets = [];
+        foreach ($this->taxBrackets as $bracket) {
+            $weeklyBrackets[] = [
+                'bracket_level' => $bracket['bracket_level'],
+                'lower_bound' => round($bracket['lower_bound'] / self::WEEKLY_DIVISOR, 2),
+                'upper_bound' => round($bracket['upper_bound'] / self::WEEKLY_DIVISOR, 2),
+                'base_tax' => round($bracket['base_tax'] / self::WEEKLY_DIVISOR, 2),
+                'tax_rate' => $bracket['tax_rate'],
+                'is_exempt' => $bracket['is_exempt']
+            ];
+        }
+        return $weeklyBrackets;
+    }
+    
+    /**
+     * Calculate withholding tax based on weekly gross income
+     * Uses TRAIN Law formula: Tax = Base Tax + ((Income - Lower Bound) × Tax Rate)
+     * 
+     * @param float $weeklyGross Weekly gross income
+     * @return array Tax calculation details
+     */
+    public function calculateWithholdingTax($weeklyGross) {
+        if (empty($this->taxBrackets)) {
+            return [
+                'taxable_income' => $weeklyGross,
+                'bracket_level' => 0,
+                'lower_bound' => 0,
+                'base_tax' => 0,
+                'tax_rate' => 0,
+                'tax_amount' => 0,
+                'is_exempt' => true,
+                'formula' => 'Tax brackets not configured'
+            ];
+        }
+        
+        // Find the applicable bracket
+        foreach ($this->taxBrackets as $bracket) {
+            $weeklyLower = $bracket['lower_bound'] / self::WEEKLY_DIVISOR;
+            $weeklyUpper = $bracket['upper_bound'] / self::WEEKLY_DIVISOR;
+            $weeklyBase = $bracket['base_tax'] / self::WEEKLY_DIVISOR;
+            
+            if ($weeklyGross >= $weeklyLower && $weeklyGross <= $weeklyUpper) {
+                // Check if exempt
+                if ($bracket['is_exempt']) {
+                    return [
+                        'taxable_income' => $weeklyGross,
+                        'bracket_level' => $bracket['bracket_level'],
+                        'lower_bound' => round($weeklyLower, 2),
+                        'upper_bound' => round($weeklyUpper, 2),
+                        'base_tax' => 0,
+                        'tax_rate' => 0,
+                        'tax_amount' => 0,
+                        'is_exempt' => true,
+                        'formula' => sprintf("Income ₱%.2f is below tax threshold (₱%.2f) - Tax Exempt", $weeklyGross, $weeklyUpper)
+                    ];
+                }
+                
+                // Calculate tax: Base Tax + ((Income - Lower Bound) × Rate)
+                $excessAmount = $weeklyGross - $weeklyLower;
+                $taxOnExcess = $excessAmount * ($bracket['tax_rate'] / 100);
+                $totalTax = round($weeklyBase + $taxOnExcess, 2);
+                
+                return [
+                    'taxable_income' => $weeklyGross,
+                    'bracket_level' => $bracket['bracket_level'],
+                    'lower_bound' => round($weeklyLower, 2),
+                    'upper_bound' => round($weeklyUpper, 2),
+                    'base_tax' => round($weeklyBase, 2),
+                    'tax_rate' => $bracket['tax_rate'],
+                    'excess_amount' => round($excessAmount, 2),
+                    'tax_on_excess' => round($taxOnExcess, 2),
+                    'tax_amount' => $totalTax,
+                    'is_exempt' => false,
+                    'formula' => sprintf(
+                        "₱%.2f + ((₱%.2f - ₱%.2f) × %.0f%%) = ₱%.2f + ₱%.2f = ₱%.2f",
+                        $weeklyBase, $weeklyGross, $weeklyLower, $bracket['tax_rate'],
+                        $weeklyBase, $taxOnExcess, $totalTax
+                    )
+                ];
+            }
+        }
+        
+        // If income is above all brackets, use the highest bracket
+        $lastBracket = end($this->taxBrackets);
+        $weeklyLower = $lastBracket['lower_bound'] / self::WEEKLY_DIVISOR;
+        $weeklyBase = $lastBracket['base_tax'] / self::WEEKLY_DIVISOR;
+        
+        $excessAmount = $weeklyGross - $weeklyLower;
+        $taxOnExcess = $excessAmount * ($lastBracket['tax_rate'] / 100);
+        $totalTax = round($weeklyBase + $taxOnExcess, 2);
+        
+        return [
+            'taxable_income' => $weeklyGross,
+            'bracket_level' => $lastBracket['bracket_level'],
+            'lower_bound' => round($weeklyLower, 2),
+            'upper_bound' => null,
+            'base_tax' => round($weeklyBase, 2),
+            'tax_rate' => $lastBracket['tax_rate'],
+            'excess_amount' => round($excessAmount, 2),
+            'tax_on_excess' => round($taxOnExcess, 2),
+            'tax_amount' => $totalTax,
+            'is_exempt' => false,
+            'formula' => sprintf(
+                "₱%.2f + ((₱%.2f - ₱%.2f) × %.0f%%) = ₱%.2f",
+                $weeklyBase, $weeklyGross, $weeklyLower, $lastBracket['tax_rate'], $totalTax
+            )
+        ];
+    }
+    
+    /**
+     * Get worker deductions from database
+     * 
+     * @param int $workerId Worker ID
+     * @return array Deductions list
+     */
+    public function getWorkerDeductions($workerId) {
+        $stmt = $this->pdo->prepare("
+            SELECT deduction_id, deduction_type, amount, description, frequency
+            FROM deductions 
+            WHERE worker_id = ? 
+            AND is_active = 1 
+            AND status = 'pending'
+            AND (frequency = 'per_payroll' OR frequency = 'one_time')
+        ");
+        $stmt->execute([$workerId]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+    
+    /**
+     * Calculate SSS contribution based on salary bracket
+     * 
+     * @param float $grossPay Gross pay for SSS bracket calculation
+     * @return array SSS calculation details
+     */
+    public function calculateSSSContribution($grossPay) {
+        try {
+            $stmt = $this->pdo->query("
+                SELECT * FROM sss_contribution_matrix 
+                WHERE is_active = 1 
+                AND ? BETWEEN lower_range AND upper_range 
+                ORDER BY bracket_number ASC 
+                LIMIT 1
+            ");
+            $stmt->execute([$grossPay]);
+            $bracket = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if ($bracket) {
+                return [
+                    'bracket_number' => $bracket['bracket_number'],
+                    'lower_range' => $bracket['lower_range'],
+                    'upper_range' => $bracket['upper_range'],
+                    'employee_contribution' => floatval($bracket['employee_contribution']),
+                    'employer_contribution' => floatval($bracket['employer_contribution']),
+                    'ec_contribution' => floatval($bracket['ec_contribution']),
+                    'total_contribution' => floatval($bracket['total_contribution']),
+                    'formula' => sprintf(
+                        "Bracket %d: Salary ₱%.2f falls between ₱%.2f - ₱%.2f = ₱%.2f (Employee)",
+                        $bracket['bracket_number'], $grossPay, $bracket['lower_range'], 
+                        $bracket['upper_range'], $bracket['employee_contribution']
+                    )
+                ];
+            }
+            
+            return [
+                'bracket_number' => 0,
+                'employee_contribution' => 0,
+                'employer_contribution' => 0,
+                'ec_contribution' => 0,
+                'total_contribution' => 0,
+                'formula' => 'No SSS bracket found for this salary'
+            ];
+        } catch (Exception $e) {
+            return [
+                'bracket_number' => 0,
+                'employee_contribution' => 0,
+                'employer_contribution' => 0,
+                'ec_contribution' => 0,
+                'total_contribution' => 0,
+                'formula' => 'Error calculating SSS'
+            ];
+        }
+    }
+    
+    /**
+     * Calculate all deductions for a worker including automatic tax and SSS
+     * 
+     * @param int $workerId Worker ID
+     * @param float $grossPay Gross pay for tax and SSS calculation
+     * @return array All deductions with totals
+     */
+    public function calculateAllDeductions($workerId, $grossPay) {
+        // Get manual deductions
+        $manualDeductions = $this->getWorkerDeductions($workerId);
+        
+        // Calculate automatic deductions
+        $taxCalculation = $this->calculateWithholdingTax($grossPay);
+        $sssCalculation = $this->calculateSSSContribution($grossPay);
+        
+        // Organize deductions by type
+        $deductions = [
+            'sss' => $sssCalculation['employee_contribution'],
+            'philhealth' => 0,
+            'pagibig' => 0,
+            'tax' => $taxCalculation['tax_amount'],
+            'cashadvance' => 0,
+            'loan' => 0,
+            'other' => 0,
+            'items' => [],
+            'tax_details' => $taxCalculation,
+            'sss_details' => $sssCalculation
+        ];
+        
+        // Add SSS as first item
+        if ($sssCalculation['employee_contribution'] > 0) {
+            $deductions['items'][] = [
+                'id' => null,
+                'type' => 'sss',
+                'amount' => $sssCalculation['employee_contribution'],
+                'description' => 'SSS Contribution',
+                'frequency' => 'per_payroll',
+                'formula' => $sssCalculation['formula']
+            ];
+        }
+        
+        // Process manual deductions
+        foreach ($manualDeductions as $d) {
+            $type = $d['deduction_type'];
+            $amount = floatval($d['amount']);
+            
+            if (isset($deductions[$type])) {
+                $deductions[$type] += $amount;
+            } else {
+                $deductions['other'] += $amount;
+            }
+            
+            $deductions['items'][] = [
+                'id' => $d['deduction_id'],
+                'type' => $type,
+                'amount' => $amount,
+                'description' => $d['description'],
+                'frequency' => $d['frequency']
+            ];
+        }
+        
+        // Add tax as an item if not exempt
+        if (!$taxCalculation['is_exempt'] && $taxCalculation['tax_amount'] > 0) {
+            $deductions['items'][] = [
+                'id' => null,
+                'type' => 'tax',
+                'amount' => $taxCalculation['tax_amount'],
+                'description' => 'Withholding Tax (BIR)',
+                'frequency' => 'per_payroll',
+                'formula' => $taxCalculation['formula']
+            ];
+        }
+        
+        // Calculate total
+        $deductions['total'] = $deductions['sss'] + $deductions['philhealth'] + 
+                              $deductions['pagibig'] + $deductions['tax'] + 
+                              $deductions['cashadvance'] + $deductions['loan'] + 
+                              $deductions['other'];
+        
+        return $deductions;
     }
     
     /**
@@ -624,6 +919,12 @@ class PayrollCalculator {
             $totals['gross_pay'] += $dayResult['total'];
         }
         
+        // Calculate all deductions including automatic tax
+        $deductions = $this->calculateAllDeductions($workerId, $totals['gross_pay']);
+        
+        // Calculate net pay
+        $netPay = $totals['gross_pay'] - $deductions['total'];
+        
         return [
             'worker' => $worker,
             'period' => [
@@ -642,15 +943,8 @@ class PayrollCalculator {
             'totals' => $totals,
             'daily_breakdown' => $dailyBreakdown,
             'earnings' => $allEarnings,
-            'deductions' => [
-                'sss' => 0, // Placeholder - not implemented yet
-                'philhealth' => 0,
-                'pagibig' => 0,
-                'tax' => 0,
-                'other' => 0,
-                'total' => 0
-            ],
-            'net_pay' => $totals['gross_pay'], // Gross - deductions (0 for now)
+            'deductions' => $deductions,
+            'net_pay' => $netPay,
             'generated_at' => date('Y-m-d H:i:s')
         ];
     }

@@ -440,6 +440,19 @@ $pageTitle = 'Payroll Management';
             font-size: 16px;
         }
         
+        .breakdown-row.total-deduction {
+            background: #fef2f2;
+            padding: 10px 0;
+            margin-top: 10px;
+            border-top: 2px solid #fecaca;
+            color: #dc2626;
+        }
+        
+        .breakdown-row.total-deduction .amount {
+            color: #dc2626;
+            font-weight: 700;
+        }
+        
         /* Daily Breakdown */
         .daily-breakdown {
             max-height: 200px;
@@ -1242,6 +1255,90 @@ $pageTitle = 'Payroll Management';
             
             document.getElementById('earningsBreakdown').innerHTML = earningsHtml;
             document.getElementById('grossPayAmount').textContent = '₱' + payroll.totals.gross_pay.toFixed(2);
+            
+            // Deductions breakdown
+            let deductionsHtml = '';
+            if (payroll.deductions && payroll.deductions.items && payroll.deductions.items.length > 0) {
+                payroll.deductions.items.forEach(deduction => {
+                    let deductionLabel = deduction.description || deduction.type.toUpperCase();
+                    if (deduction.formula) {
+                        deductionLabel += `<span class="formula">${deduction.formula}</span>`;
+                    }
+                    deductionsHtml += `
+                        <div class="breakdown-row">
+                            <span class="label">${deductionLabel}</span>
+                            <span class="amount">₱${deduction.amount.toFixed(2)}</span>
+                        </div>`;
+                });
+            } else if (payroll.deductions && payroll.deductions.total > 0) {
+                // Show summary if items not available
+                if (payroll.deductions.sss > 0) {
+                    deductionsHtml += `
+                        <div class="breakdown-row">
+                            <span class="label">SSS</span>
+                            <span class="amount">₱${payroll.deductions.sss.toFixed(2)}</span>
+                        </div>`;
+                }
+                if (payroll.deductions.philhealth > 0) {
+                    deductionsHtml += `
+                        <div class="breakdown-row">
+                            <span class="label">PhilHealth</span>
+                            <span class="amount">₱${payroll.deductions.philhealth.toFixed(2)}</span>
+                        </div>`;
+                }
+                if (payroll.deductions.pagibig > 0) {
+                    deductionsHtml += `
+                        <div class="breakdown-row">
+                            <span class="label">Pag-IBIG</span>
+                            <span class="amount">₱${payroll.deductions.pagibig.toFixed(2)}</span>
+                        </div>`;
+                }
+                if (payroll.deductions.tax > 0) {
+                    deductionsHtml += `
+                        <div class="breakdown-row">
+                            <span class="label">
+                                Withholding Tax (BIR)
+                                ${payroll.deductions.tax_details ? `<span class="formula">${payroll.deductions.tax_details.formula}</span>` : ''}
+                            </span>
+                            <span class="amount">₱${payroll.deductions.tax.toFixed(2)}</span>
+                        </div>`;
+                }
+                if (payroll.deductions.cashadvance > 0) {
+                    deductionsHtml += `
+                        <div class="breakdown-row">
+                            <span class="label">Cash Advance</span>
+                            <span class="amount">₱${payroll.deductions.cashadvance.toFixed(2)}</span>
+                        </div>`;
+                }
+                if (payroll.deductions.loan > 0) {
+                    deductionsHtml += `
+                        <div class="breakdown-row">
+                            <span class="label">Loan</span>
+                            <span class="amount">₱${payroll.deductions.loan.toFixed(2)}</span>
+                        </div>`;
+                }
+                if (payroll.deductions.other > 0) {
+                    deductionsHtml += `
+                        <div class="breakdown-row">
+                            <span class="label">Other Deductions</span>
+                            <span class="amount">₱${payroll.deductions.other.toFixed(2)}</span>
+                        </div>`;
+                }
+            }
+            
+            if (!deductionsHtml) {
+                deductionsHtml = '<div class="breakdown-row" style="color: #888;"><span>No deductions</span></div>';
+            }
+            
+            if (payroll.deductions && payroll.deductions.total > 0) {
+                deductionsHtml += `
+                    <div class="breakdown-row total-deduction">
+                        <span class="label"><strong>Total Deductions</strong></span>
+                        <span class="amount">₱${payroll.deductions.total.toFixed(2)}</span>
+                    </div>`;
+            }
+            
+            document.getElementById('deductionsBreakdown').innerHTML = deductionsHtml;
             document.getElementById('netPayAmount').textContent = '₱' + payroll.net_pay.toFixed(2);
             
             // Daily breakdown
