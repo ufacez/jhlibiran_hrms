@@ -344,6 +344,33 @@ $current_dir = basename(dirname($_SERVER['PHP_SELF']));
             </a>
         </li>
         
+        <!-- PhilHealth Settings -->
+        <li>
+            <a href="<?php echo BASE_URL; ?>/modules/super_admin/payroll_v2/philhealth_settings.php"
+               class="<?php echo ($current_dir === 'payroll_v2' && $current_page === 'philhealth_settings.php') ? 'active' : ''; ?>">
+                <i class="fas fa-heartbeat"></i>
+                <div class="title">PhilHealth Settings</div>
+            </a>
+        </li>
+        
+        <!-- Pag-IBIG Settings -->
+        <li>
+            <a href="<?php echo BASE_URL; ?>/modules/super_admin/payroll_v2/pagibig_settings.php"
+               class="<?php echo ($current_dir === 'payroll_v2' && $current_page === 'pagibig_settings.php') ? 'active' : ''; ?>">
+                <i class="fas fa-home"></i>
+                <div class="title">Pag-IBIG Settings</div>
+            </a>
+        </li>
+        
+        <!-- Holiday Settings -->
+        <li>
+            <a href="<?php echo BASE_URL; ?>/modules/super_admin/payroll_v2/holiday_settings.php"
+               class="<?php echo ($current_dir === 'payroll_v2' && $current_page === 'holiday_settings.php') ? 'active' : ''; ?>">
+                <i class="fas fa-calendar-star"></i>
+                <div class="title">Holiday Settings</div>
+            </a>
+        </li>
+        
         <div class="menu-separator"></div>
         
         <!-- SYSTEM MANAGEMENT -->

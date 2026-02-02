@@ -14,6 +14,7 @@ require_once __DIR__ . '/../../../includes/auth.php';
 
 requireSuperAdmin();
 
+$pdo = getDBConnection();
 $full_name = $_SESSION['full_name'] ?? 'Administrator';
 
 // Get schedule ID
@@ -24,15 +25,9 @@ if ($schedule_id <= 0) {
     redirect(BASE_URL . '/modules/super_admin/schedule/index.php');
 }
 
-// Ensure database connection
-if (!isset($db) || $db === null) {
-    setFlashMessage('Database connection error', 'error');
-    redirect(BASE_URL . '/modules/super_admin/schedule/index.php');
-}
-
 // Get schedule details
 try {
-    $stmt = $db->prepare("SELECT s.*, w.worker_code, w.first_name, w.last_name, w.position
+    $stmt = $pdo->prepare("SELECT s.*, w.worker_code, w.first_name, w.last_name, w.position
                          FROM schedules s
                          JOIN workers w ON s.worker_id = w.worker_id
                          WHERE s.schedule_id = ?");
@@ -69,7 +64,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($errors)) {
         try {
             // Update schedule
-            $stmt = $db->prepare("UPDATE schedules SET 
+            $stmt = $pdo->prepare("UPDATE schedules SET 
                                  start_time = ?,
                                  end_time = ?,
                                  is_active = ?,
@@ -79,7 +74,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
             // Log activity
             $worker_name = $schedule['first_name'] . ' ' . $schedule['last_name'];
-            logActivity($db, getCurrentUserId(), 'update_schedule', 'schedules', $schedule_id,
+            logActivity($pdo, getCurrentUserId(), 'update_schedule', 'schedules', $schedule_id,
                        "Updated schedule for {$worker_name} on " . ucfirst($schedule['day_of_week']));
             
             setFlashMessage('Schedule updated successfully!', 'success');

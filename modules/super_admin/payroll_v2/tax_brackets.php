@@ -34,7 +34,7 @@ $weeklyDivisor = 4.333;
     <link rel="stylesheet" href="https://pro.fontawesome.com/releases/v5.10.0/css/all.css"/>
     <link rel="stylesheet" href="<?php echo CSS_URL; ?>/dashboard.css">
     <style>
-        .content { padding: 30px; }
+        .content { padding: 30px; padding-top: 100px; }
         
         /* Header */
         .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; flex-wrap: wrap; gap: 15px; }

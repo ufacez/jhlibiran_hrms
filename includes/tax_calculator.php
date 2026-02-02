@@ -39,24 +39,38 @@ function calculateSSS($db, $monthly_salary) {
 
 /**
  * Calculate PhilHealth Contribution
+ * Uses percentage-based calculation from philhealth_settings table
  */
 function calculatePhilHealth($db, $monthly_salary) {
     try {
-        $stmt = $db->prepare("SELECT premium_rate, employee_share, employer_share 
-                              FROM philhealth_contribution_table 
-                              WHERE ? BETWEEN range_start AND range_end 
-                              AND is_active = 1 
+        // Get PhilHealth settings (percentage-based)
+        $stmt = $db->prepare("SELECT premium_rate, employee_share, employer_share, min_salary, max_salary 
+                              FROM philhealth_settings 
+                              WHERE is_active = 1 
                               ORDER BY effective_date DESC 
                               LIMIT 1");
-        $stmt->execute([$monthly_salary]);
-        $result = $stmt->fetch();
+        $stmt->execute();
+        $settings = $stmt->fetch();
         
-        if ($result) {
+        if ($settings) {
+            // Apply salary floor and ceiling
+            $applicable_salary = $monthly_salary;
+            if ($monthly_salary < $settings['min_salary']) {
+                $applicable_salary = $settings['min_salary'];
+            } elseif ($monthly_salary > $settings['max_salary']) {
+                $applicable_salary = $settings['max_salary'];
+            }
+            
+            // Calculate contributions based on percentages
+            $total_premium = $applicable_salary * ($settings['premium_rate'] / 100);
+            $employee_share = $applicable_salary * ($settings['employee_share'] / 100);
+            $employer_share = $applicable_salary * ($settings['employer_share'] / 100);
+            
             return [
-                'employee' => $result['employee_share'],
-                'employer' => $result['employer_share'],
-                'total' => $result['employee_share'] + $result['employer_share'],
-                'rate' => $result['premium_rate']
+                'employee' => round($employee_share, 2),
+                'employer' => round($employer_share, 2),
+                'total' => round($total_premium, 2),
+                'rate' => $settings['premium_rate']
             ];
         }
         

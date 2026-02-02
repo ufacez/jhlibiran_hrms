@@ -274,6 +274,301 @@ try {
                 throw $e;
             }
             break;
+        
+        case 'save_philhealth_settings':
+            // POST: Save PhilHealth contribution settings
+            if ($method !== 'POST') {
+                throw new Exception('Method not allowed');
+            }
+
+            $premiumRate = floatval($input['premium_rate'] ?? 5.00);
+            $employeeShare = floatval($input['employee_share'] ?? 2.50);
+            $employerShare = floatval($input['employer_share'] ?? 2.50);
+            $minSalary = floatval($input['min_salary'] ?? 10000.00);
+            $maxSalary = floatval($input['max_salary'] ?? 100000.00);
+            $effectiveDate = $input['effective_date'] ?? date('Y-m-d');
+
+            // Validate shares add up to premium rate
+            if (abs(($employeeShare + $employerShare) - $premiumRate) > 0.01) {
+                throw new Exception('Employee + Employer shares must equal the Premium Rate');
+            }
+
+            // Update existing active record or insert new one
+            $stmt = $pdo->prepare("SELECT id FROM philhealth_settings WHERE is_active = 1 ORDER BY id DESC LIMIT 1");
+            $stmt->execute();
+            $existing = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if ($existing) {
+                $stmt = $pdo->prepare("
+                    UPDATE philhealth_settings SET
+                        premium_rate = ?,
+                        employee_share = ?,
+                        employer_share = ?,
+                        min_salary = ?,
+                        max_salary = ?,
+                        effective_date = ?,
+                        updated_at = NOW()
+                    WHERE id = ?
+                ");
+                $stmt->execute([
+                    $premiumRate,
+                    $employeeShare,
+                    $employerShare,
+                    $minSalary,
+                    $maxSalary,
+                    $effectiveDate,
+                    $existing['id']
+                ]);
+            } else {
+                $stmt = $pdo->prepare("
+                    INSERT INTO philhealth_settings 
+                    (premium_rate, employee_share, employer_share, min_salary, max_salary, effective_date, is_active)
+                    VALUES (?, ?, ?, ?, ?, ?, 1)
+                ");
+                $stmt->execute([
+                    $premiumRate,
+                    $employeeShare,
+                    $employerShare,
+                    $minSalary,
+                    $maxSalary,
+                    $effectiveDate
+                ]);
+            }
+
+            echo json_encode([
+                'success' => true,
+                'message' => 'PhilHealth settings saved successfully'
+            ]);
+            break;
+        
+        case 'get_philhealth_settings':
+            // GET: Get current PhilHealth settings
+            $stmt = $pdo->query("SELECT * FROM philhealth_settings WHERE is_active = 1 ORDER BY id DESC LIMIT 1");
+            $settings = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if (!$settings) {
+                $settings = [
+                    'premium_rate' => 5.00,
+                    'employee_share' => 2.50,
+                    'employer_share' => 2.50,
+                    'min_salary' => 10000.00,
+                    'max_salary' => 100000.00
+                ];
+            }
+            
+            echo json_encode([
+                'success' => true,
+                'settings' => $settings
+            ]);
+            break;
+        
+        case 'save_pagibig_settings':
+            // POST: Save Pag-IBIG contribution settings
+            if ($method !== 'POST') {
+                throw new Exception('Method not allowed');
+            }
+
+            $employeeRateBelow = floatval($input['employee_rate_below'] ?? 1.00);
+            $employerRateBelow = floatval($input['employer_rate_below'] ?? 2.00);
+            $employeeRateAbove = floatval($input['employee_rate_above'] ?? 2.00);
+            $employerRateAbove = floatval($input['employer_rate_above'] ?? 2.00);
+            $salaryThreshold = floatval($input['salary_threshold'] ?? 1500.00);
+            $maxCompensation = floatval($input['max_monthly_compensation'] ?? 5000.00);
+            $effectiveDate = $input['effective_date'] ?? date('Y-m-d');
+
+            // Update existing active record or insert new one
+            $stmt = $pdo->prepare("SELECT id FROM pagibig_settings WHERE is_active = 1 ORDER BY id DESC LIMIT 1");
+            $stmt->execute();
+            $existing = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if ($existing) {
+                $stmt = $pdo->prepare("
+                    UPDATE pagibig_settings SET
+                        employee_rate_below = ?,
+                        employer_rate_below = ?,
+                        employee_rate_above = ?,
+                        employer_rate_above = ?,
+                        salary_threshold = ?,
+                        max_monthly_compensation = ?,
+                        effective_date = ?,
+                        updated_at = NOW()
+                    WHERE id = ?
+                ");
+                $stmt->execute([
+                    $employeeRateBelow,
+                    $employerRateBelow,
+                    $employeeRateAbove,
+                    $employerRateAbove,
+                    $salaryThreshold,
+                    $maxCompensation,
+                    $effectiveDate,
+                    $existing['id']
+                ]);
+            } else {
+                $stmt = $pdo->prepare("
+                    INSERT INTO pagibig_settings 
+                    (employee_rate_below, employer_rate_below, employee_rate_above, employer_rate_above, salary_threshold, max_monthly_compensation, effective_date, is_active)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, 1)
+                ");
+                $stmt->execute([
+                    $employeeRateBelow,
+                    $employerRateBelow,
+                    $employeeRateAbove,
+                    $employerRateAbove,
+                    $salaryThreshold,
+                    $maxCompensation,
+                    $effectiveDate
+                ]);
+            }
+
+            echo json_encode([
+                'success' => true,
+                'message' => 'Pag-IBIG settings saved successfully'
+            ]);
+            break;
+        
+        case 'get_pagibig_settings':
+            // GET: Get current Pag-IBIG settings
+            $stmt = $pdo->query("SELECT * FROM pagibig_settings WHERE is_active = 1 ORDER BY id DESC LIMIT 1");
+            $settings = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if (!$settings) {
+                $settings = [
+                    'employee_rate_below' => 1.00,
+                    'employer_rate_below' => 2.00,
+                    'employee_rate_above' => 2.00,
+                    'employer_rate_above' => 2.00,
+                    'salary_threshold' => 1500.00,
+                    'max_monthly_compensation' => 5000.00
+                ];
+            }
+            
+            echo json_encode([
+                'success' => true,
+                'settings' => $settings
+            ]);
+            break;
+        
+        // ==========================================
+        // HOLIDAY MANAGEMENT ENDPOINTS
+        // ==========================================
+        
+        case 'get_holiday':
+            // GET: Get a single holiday by ID
+            $id = intval($_GET['id'] ?? 0);
+            $stmt = $pdo->prepare("SELECT * FROM holiday_calendar WHERE holiday_id = ?");
+            $stmt->execute([$id]);
+            $holiday = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            echo json_encode([
+                'success' => (bool)$holiday,
+                'holiday' => $holiday
+            ]);
+            break;
+        
+        case 'add_holiday':
+            // POST: Add a new holiday
+            if ($method !== 'POST') {
+                throw new Exception('Method not allowed');
+            }
+            
+            $name = trim($input['holiday_name'] ?? '');
+            $date = $input['holiday_date'] ?? '';
+            $type = $input['holiday_type'] ?? 'regular';
+            $isRecurring = intval($input['is_recurring'] ?? 0);
+            
+            if (empty($name) || empty($date)) {
+                throw new Exception('Holiday name and date are required');
+            }
+            
+            // Check for duplicate date
+            $stmt = $pdo->prepare("SELECT holiday_id FROM holiday_calendar WHERE holiday_date = ? AND is_active = 1");
+            $stmt->execute([$date]);
+            if ($stmt->fetch()) {
+                throw new Exception('A holiday already exists on this date');
+            }
+            
+            $recurringMonth = $isRecurring ? date('n', strtotime($date)) : null;
+            $recurringDay = $isRecurring ? date('j', strtotime($date)) : null;
+            
+            $stmt = $pdo->prepare("
+                INSERT INTO holiday_calendar (holiday_name, holiday_date, holiday_type, is_recurring, recurring_month, recurring_day, is_active)
+                VALUES (?, ?, ?, ?, ?, ?, 1)
+            ");
+            $stmt->execute([$name, $date, $type, $isRecurring, $recurringMonth, $recurringDay]);
+            
+            echo json_encode([
+                'success' => true,
+                'message' => 'Holiday added successfully',
+                'holiday_id' => $pdo->lastInsertId()
+            ]);
+            break;
+        
+        case 'update_holiday':
+            // POST: Update an existing holiday
+            if ($method !== 'POST') {
+                throw new Exception('Method not allowed');
+            }
+            
+            $id = intval($input['holiday_id'] ?? 0);
+            $name = trim($input['holiday_name'] ?? '');
+            $date = $input['holiday_date'] ?? '';
+            $type = $input['holiday_type'] ?? 'regular';
+            $isRecurring = intval($input['is_recurring'] ?? 0);
+            
+            if (!$id || empty($name) || empty($date)) {
+                throw new Exception('Holiday ID, name and date are required');
+            }
+            
+            // Check for duplicate date (excluding current)
+            $stmt = $pdo->prepare("SELECT holiday_id FROM holiday_calendar WHERE holiday_date = ? AND holiday_id != ? AND is_active = 1");
+            $stmt->execute([$date, $id]);
+            if ($stmt->fetch()) {
+                throw new Exception('A holiday already exists on this date');
+            }
+            
+            $recurringMonth = $isRecurring ? date('n', strtotime($date)) : null;
+            $recurringDay = $isRecurring ? date('j', strtotime($date)) : null;
+            
+            $stmt = $pdo->prepare("
+                UPDATE holiday_calendar SET
+                    holiday_name = ?,
+                    holiday_date = ?,
+                    holiday_type = ?,
+                    is_recurring = ?,
+                    recurring_month = ?,
+                    recurring_day = ?,
+                    updated_at = NOW()
+                WHERE holiday_id = ?
+            ");
+            $stmt->execute([$name, $date, $type, $isRecurring, $recurringMonth, $recurringDay, $id]);
+            
+            echo json_encode([
+                'success' => true,
+                'message' => 'Holiday updated successfully'
+            ]);
+            break;
+        
+        case 'delete_holiday':
+            // POST: Delete (deactivate) a holiday
+            if ($method !== 'POST') {
+                throw new Exception('Method not allowed');
+            }
+            
+            $id = intval($input['holiday_id'] ?? 0);
+            
+            if (!$id) {
+                throw new Exception('Holiday ID is required');
+            }
+            
+            $stmt = $pdo->prepare("UPDATE holiday_calendar SET is_active = 0 WHERE holiday_id = ?");
+            $stmt->execute([$id]);
+            
+            echo json_encode([
+                'success' => true,
+                'message' => 'Holiday deleted successfully'
+            ]);
+            break;
             
         // ==========================================
         // RATES DISPLAY ENDPOINTS

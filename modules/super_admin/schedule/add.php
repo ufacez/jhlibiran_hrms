@@ -14,7 +14,12 @@ require_once __DIR__ . '/../../../includes/auth.php';
 
 requireSuperAdmin();
 
+$pdo = getDBConnection();
 $full_name = $_SESSION['full_name'] ?? 'Administrator';
+
+// Get URL parameters for pre-filling from calendar grid
+$preselect_worker_id = isset($_GET['worker_id']) ? intval($_GET['worker_id']) : 0;
+$preselect_day = isset($_GET['day']) ? sanitizeString($_GET['day']) : '';
 
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -45,7 +50,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
     // Check if worker exists
     if ($worker_id > 0) {
-        $stmt = $db->prepare("SELECT worker_id FROM workers WHERE worker_id = ? AND is_archived = FALSE");
+        $stmt = $pdo->prepare("SELECT worker_id FROM workers WHERE worker_id = ? AND is_archived = FALSE");
         $stmt->execute([$worker_id]);
         if (!$stmt->fetch()) {
             $errors[] = 'Worker not found';
@@ -54,21 +59,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
     if (empty($errors)) {
         try {
-            $db->beginTransaction();
+            $pdo->beginTransaction();
             
             $created_count = 0;
             $updated_count = 0;
             
             foreach ($days as $day) {
                 // Check if schedule already exists for this worker and day
-                $stmt = $db->prepare("SELECT schedule_id FROM schedules 
+                $stmt = $pdo->prepare("SELECT schedule_id FROM schedules 
                                      WHERE worker_id = ? AND day_of_week = ?");
                 $stmt->execute([$worker_id, $day]);
                 $existing = $stmt->fetch();
                 
                 if ($existing) {
                     // Update existing schedule
-                    $stmt = $db->prepare("UPDATE schedules SET 
+                    $stmt = $pdo->prepare("UPDATE schedules SET 
                                          start_time = ?,
                                          end_time = ?,
                                          is_active = ?,
@@ -78,7 +83,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $updated_count++;
                 } else {
                     // Create new schedule
-                    $stmt = $db->prepare("INSERT INTO schedules 
+                    $stmt = $pdo->prepare("INSERT INTO schedules 
                                          (worker_id, day_of_week, start_time, end_time, is_active, created_by) 
                                          VALUES (?, ?, ?, ?, ?, ?)");
                     $stmt->execute([$worker_id, $day, $start_time, $end_time, $is_active, getCurrentUserId()]);
@@ -87,21 +92,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             
             // Get worker name for logging
-            $stmt = $db->prepare("SELECT first_name, last_name, worker_code FROM workers WHERE worker_id = ?");
+            $stmt = $pdo->prepare("SELECT first_name, last_name, worker_code FROM workers WHERE worker_id = ?");
             $stmt->execute([$worker_id]);
             $worker = $stmt->fetch();
             
             // Log activity
-            logActivity($db, getCurrentUserId(), 'add_schedule', 'schedules', null,
+            logActivity($pdo, getCurrentUserId(), 'add_schedule', 'schedules', null,
                        "Added/Updated schedule for {$worker['first_name']} {$worker['last_name']} ({$worker['worker_code']}): {$created_count} created, {$updated_count} updated");
             
-            $db->commit();
+            $pdo->commit();
             
             setFlashMessage("Schedule created successfully! {$created_count} new, {$updated_count} updated.", 'success');
             redirect(BASE_URL . '/modules/super_admin/schedule/index.php');
             
         } catch (PDOException $e) {
-            $db->rollBack();
+            $pdo->rollBack();
             error_log("Add Schedule Error: " . $e->getMessage());
             $errors[] = 'Failed to create schedule. Please try again.';
         }
@@ -110,7 +115,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 // Get all active workers
 try {
-    $stmt = $db->query("SELECT worker_id, worker_code, first_name, last_name, position 
+    $stmt = $pdo->query("SELECT worker_id, worker_code, first_name, last_name, position 
                         FROM workers 
                         WHERE employment_status = 'active' AND is_archived = FALSE
                         ORDER BY first_name, last_name");
@@ -192,6 +197,7 @@ try {
                                 <option value="">Select a worker</option>
                                 <?php foreach ($workers as $worker): ?>
                                     <option value="<?php echo $worker['worker_id']; ?>"
+                                            <?php echo ($preselect_worker_id > 0 && $preselect_worker_id == $worker['worker_id']) ? 'selected' : ''; ?>
                                             <?php echo (isset($_POST['worker_id']) && $_POST['worker_id'] == $worker['worker_id']) ? 'selected' : ''; ?>>
                                         <?php echo htmlspecialchars($worker['first_name'] . ' ' . $worker['last_name'] . ' (' . $worker['worker_code'] . ') - ' . $worker['position']); ?>
                                     </option>
@@ -212,50 +218,42 @@ try {
                         </div>
                         
                         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 15px;">
-                            <div class="form-check">
-                                <input type="checkbox" class="day-checkbox" id="monday" name="days[]" value="monday"
-                                       <?php echo (isset($_POST['days']) && in_array('monday', $_POST['days'])) ? 'checked' : 'checked'; ?>>
-                                <label for="monday">Monday</label>
-                            </div>
+                            <?php
+                            $days_map = [
+                                'monday' => 'Monday',
+                                'tuesday' => 'Tuesday', 
+                                'wednesday' => 'Wednesday',
+                                'thursday' => 'Thursday',
+                                'friday' => 'Friday',
+                                'saturday' => 'Saturday',
+                                'sunday' => 'Sunday'
+                            ];
                             
+                            foreach ($days_map as $day_value => $day_label):
+                                // Check if this day should be pre-selected from URL
+                                $is_preselected = (!empty($preselect_day) && $preselect_day === $day_value);
+                                // Default checked days (Mon-Sat) if no pre-selection
+                                $default_checked = ($day_value !== 'sunday' && empty($preselect_day));
+                                // Post data takes precedence
+                                $is_checked = (isset($_POST['days']) && in_array($day_value, $_POST['days'])) || 
+                                              (!isset($_POST['days']) && ($is_preselected || $default_checked));
+                            ?>
                             <div class="form-check">
-                                <input type="checkbox" class="day-checkbox" id="tuesday" name="days[]" value="tuesday"
-                                       <?php echo (isset($_POST['days']) && in_array('tuesday', $_POST['days'])) ? 'checked' : 'checked'; ?>>
-                                <label for="tuesday">Tuesday</label>
+                                <input type="checkbox" class="day-checkbox" id="<?php echo $day_value; ?>" 
+                                       name="days[]" value="<?php echo $day_value; ?>"
+                                       <?php echo $is_checked ? 'checked' : ''; ?>>
+                                <label for="<?php echo $day_value; ?>"><?php echo $day_label; ?></label>
                             </div>
-                            
-                            <div class="form-check">
-                                <input type="checkbox" class="day-checkbox" id="wednesday" name="days[]" value="wednesday"
-                                       <?php echo (isset($_POST['days']) && in_array('wednesday', $_POST['days'])) ? 'checked' : 'checked'; ?>>
-                                <label for="wednesday">Wednesday</label>
-                            </div>
-                            
-                            <div class="form-check">
-                                <input type="checkbox" class="day-checkbox" id="thursday" name="days[]" value="thursday"
-                                       <?php echo (isset($_POST['days']) && in_array('thursday', $_POST['days'])) ? 'checked' : 'checked'; ?>>
-                                <label for="thursday">Thursday</label>
-                            </div>
-                            
-                            <div class="form-check">
-                                <input type="checkbox" class="day-checkbox" id="friday" name="days[]" value="friday"
-                                       <?php echo (isset($_POST['days']) && in_array('friday', $_POST['days'])) ? 'checked' : 'checked'; ?>>
-                                <label for="friday">Friday</label>
-                            </div>
-                            
-                            <div class="form-check">
-                                <input type="checkbox" class="day-checkbox" id="saturday" name="days[]" value="saturday"
-                                       <?php echo (isset($_POST['days']) && in_array('saturday', $_POST['days'])) ? 'checked' : 'checked'; ?>>
-                                <label for="saturday">Saturday</label>
-                            </div>
-                            
-                            <div class="form-check">
-                                <input type="checkbox" class="day-checkbox" id="sunday" name="days[]" value="sunday"
-                                       <?php echo (isset($_POST['days']) && in_array('sunday', $_POST['days'])) ? 'checked' : ''; ?>>
-                                <label for="sunday">Sunday</label>
-                            </div>
+                            <?php endforeach; ?>
                         </div>
                         
-                        <small style="display: block; margin-top: 10px; color: #666;">Default: Monday - Saturday (6 days)</small>
+                        <small style="display: block; margin-top: 10px; color: #666;">
+                            <?php if (!empty($preselect_day)): ?>
+                                Pre-selected: <?php echo ucfirst($preselect_day); ?>
+                            <?php else: ?>
+                                Default: Monday - Saturday (6 days)
+                            <?php endif; ?>
+                        </small>
                     </div>
                     
                     <!-- Working Hours -->

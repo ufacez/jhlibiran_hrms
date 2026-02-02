@@ -33,7 +33,7 @@ $pageTitle = 'SSS Contribution Settings';
     <link rel="stylesheet" href="https://pro.fontawesome.com/releases/v5.10.0/css/all.css"/>
     <link rel="stylesheet" href="<?php echo CSS_URL; ?>/dashboard.css">
     <style>
-        .content { padding: 30px; }
+        .content { padding: 30px; padding-top: 100px; }
         
         .page-header { margin-bottom: 25px; }
         .page-title { font-size: 24px; font-weight: 700; color: #1a1a1a; display: flex; align-items: center; gap: 10px; }

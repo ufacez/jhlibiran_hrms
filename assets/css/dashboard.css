@@ -157,6 +157,7 @@ body {
     left: 300px;
     background: #f5f5f5;
     transition: all 0.3s ease;
+    padding-top: 70px; /* Account for fixed top-bar height */
 }
 
 /* ============================================
@@ -165,6 +166,8 @@ body {
 
 .top-bar {
     position: fixed;
+    top: 0;
+    left: 300px;
     height: 70px;
     width: calc(100% - 300px);
     background: #fff;
@@ -1027,6 +1030,7 @@ body {
     
     .top-bar {
         width: calc(100% - 70px);
+        left: 70px;
     }
 }
 
@@ -1081,6 +1085,7 @@ body {
     
     .top-bar {
         width: calc(100% - 60px);
+        left: 60px;
         padding: 0 10px;
     }
     

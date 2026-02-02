@@ -302,6 +302,162 @@ class PayrollCalculator {
     }
     
     /**
+     * Calculate PhilHealth Contribution
+     * Uses percentage-based calculation from philhealth_settings table
+     * 
+     * @param float $grossPay Weekly gross pay
+     * @return array PhilHealth calculation details (weekly amount)
+     */
+    public function calculatePhilHealthContribution($grossPay) {
+        try {
+            // Estimate monthly salary from weekly gross (multiply by 4.333)
+            $estimatedMonthlySalary = $grossPay * self::WEEKLY_DIVISOR;
+            
+            // Get PhilHealth settings (percentage-based)
+            $stmt = $this->pdo->prepare("SELECT premium_rate, employee_share, employer_share, min_salary, max_salary 
+                              FROM philhealth_settings 
+                              WHERE is_active = 1 
+                              ORDER BY effective_date DESC 
+                              LIMIT 1");
+            $stmt->execute();
+            $settings = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if ($settings) {
+                // Apply salary floor and ceiling
+                $applicable_salary = $estimatedMonthlySalary;
+                if ($estimatedMonthlySalary < $settings['min_salary']) {
+                    $applicable_salary = $settings['min_salary'];
+                } elseif ($estimatedMonthlySalary > $settings['max_salary']) {
+                    $applicable_salary = $settings['max_salary'];
+                }
+                
+                // Calculate MONTHLY contributions based on percentages
+                $monthlyTotal = $applicable_salary * ($settings['premium_rate'] / 100);
+                $monthlyEmployee = $applicable_salary * ($settings['employee_share'] / 100);
+                $monthlyEmployer = $applicable_salary * ($settings['employer_share'] / 100);
+                
+                // Divide by 4 to get weekly amount
+                $weeklyEmployee = round($monthlyEmployee / 4, 2);
+                $weeklyEmployer = round($monthlyEmployer / 4, 2);
+                $weeklyTotal = round($monthlyTotal / 4, 2);
+                
+                return [
+                    'employee_contribution' => $weeklyEmployee,
+                    'employer_contribution' => $weeklyEmployer,
+                    'total_contribution' => $weeklyTotal,
+                    'monthly_employee' => round($monthlyEmployee, 2),
+                    'monthly_employer' => round($monthlyEmployer, 2),
+                    'monthly_total' => round($monthlyTotal, 2),
+                    'premium_rate' => $settings['premium_rate'],
+                    'employee_rate' => $settings['employee_share'],
+                    'employer_rate' => $settings['employer_share'],
+                    'applicable_salary' => $applicable_salary,
+                    'formula' => sprintf(
+                        "Monthly salary ₱%.2f × %.2f%% = ₱%.2f/month ÷ 4 weeks = ₱%.2f/week (Employee)",
+                        $applicable_salary, $settings['employee_share'], $monthlyEmployee, $weeklyEmployee
+                    )
+                ];
+            }
+            
+            return [
+                'employee_contribution' => 0,
+                'employer_contribution' => 0,
+                'total_contribution' => 0,
+                'monthly_total' => 0,
+                'formula' => 'No PhilHealth settings found'
+            ];
+        } catch (Exception $e) {
+            return [
+                'employee_contribution' => 0,
+                'employer_contribution' => 0,
+                'total_contribution' => 0,
+                'monthly_total' => 0,
+                'formula' => 'Error calculating PhilHealth: ' . $e->getMessage()
+            ];
+        }
+    }
+    
+    /**
+     * Calculate Pag-IBIG (HDMF) Contribution
+     * Uses tiered rates from pagibig_settings table
+     * 
+     * @param float $grossPay Weekly gross pay
+     * @return array Pag-IBIG calculation details (weekly amount)
+     */
+    public function calculatePagIBIGContribution($grossPay) {
+        try {
+            // Estimate monthly salary from weekly gross (multiply by 4.333)
+            $estimatedMonthlySalary = $grossPay * self::WEEKLY_DIVISOR;
+            
+            // Get Pag-IBIG settings
+            $stmt = $this->pdo->prepare("SELECT employee_rate_below, employer_rate_below, employee_rate_above, 
+                              employer_rate_above, salary_threshold, max_monthly_compensation 
+                              FROM pagibig_settings 
+                              WHERE is_active = 1 
+                              ORDER BY effective_date DESC 
+                              LIMIT 1");
+            $stmt->execute();
+            $settings = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if ($settings) {
+                // Determine which rate to use based on salary threshold
+                if ($estimatedMonthlySalary <= $settings['salary_threshold']) {
+                    $employeeRate = $settings['employee_rate_below'];
+                    $employerRate = $settings['employer_rate_below'];
+                } else {
+                    $employeeRate = $settings['employee_rate_above'];
+                    $employerRate = $settings['employer_rate_above'];
+                }
+                
+                // Apply max monthly compensation cap
+                $applicableSalary = min($estimatedMonthlySalary, $settings['max_monthly_compensation']);
+                
+                // Calculate MONTHLY contributions
+                $monthlyEmployee = $applicableSalary * ($employeeRate / 100);
+                $monthlyEmployer = $applicableSalary * ($employerRate / 100);
+                $monthlyTotal = $monthlyEmployee + $monthlyEmployer;
+                
+                // Divide by 4 to get weekly amount
+                $weeklyEmployee = round($monthlyEmployee / 4, 2);
+                $weeklyEmployer = round($monthlyEmployer / 4, 2);
+                $weeklyTotal = round($monthlyTotal / 4, 2);
+                
+                return [
+                    'employee_contribution' => $weeklyEmployee,
+                    'employer_contribution' => $weeklyEmployer,
+                    'total_contribution' => $weeklyTotal,
+                    'monthly_employee' => round($monthlyEmployee, 2),
+                    'monthly_employer' => round($monthlyEmployer, 2),
+                    'monthly_total' => round($monthlyTotal, 2),
+                    'employee_rate' => $employeeRate,
+                    'employer_rate' => $employerRate,
+                    'applicable_salary' => $applicableSalary,
+                    'formula' => sprintf(
+                        "Salary ₱%.2f (capped at ₱%.2f) × %.2f%% = ₱%.2f/month ÷ 4 = ₱%.2f/week (Employee)",
+                        $estimatedMonthlySalary, $applicableSalary, $employeeRate, $monthlyEmployee, $weeklyEmployee
+                    )
+                ];
+            }
+            
+            return [
+                'employee_contribution' => 0,
+                'employer_contribution' => 0,
+                'total_contribution' => 0,
+                'monthly_total' => 0,
+                'formula' => 'No Pag-IBIG settings found'
+            ];
+        } catch (Exception $e) {
+            return [
+                'employee_contribution' => 0,
+                'employer_contribution' => 0,
+                'total_contribution' => 0,
+                'monthly_total' => 0,
+                'formula' => 'Error calculating Pag-IBIG: ' . $e->getMessage()
+            ];
+        }
+    }
+    
+    /**
      * Calculate all deductions for a worker including automatic tax and SSS
      * 
      * @param int $workerId Worker ID
@@ -315,19 +471,23 @@ class PayrollCalculator {
         // Calculate automatic deductions
         $taxCalculation = $this->calculateWithholdingTax($grossPay);
         $sssCalculation = $this->calculateSSSContribution($grossPay, $periodEnd);
+        $philhealthCalculation = $this->calculatePhilHealthContribution($grossPay);
+        $pagibigCalculation = $this->calculatePagIBIGContribution($grossPay);
         
         // Organize deductions by type
         $deductions = [
             'sss' => $sssCalculation['employee_contribution'],
-            'philhealth' => 0,
-            'pagibig' => 0,
+            'philhealth' => $philhealthCalculation['employee_contribution'],
+            'pagibig' => $pagibigCalculation['employee_contribution'],
             'tax' => $taxCalculation['tax_amount'],
             'cashadvance' => 0,
             'loan' => 0,
             'other' => 0,
             'items' => [],
             'tax_details' => $taxCalculation,
-            'sss_details' => $sssCalculation
+            'sss_details' => $sssCalculation,
+            'philhealth_details' => $philhealthCalculation,
+            'pagibig_details' => $pagibigCalculation
         ];
         
         // Add SSS as first item (always show for transparency)
@@ -338,6 +498,26 @@ class PayrollCalculator {
             'description' => 'SSS Contribution',
             'frequency' => 'per_payroll',
             'formula' => $sssCalculation['formula']
+        ];
+        
+        // Add PhilHealth (always show for transparency)
+        $deductions['items'][] = [
+            'id' => null,
+            'type' => 'philhealth',
+            'amount' => $philhealthCalculation['employee_contribution'],
+            'description' => 'PhilHealth Contribution',
+            'frequency' => 'per_payroll',
+            'formula' => $philhealthCalculation['formula']
+        ];
+        
+        // Add Pag-IBIG (always show for transparency)
+        $deductions['items'][] = [
+            'id' => null,
+            'type' => 'pagibig',
+            'amount' => $pagibigCalculation['employee_contribution'],
+            'description' => 'Pag-IBIG Contribution',
+            'frequency' => 'per_payroll',
+            'formula' => $pagibigCalculation['formula']
         ];
         
         // Process manual deductions
