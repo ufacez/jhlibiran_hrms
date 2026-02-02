@@ -58,10 +58,36 @@ $current_dir = basename(dirname($_SERVER['PHP_SELF']));
     margin-top: 0;
 }
 
+/* Sub-category for nested sections */
+.menu-subcategory {
+    padding: 12px 20px 6px 30px;
+    color: #888;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.menu-subcategory::before {
+    content: '';
+    width: 12px;
+    height: 1px;
+    background: #555;
+}
+
 .menu-separator {
     height: 1px;
     background: linear-gradient(90deg, transparent, rgba(218, 165, 32, 0.3), transparent);
     margin: 15px 20px;
+}
+
+.menu-mini-separator {
+    height: 1px;
+    background: rgba(255, 255, 255, 0.05);
+    margin: 8px 30px 8px 60px;
 }
 
 /* Menu Items */
@@ -217,7 +243,9 @@ $current_dir = basename(dirname($_SERVER['PHP_SELF']));
     .sidebar .title,
     .logo-text,
     .menu-category,
+    .menu-subcategory,
     .menu-separator,
+    .menu-mini-separator,
     .sidebar-footer {
         display: none;
     }
@@ -299,7 +327,7 @@ $current_dir = basename(dirname($_SERVER['PHP_SELF']));
             <i class="fas fa-dollar-sign"></i> Payroll Management
         </div>
         
-        <!-- Payroll -->
+        <!-- Main Payroll -->
         <li>
             <a href="<?php echo BASE_URL; ?>/modules/super_admin/payroll_v2/index.php"
                class="<?php echo ($current_dir === 'payroll_v2' && $current_page === 'index.php') ? 'active' : ''; ?>">
@@ -317,12 +345,17 @@ $current_dir = basename(dirname($_SERVER['PHP_SELF']));
             </a>
         </li>
         
+        <div class="menu-mini-separator"></div>
+        
+        <!-- Government Contributions Sub-section -->
+        <div class="menu-subcategory">Government</div>
+        
         <!-- BIR Tax Settings -->
         <li>
             <a href="<?php echo BASE_URL; ?>/modules/super_admin/payroll_v2/tax_brackets.php"
                class="<?php echo ($current_dir === 'payroll_v2' && $current_page === 'tax_brackets.php') ? 'active' : ''; ?>">
                 <i class="fas fa-percentage"></i>
-                <div class="title">BIR Tax Settings</div>
+                <div class="title">BIR Tax Brackets</div>
             </a>
         </li>
         
@@ -330,7 +363,7 @@ $current_dir = basename(dirname($_SERVER['PHP_SELF']));
         <li>
             <a href="<?php echo BASE_URL; ?>/modules/super_admin/payroll_v2/sss_settings.php"
                class="<?php echo ($current_dir === 'payroll_v2' && $current_page === 'sss_settings.php') ? 'active' : ''; ?>">
-                <i class="fas fa-cog"></i>
+                <i class="fas fa-shield-alt"></i>
                 <div class="title">SSS Settings</div>
             </a>
         </li>
@@ -349,7 +382,7 @@ $current_dir = basename(dirname($_SERVER['PHP_SELF']));
             <a href="<?php echo BASE_URL; ?>/modules/super_admin/payroll_v2/philhealth_settings.php"
                class="<?php echo ($current_dir === 'payroll_v2' && $current_page === 'philhealth_settings.php') ? 'active' : ''; ?>">
                 <i class="fas fa-heartbeat"></i>
-                <div class="title">PhilHealth Settings</div>
+                <div class="title">PhilHealth</div>
             </a>
         </li>
         
@@ -358,9 +391,14 @@ $current_dir = basename(dirname($_SERVER['PHP_SELF']));
             <a href="<?php echo BASE_URL; ?>/modules/super_admin/payroll_v2/pagibig_settings.php"
                class="<?php echo ($current_dir === 'payroll_v2' && $current_page === 'pagibig_settings.php') ? 'active' : ''; ?>">
                 <i class="fas fa-home"></i>
-                <div class="title">Pag-IBIG Settings</div>
+                <div class="title">Pag-IBIG</div>
             </a>
         </li>
+        
+        <div class="menu-mini-separator"></div>
+        
+        <!-- Calendar Sub-section -->
+        <div class="menu-subcategory">Calendar</div>
         
         <!-- Holiday Settings -->
         <li>

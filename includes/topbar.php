@@ -46,7 +46,7 @@ $avatar_url = "https://ui-avatars.com/api/?name=" . urlencode($full_name) . "&ba
             <div>
                 <span class="user-name"><?php echo htmlspecialchars($full_name); ?></span>
                 <span class="user-role">
-                    <?php echo $user_level === 'super_admin' ? 'Administrator' : 'Worker'; ?>
+                    <?php echo $user_level === 'super_admin' ? 'Super Admin' : 'Worker'; ?>
                 </span>
             </div>
         </div>

@@ -143,6 +143,49 @@ try {
             ]);
             break;
 
+        case 'save_sss_rates':
+            // POST: Save only SSS employee/employer contribution rates
+            if ($method !== 'POST') {
+                throw new Exception('Method not allowed');
+            }
+
+            $employeeRate = floatval($input['employee_contribution_rate'] ?? 0);
+            $employerRate = floatval($input['employer_contribution_rate'] ?? 0);
+
+            if ($employeeRate <= 0 || $employerRate <= 0) {
+                throw new Exception('Both employee and employer rates must be positive');
+            }
+
+            // Get existing active record
+            $stmt = $pdo->prepare("SELECT setting_id FROM sss_settings WHERE is_active = 1 ORDER BY setting_id DESC LIMIT 1");
+            $stmt->execute();
+            $existing = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if ($existing) {
+                // Update existing record
+                $stmt = $pdo->prepare("
+                    UPDATE sss_settings SET
+                        employee_contribution_rate = ?,
+                        employer_contribution_rate = ?,
+                        updated_at = NOW()
+                    WHERE setting_id = ?
+                ");
+                $stmt->execute([
+                    $employeeRate,
+                    $employerRate,
+                    $existing['setting_id']
+                ]);
+            } else {
+                // No settings exist yet - shouldn't happen but handle it
+                throw new Exception('No SSS settings found. Please contact administrator.');
+            }
+
+            echo json_encode([
+                'success' => true,
+                'message' => 'SSS rates updated successfully'
+            ]);
+            break;
+
         case 'save_sss_settings':
             // POST: Save SSS contribution settings
             if ($method !== 'POST') {

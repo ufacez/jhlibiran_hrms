@@ -45,15 +45,11 @@ $pageTitle = 'Pag-IBIG Settings';
     <link rel="stylesheet" href="https://pro.fontawesome.com/releases/v5.10.0/css/all.css"/>
     <link rel="stylesheet" href="<?php echo CSS_URL; ?>/dashboard.css">
     <style>
-        .content { padding: 30px; padding-top: 100px; }
+        .content { padding: 30px; }
         
-        .page-header { margin-bottom: 25px; text-align: center; }
-        .page-title { font-size: 24px; font-weight: 700; color: #1a1a1a; display: flex; align-items: center; justify-content: center; gap: 10px; }
-        .page-title i { color: #DAA520; }
+        .page-header { margin-bottom: 25px; }
+        .page-title { font-size: 22px; font-weight: 700; color: #1a1a1a; }
         .page-subtitle { color: #666; font-size: 13px; margin-top: 5px; }
-        
-        .info-box { background: #f0f9ff; border-left: 4px solid #0284c7; padding: 15px; border-radius: 6px; margin-bottom: 25px; font-size: 12px; color: #0369a1; max-width: 650px; margin-left: auto; margin-right: auto; }
-        .info-box strong { display: block; margin-bottom: 5px; }
         
         .settings-card { background: white; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); overflow: hidden; max-width: 650px; margin: 0 auto; }
         .card-header { background: #1a1a1a; color: white; padding: 15px 20px; font-weight: 600; display: flex; align-items: center; gap: 10px; }
@@ -118,16 +114,8 @@ $pageTitle = 'Pag-IBIG Settings';
             
             <div class="content">
                 <div class="page-header">
-                    <h1 class="page-title"><i class="fas fa-home"></i> Pag-IBIG Settings</h1>
+                    <h1 class="page-title">Pag-IBIG Settings</h1>
                     <p class="page-subtitle">Configure Pag-IBIG (HDMF) contribution rates and limits</p>
-                </div>
-                
-                <div class="info-box">
-                    <strong><i class="fas fa-calculator"></i> How Pag-IBIG is calculated:</strong>
-                    Contribution is based on monthly salary with different rates for low-income earners.
-                    For salary ≤ ₱1,500: Employee 1%, Employer 2%. For salary > ₱1,500: Employee 2%, Employer 2%.
-                    Maximum monthly compensation is ₱5,000 (max contribution: ₱100 employee + ₱100 employer).
-                    For weekly payroll, monthly contribution is divided by 4.
                 </div>
                 
                 <div class="settings-card">

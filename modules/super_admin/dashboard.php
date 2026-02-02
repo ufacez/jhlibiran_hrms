@@ -48,16 +48,6 @@ try {
                         WHERE employment_status = 'on_leave' AND is_archived = FALSE");
     $on_leave = $stmt->fetch()['total'];
     
-    // Workers with overtime today (excluding archived)
-    $stmt = $db->query("SELECT COUNT(DISTINCT a.worker_id) as total 
-                        FROM attendance a
-                        JOIN workers w ON a.worker_id = w.worker_id
-                        WHERE a.attendance_date = CURDATE() 
-                        AND a.status = 'overtime'
-                        AND a.is_archived = FALSE
-                        AND w.is_archived = FALSE");
-    $overtime_today = $stmt->fetch()['total'];
-    
     // Calculate attendance rate
     $attendance_rate = $total_workers > 0 ? round(($on_site_today / $total_workers) * 100) : 0;
     
@@ -139,7 +129,6 @@ try {
     $total_workers = 0;
     $on_site_today = 0;
     $on_leave = 0;
-    $overtime_today = 0;
     $attendance_rate = 0;
     $month_payroll = 0;
     $recent_attendance = [];
@@ -261,6 +250,9 @@ function getEnhancedActivityDescription($activity) {
                         <div class="welcome-text">
                             <h1>Welcome back, <?php echo htmlspecialchars($full_name); ?>!</h1>
                             <p>Here's what's happening with your workforce today</p>
+                            <span style="display: inline-flex; align-items: center; gap: 8px; margin-top: 10px; background: linear-gradient(135deg, #DAA520, #b8860b); color: #fff; padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 600;">
+                                <i class="fas fa-shield-alt"></i> Super Admin Access
+                            </span>
                         </div>
                         <div class="welcome-stats">
                             <div class="welcome-stat">
@@ -284,7 +276,7 @@ function getEnhancedActivityDescription($activity) {
                     <div class="stat-card card-blue">
                         <div class="stat-header">
                             <div>
-                                <div class="card-label=">Total Workers</div>
+                                <div class="card-label">Total Workers</div>
                                 <div class="card-value"><?php echo $total_workers; ?></div>
                                 <div class="card-change change-positive">
                                     <i class="fas fa-users"></i>
@@ -325,22 +317,6 @@ function getEnhancedActivityDescription($activity) {
                             </div>
                             <div class="stat-icon">
                                 <i class="fas fa-calendar-times"></i>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="stat-card card-purple">
-                        <div class="stat-header">
-                            <div>
-                                <div class="card-label">Overtime Today</div>
-                                <div class="card-value"><?php echo $overtime_today; ?></div>
-                                <div class="card-change">
-                                    <i class="fas fa-clock"></i>
-                                    <span>Extended hours</span>
-                                </div>
-                            </div>
-                            <div class="stat-icon">
-                                <i class="fas fa-business-time"></i>
                             </div>
                         </div>
                     </div>

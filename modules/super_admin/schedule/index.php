@@ -107,7 +107,7 @@ try {
     <link rel="stylesheet" href="<?php echo CSS_URL; ?>/buttons.css">
     <link rel="stylesheet" href="<?php echo CSS_URL; ?>/workers.css">
     <style>
-    .schedule-content { padding: 30px; padding-top: 100px; }
+    .schedule-content { padding: 30px; }
 
     .schedule-table {
         width: 100%;

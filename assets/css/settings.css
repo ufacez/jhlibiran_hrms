@@ -8,7 +8,7 @@
    ============================================ */
 
 .settings-content {
-    padding: 90px 30px 30px 30px;
+    padding: 30px;
 }
 
 /* ============================================
@@ -658,7 +658,7 @@ input:checked + .toggle-slider:before {
 
 @media (max-width: 768px) {
     .settings-content {
-        padding: 90px 15px 15px 15px;
+        padding: 20px 15px;
     }
     
     .settings-tabs {

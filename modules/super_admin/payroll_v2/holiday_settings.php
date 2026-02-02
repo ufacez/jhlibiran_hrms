@@ -45,11 +45,10 @@ $pageTitle = 'Holiday Settings';
     <link rel="stylesheet" href="https://pro.fontawesome.com/releases/v5.10.0/css/all.css"/>
     <link rel="stylesheet" href="<?php echo CSS_URL; ?>/dashboard.css">
     <style>
-        .content { padding: 30px; padding-top: 100px; }
+        .content { padding: 30px; }
         
         .page-header { margin-bottom: 25px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; }
-        .page-title { font-size: 24px; font-weight: 700; color: #1a1a1a; display: flex; align-items: center; gap: 10px; }
-        .page-title i { color: #DAA520; }
+        .page-title { font-size: 22px; font-weight: 700; color: #1a1a1a; }
         .page-subtitle { color: #666; font-size: 13px; margin-top: 5px; }
         
         .header-actions { display: flex; gap: 10px; align-items: center; }
@@ -158,8 +157,8 @@ $pageTitle = 'Holiday Settings';
             <div class="content">
                 <div class="page-header">
                     <div>
-                        <h1 class="page-title"><i class="fas fa-calendar-star"></i> Holiday Settings</h1>
-                        <p class="page-subtitle">Manage Regular and Special Non-Working Holidays for payroll calculation</p>
+                        <h1 class="page-title">Holiday Settings</h1>
+                        <p class="page-subtitle">Manage Regular and Special Non-Working Holidays</p>
                     </div>
                     <div class="header-actions">
                         <div class="year-nav">

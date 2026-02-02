@@ -34,12 +34,11 @@ $weeklyDivisor = 4.333;
     <link rel="stylesheet" href="https://pro.fontawesome.com/releases/v5.10.0/css/all.css"/>
     <link rel="stylesheet" href="<?php echo CSS_URL; ?>/dashboard.css">
     <style>
-        .content { padding: 30px; padding-top: 100px; }
+        .content { padding: 30px; }
         
         /* Header */
         .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; flex-wrap: wrap; gap: 15px; }
-        .page-title { font-size: 24px; font-weight: 700; color: #1a1a1a; display: flex; align-items: center; gap: 10px; }
-        .page-title i { color: #DAA520; }
+        .page-title { font-size: 22px; font-weight: 700; color: #1a1a1a; }
         .page-subtitle { color: #666; font-size: 13px; margin-top: 5px; }
         
         /* Period Toggle */
@@ -47,16 +46,6 @@ $weeklyDivisor = 4.333;
         .period-btn { padding: 8px 16px; border: none; background: none; font-size: 12px; font-weight: 500; color: rgba(255,255,255,0.7); cursor: pointer; border-radius: 4px; transition: all 0.2s; display: flex; align-items: center; gap: 6px; }
         .period-btn:hover { color: #fff; }
         .period-btn.active { background: #DAA520; color: #1a1a1a; }
-        .period-btn.active i { color: #1a1a1a; }
-        .period-btn i { font-size: 11px; }
-        
-        /* Info Banner */
-        .info-banner { background: linear-gradient(135deg, #1a1a1a, #2d2d2d); color: #fff; padding: 20px; border-radius: 12px; margin-bottom: 25px; border-left: 4px solid #DAA520; }
-        .info-banner h3 { color: #DAA520; font-size: 14px; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
-        .info-banner p { font-size: 12px; color: #ccc; line-height: 1.6; }
-        .info-banner code { background: rgba(218,165,32,0.2); padding: 2px 6px; border-radius: 4px; color: #DAA520; }
-        .info-banner .note { background: rgba(218,165,32,0.15); padding: 10px 15px; border-radius: 8px; margin-top: 12px; font-size: 11px; }
-        .info-banner .note strong { color: #DAA520; }
         
         /* Tax Table */
         .tax-table-wrap { background: #fff; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); overflow: hidden; }
@@ -131,21 +120,8 @@ $weeklyDivisor = 4.333;
                 <!-- Header -->
                 <div class="page-header">
                     <div>
-                        <h1 class="page-title"><i class="fas fa-percentage"></i> BIR Tax Settings</h1>
+                        <h1 class="page-title">BIR Tax Settings</h1>
                         <p class="page-subtitle">Manage BIR withholding tax brackets and rates</p>
-                    </div>
-                </div>
-                
-                <!-- Info Banner -->
-                <div class="info-banner">
-                    <h3><i class="fas fa-info-circle"></i> Tax Computation Formula (TRAIN Law)</h3>
-                    <p>
-                        <strong>Withholding Tax</strong> = <code>Base Tax</code> + ((<code>Income</code> - <code>Lower Bound</code>) × <code>Tax Rate</code>)
-                    </p>
-                    <div class="note">
-                        <strong><i class="fas fa-calendar-week"></i> Weekly Payroll:</strong> 
-                        Toggle between Weekly/Monthly view using the button in the table header. 
-                        Monthly values are divided by 4.333 (52 weeks ÷ 12 months) to get weekly equivalents.
                     </div>
                 </div>
                 

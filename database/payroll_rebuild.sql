@@ -50,32 +50,26 @@ INSERT INTO `payroll_settings` (`setting_key`, `setting_value`, `setting_type`, 
 -- Overtime Rates (Philippine Labor Code)
 ('overtime_multiplier', 1.2500, 'multiplier', 'overtime', 'Overtime Multiplier', 'Premium rate for work beyond 8 hours (125%)', 'Hourly Rate × 1.25 = ₱93.75/hr OT', 10),
 ('overtime_rate', 93.7500, 'rate', 'overtime', 'Overtime Hourly Rate', 'Computed overtime rate per hour', 'Hourly Rate × OT Multiplier', 11),
-('rest_day_multiplier', 1.3000, 'multiplier', 'overtime', 'Rest Day Multiplier', 'Premium rate for work on rest day (130%)', 'Hourly Rate × 1.30', 12),
-('rest_day_ot_multiplier', 1.6900, 'multiplier', 'overtime', 'Rest Day OT Multiplier', 'Overtime on rest day (130% × 130%)', 'Rest Day Rate × 1.30', 13),
 
 -- Night Differential (Philippine Labor Code: 10% additional for 10PM-6AM)
-('night_diff_start', 22.0000, 'hours', 'differential', 'Night Diff Start Hour', 'Night differential starts at 10:00 PM (22:00)', '10:00 PM', 20),
-('night_diff_end', 6.0000, 'hours', 'differential', 'Night Diff End Hour', 'Night differential ends at 6:00 AM (06:00)', '6:00 AM', 21),
-('night_diff_percentage', 10.0000, 'percentage', 'differential', 'Night Differential %', 'Additional percentage for night work', '+10% of hourly rate', 22),
-('night_diff_rate', 7.5000, 'rate', 'differential', 'Night Diff Additional Rate', 'Additional pay per night hour', 'Hourly Rate × 10% = ₱7.50/hr', 23),
+('night_diff_start', 22.0000, 'hours', 'differential', 'Night Diff Start Hour', 'Night differential starts at 10:00 PM (22:00)', '10:00 PM', 12),
+('night_diff_end', 6.0000, 'hours', 'differential', 'Night Diff End Hour', 'Night differential ends at 6:00 AM (06:00)', '6:00 AM', 13),
+('night_diff_percentage', 10.0000, 'percentage', 'differential', 'Night Differential %', 'Additional percentage for night work', '+10% of hourly rate', 14),
+('night_diff_rate', 7.5000, 'rate', 'differential', 'Night Diff Additional Rate', 'Additional pay per night hour', 'Hourly Rate × 10% = ₱7.50/hr', 15),
 
 -- Holiday Rates (Philippine Labor Code)
-('regular_holiday_multiplier', 2.0000, 'multiplier', 'holiday', 'Regular Holiday Multiplier', 'Pay rate for work on regular holidays (200%)', 'Hourly Rate × 2.00 = ₱150.00/hr', 30),
-('regular_holiday_rate', 150.0000, 'rate', 'holiday', 'Regular Holiday Hourly Rate', 'Computed hourly rate for regular holidays', 'Double pay for regular holidays', 31),
-('regular_holiday_ot_multiplier', 2.6000, 'multiplier', 'holiday', 'Regular Holiday OT Multiplier', 'Overtime on regular holiday (200% × 130%)', 'Regular Holiday Rate × 1.30', 32),
-('special_holiday_multiplier', 1.3000, 'multiplier', 'holiday', 'Special Holiday Multiplier', 'Pay rate for work on special non-working holidays (130%)', 'Hourly Rate × 1.30 = ₱97.50/hr', 33),
-('special_holiday_rate', 97.5000, 'rate', 'holiday', 'Special Holiday Hourly Rate', 'Computed hourly rate for special holidays', '130% for special non-working holidays', 34),
-('special_holiday_ot_multiplier', 1.6900, 'multiplier', 'holiday', 'Special Holiday OT Multiplier', 'Overtime on special holiday (130% × 130%)', 'Special Holiday Rate × 1.30', 35),
-
--- Rest Day on Holiday Combinations
-('regular_holiday_restday_multiplier', 2.6000, 'multiplier', 'holiday', 'Regular Holiday + Rest Day Multiplier', 'Work on regular holiday falling on rest day (200% + 30%)', '(Hourly × 2.00) × 1.30', 36),
-('special_holiday_restday_multiplier', 1.5000, 'multiplier', 'holiday', 'Special Holiday + Rest Day Multiplier', 'Work on special holiday falling on rest day (130% + 20%)', '(Hourly × 1.30) × 1.50/1.30', 37),
+('regular_holiday_multiplier', 2.0000, 'multiplier', 'holiday', 'Regular Holiday Multiplier', 'Pay rate for work on regular holidays (200%)', 'Hourly Rate × 2.00 = ₱150.00/hr', 16),
+('regular_holiday_rate', 150.0000, 'rate', 'holiday', 'Regular Holiday Hourly Rate', 'Computed hourly rate for regular holidays', 'Double pay for regular holidays', 17),
+('regular_holiday_ot_multiplier', 2.6000, 'multiplier', 'holiday', 'Regular Holiday OT Multiplier', 'Overtime on regular holiday (200% × 130%)', 'Regular Holiday Rate × 1.30', 18),
+('special_holiday_multiplier', 1.3000, 'multiplier', 'holiday', 'Special Holiday Multiplier', 'Pay rate for work on special non-working holidays (130%)', 'Hourly Rate × 1.30 = ₱97.50/hr', 19),
+('special_holiday_rate', 97.5000, 'rate', 'holiday', 'Special Holiday Hourly Rate', 'Computed hourly rate for special holidays', '130% for special non-working holidays', 20),
+('special_holiday_ot_multiplier', 1.6900, 'multiplier', 'holiday', 'Special Holiday OT Multiplier', 'Overtime on special holiday (130% × 130%)', 'Special Holiday Rate × 1.30', 21),
 
 -- Contribution Placeholders (to be configured with proper tables later)
-('sss_enabled', 0.0000, 'boolean', 'contribution', 'SSS Deduction Enabled', 'Enable/disable SSS contribution deduction', 'Configurable via contribution tables', 50),
-('philhealth_enabled', 0.0000, 'boolean', 'contribution', 'PhilHealth Deduction Enabled', 'Enable/disable PhilHealth contribution deduction', 'Configurable via contribution tables', 51),
-('pagibig_enabled', 0.0000, 'boolean', 'contribution', 'Pag-IBIG Deduction Enabled', 'Enable/disable Pag-IBIG contribution deduction', 'Configurable via contribution tables', 52),
-('bir_tax_enabled', 0.0000, 'boolean', 'contribution', 'BIR Tax Deduction Enabled', 'Enable/disable withholding tax deduction', 'Configurable via tax tables', 53);
+('sss_enabled', 0.0000, 'boolean', 'contribution', 'SSS Deduction Enabled', 'Enable/disable SSS contribution deduction', 'Configurable via contribution tables', 22),
+('philhealth_enabled', 0.0000, 'boolean', 'contribution', 'PhilHealth Deduction Enabled', 'Enable/disable PhilHealth contribution deduction', 'Configurable via contribution tables', 23),
+('pagibig_enabled', 0.0000, 'boolean', 'contribution', 'Pag-IBIG Deduction Enabled', 'Enable/disable Pag-IBIG contribution deduction', 'Configurable via contribution tables', 24),
+('bir_tax_enabled', 0.0000, 'boolean', 'contribution', 'BIR Tax Deduction Enabled', 'Enable/disable withholding tax deduction', 'Configurable via tax tables', 25);
 
 -- ============================================
 -- 3. PAYROLL SETTINGS HISTORY (Audit Trail)
@@ -145,7 +139,6 @@ CREATE TABLE `payroll_records` (
     `regular_hours` DECIMAL(10,2) NOT NULL DEFAULT 0.00,
     `overtime_hours` DECIMAL(10,2) NOT NULL DEFAULT 0.00,
     `night_diff_hours` DECIMAL(10,2) NOT NULL DEFAULT 0.00,
-    `rest_day_hours` DECIMAL(10,2) NOT NULL DEFAULT 0.00,
     `regular_holiday_hours` DECIMAL(10,2) NOT NULL DEFAULT 0.00,
     `special_holiday_hours` DECIMAL(10,2) NOT NULL DEFAULT 0.00,
     
@@ -153,7 +146,6 @@ CREATE TABLE `payroll_records` (
     `regular_pay` DECIMAL(15,2) NOT NULL DEFAULT 0.00 COMMENT 'regular_hours × hourly_rate',
     `overtime_pay` DECIMAL(15,2) NOT NULL DEFAULT 0.00 COMMENT 'ot_hours × hourly × ot_multiplier',
     `night_diff_pay` DECIMAL(15,2) NOT NULL DEFAULT 0.00 COMMENT 'night_hours × hourly × night_diff_pct',
-    `rest_day_pay` DECIMAL(15,2) NOT NULL DEFAULT 0.00,
     `regular_holiday_pay` DECIMAL(15,2) NOT NULL DEFAULT 0.00,
     `special_holiday_pay` DECIMAL(15,2) NOT NULL DEFAULT 0.00,
     `other_earnings` DECIMAL(15,2) NOT NULL DEFAULT 0.00,
@@ -206,7 +198,7 @@ CREATE TABLE `payroll_earnings` (
     `earning_id` BIGINT(20) NOT NULL AUTO_INCREMENT,
     `record_id` INT(11) NOT NULL,
     `earning_date` DATE NOT NULL COMMENT 'The specific date this earning applies to',
-    `earning_type` ENUM('regular', 'overtime', 'night_diff', 'rest_day', 'regular_holiday', 'special_holiday', 'bonus', 'allowance', 'other') NOT NULL,
+    `earning_type` ENUM('regular', 'overtime', 'night_diff', 'regular_holiday', 'special_holiday', 'bonus', 'allowance', 'other') NOT NULL,
     `description` VARCHAR(255) DEFAULT NULL,
     `hours` DECIMAL(10,2) NOT NULL DEFAULT 0.00,
     `rate_used` DECIMAL(10,4) NOT NULL DEFAULT 0.0000,
@@ -302,24 +294,6 @@ CREATE TABLE `contribution_tables` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================
--- 9. WORKER REST DAYS TABLE
--- Track designated rest days per worker
--- ============================================
-DROP TABLE IF EXISTS `worker_rest_days`;
-CREATE TABLE `worker_rest_days` (
-    `rest_day_id` INT(11) NOT NULL AUTO_INCREMENT,
-    `worker_id` INT(11) NOT NULL,
-    `day_of_week` ENUM('monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday') NOT NULL,
-    `effective_from` DATE NOT NULL,
-    `effective_to` DATE DEFAULT NULL,
-    `is_active` TINYINT(1) DEFAULT 1,
-    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (`rest_day_id`),
-    KEY `idx_worker_id` (`worker_id`),
-    CONSTRAINT `fk_rest_days_worker` FOREIGN KEY (`worker_id`) REFERENCES `workers` (`worker_id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- ============================================
 -- 10. VIEW: Active Payroll Records with Details
 -- ============================================
 DROP VIEW IF EXISTS `vw_payroll_records_full`;
@@ -339,13 +313,11 @@ SELECT
     pr.regular_hours,
     pr.overtime_hours,
     pr.night_diff_hours,
-    pr.rest_day_hours,
     pr.regular_holiday_hours,
     pr.special_holiday_hours,
     pr.regular_pay,
     pr.overtime_pay,
     pr.night_diff_pay,
-    pr.rest_day_pay,
     pr.regular_holiday_pay,
     pr.special_holiday_pay,
     pr.other_earnings,

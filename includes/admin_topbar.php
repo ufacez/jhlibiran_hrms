@@ -62,9 +62,9 @@ if ($profile_image && file_exists(UPLOADS_PATH . '/' . $profile_image)) {
                 <span class="user-role">
                     <?php 
                     if ($user_level === 'super_admin') {
-                        echo 'Super Administrator';
+                        echo 'Super Admin';
                     } elseif ($user_level === 'admin') {
-                        echo 'Administrator';
+                        echo 'Admin';
                     } else {
                         echo 'User';
                     }

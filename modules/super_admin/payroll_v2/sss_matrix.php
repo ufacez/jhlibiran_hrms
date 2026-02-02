@@ -33,14 +33,11 @@ $pageTitle = 'SSS Contribution Matrix';
     <link rel="stylesheet" href="https://pro.fontawesome.com/releases/v5.10.0/css/all.css"/>
     <link rel="stylesheet" href="<?php echo CSS_URL; ?>/dashboard.css">
     <style>
-        .content { padding: 30px; padding-top: 100px; }
+        .content { padding: 30px; }
         
         .page-header { margin-bottom: 25px; }
-        .page-title { font-size: 24px; font-weight: 700; color: #1a1a1a; display: flex; align-items: center; gap: 10px; }
-        .page-title i { color: #DAA520; }
+        .page-title { font-size: 22px; font-weight: 700; color: #1a1a1a; }
         .page-subtitle { color: #666; font-size: 13px; margin-top: 5px; }
-        
-        .info-box { background: #f0f9ff; border-left: 4px solid #0284c7; padding: 15px; border-radius: 6px; margin-bottom: 25px; font-size: 12px; color: #0369a1; }
         
         .toolbar { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 25px; }
         .toolbar-row { display: flex; gap: 15px; align-items: center; flex-wrap: wrap; }
@@ -104,13 +101,8 @@ $pageTitle = 'SSS Contribution Matrix';
             
             <div class="content">
                 <div class="page-header">
-                    <h1 class="page-title"><i class="fas fa-table"></i> SSS Contribution Matrix</h1>
+                    <h1 class="page-title">SSS Contribution Matrix</h1>
                     <p class="page-subtitle">Manage SSS contribution brackets - Upload CSV, Edit, or Download</p>
-                </div>
-                
-                <div class="info-box">
-                    <strong><i class="fas fa-info-circle"></i> How it works:</strong>
-                    Upload a CSV with bracket data, or edit the table directly. The system divides monthly SSS contributions by 4 for weekly payroll deductions.
                 </div>
                 
                 <div class="toolbar">
