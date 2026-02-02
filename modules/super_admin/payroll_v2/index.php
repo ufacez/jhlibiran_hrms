@@ -1065,14 +1065,27 @@ $pageTitle = 'Payroll Management';
             }
         }
         
-        // Select worker
+        // Select worker (toggle)
         function selectWorker(workerId, element) {
-            document.querySelectorAll('.worker-item').forEach(w => w.classList.remove('selected'));
-            element.classList.add('selected');
-            element.querySelector('.worker-checkbox').checked = true;
+            const isCurrentlySelected = element.classList.contains('selected');
             
-            selectedWorker = workerId;
-            document.getElementById('generateBtn').disabled = false;
+            // Remove selection from all workers
+            document.querySelectorAll('.worker-item').forEach(w => {
+                w.classList.remove('selected');
+                w.querySelector('.worker-checkbox').checked = false;
+            });
+            
+            // If clicking on a different worker or not selected, select it
+            if (!isCurrentlySelected) {
+                element.classList.add('selected');
+                element.querySelector('.worker-checkbox').checked = true;
+                selectedWorker = workerId;
+                document.getElementById('generateBtn').disabled = false;
+            } else {
+                // Deselect - clicking same worker
+                selectedWorker = null;
+                document.getElementById('generateBtn').disabled = true;
+            }
         }
         
         // Filter workers
