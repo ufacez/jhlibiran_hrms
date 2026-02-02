@@ -43,10 +43,12 @@ $weeklyDivisor = 4.333;
         .page-subtitle { color: #666; font-size: 13px; margin-top: 5px; }
         
         /* Period Toggle */
-        .period-toggle { display: flex; background: #f0f0f0; border-radius: 8px; padding: 4px; }
-        .period-btn { padding: 10px 20px; border: none; background: none; font-size: 13px; font-weight: 500; color: #666; cursor: pointer; border-radius: 6px; transition: all 0.2s; }
-        .period-btn.active { background: #1a1a1a; color: #fff; }
-        .period-btn.active i { color: #DAA520; }
+        .period-toggle { display: flex; background: rgba(255,255,255,0.1); border-radius: 6px; padding: 3px; }
+        .period-btn { padding: 8px 16px; border: none; background: none; font-size: 12px; font-weight: 500; color: rgba(255,255,255,0.7); cursor: pointer; border-radius: 4px; transition: all 0.2s; display: flex; align-items: center; gap: 6px; }
+        .period-btn:hover { color: #fff; }
+        .period-btn.active { background: #DAA520; color: #1a1a1a; }
+        .period-btn.active i { color: #1a1a1a; }
+        .period-btn i { font-size: 11px; }
         
         /* Info Banner */
         .info-banner { background: linear-gradient(135deg, #1a1a1a, #2d2d2d); color: #fff; padding: 20px; border-radius: 12px; margin-bottom: 25px; border-left: 4px solid #DAA520; }
@@ -130,15 +132,7 @@ $weeklyDivisor = 4.333;
                 <div class="page-header">
                     <div>
                         <h1 class="page-title"><i class="fas fa-percentage"></i> BIR Tax Settings</h1>
-                        <p class="page-subtitle">Manage BIR withholding tax brackets and rates (Weekly Payroll)</p>
-                    </div>
-                    <div class="period-toggle">
-                        <button class="period-btn active" data-period="weekly" onclick="setPeriod('weekly')">
-                            <i class="fas fa-calendar-week"></i> Weekly
-                        </button>
-                        <button class="period-btn" data-period="monthly" onclick="setPeriod('monthly')">
-                            <i class="fas fa-calendar-alt"></i> Monthly
-                        </button>
+                        <p class="page-subtitle">Manage BIR withholding tax brackets and rates</p>
                     </div>
                 </div>
                 
@@ -150,7 +144,7 @@ $weeklyDivisor = 4.333;
                     </p>
                     <div class="note">
                         <strong><i class="fas fa-calendar-week"></i> Weekly Payroll:</strong> 
-                        The values shown are for <strong id="periodLabel">weekly</strong> income. 
+                        Toggle between Weekly/Monthly view using the button in the table header. 
                         Monthly values are divided by 4.333 (52 weeks ÷ 12 months) to get weekly equivalents.
                     </div>
                 </div>
@@ -161,7 +155,14 @@ $weeklyDivisor = 4.333;
                         <div class="table-header-left">
                             <i class="fas fa-table"></i> Tax Bracket Settings
                         </div>
-                        <span class="period-badge" id="periodBadge">WEEKLY</span>
+                        <div class="period-toggle">
+                            <button class="period-btn active" data-period="weekly" onclick="setPeriod('weekly')">
+                                <i class="fas fa-calendar-week"></i> Weekly
+                            </button>
+                            <button class="period-btn" data-period="monthly" onclick="setPeriod('monthly')">
+                                <i class="fas fa-calendar-alt"></i> Monthly
+                            </button>
+                        </div>
                     </div>
                     
                     <form id="taxForm">
@@ -275,10 +276,6 @@ $weeklyDivisor = 4.333;
             document.querySelectorAll('.period-btn').forEach(btn => {
                 btn.classList.toggle('active', btn.dataset.period === period);
             });
-            
-            // Update badge and label
-            document.getElementById('periodBadge').textContent = period.toUpperCase();
-            document.getElementById('periodLabel').textContent = period;
             
             // Update input values
             document.querySelectorAll('#bracketsBody tr[data-id]').forEach(row => {
