@@ -590,9 +590,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_admin'])) {
                         <div class="form-row">
                             <div class="form-group">
                                 <label for="password">Password <span class="required">*</span></label>
-                                <input type="password" id="password" name="password" required minlength="6"
-                                       placeholder="Minimum 6 characters">
-                                <small>Must be at least 6 characters</small>
+                                <input type="password" id="password" name="password" required minlength="8"
+                                       placeholder="Minimum 8 characters">
+                                <small>Must be at least 8 characters and contains at least one symbol</small>
                             </div>
                             
                             <div class="form-group">

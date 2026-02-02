@@ -245,13 +245,18 @@ function requireAdminWithPermission($db, $permission, $error_message = null) {
         redirect(BASE_URL . '/login.php');
     }
     
-    // Check specific permission (super_admin has all permissions by default)
+    // Super admin bypasses permission checks - has all permissions
+    if ($user_level === 'super_admin') {
+        return;
+    }
+    
+    // Check specific permission for regular admins
     if (!hasPermission($db, $permission)) {
         if ($error_message === null) {
             $error_message = 'You do not have permission to access this page';
         }
         setFlashMessage($error_message, 'error');
-        redirect(BASE_URL . '/modules/admin/dashboard.php');
+        redirect(BASE_URL . '/modules/super_admin/dashboard.php');
     }
 }
 
