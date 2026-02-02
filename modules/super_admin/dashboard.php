@@ -124,6 +124,13 @@ try {
     $stmt = $db->query($sql);
     $recent_activities = $stmt->fetchAll();
     
+    // Weekly Payroll Notification - Calculate next payroll date (next Sunday)
+    $nextPayrollDate = date('M d, Y', strtotime('sunday this week'));
+    if (date('N') == 7) {
+        // If today is Sunday, next payroll is next Sunday
+        $nextPayrollDate = date('M d, Y', strtotime('next sunday'));
+    }
+    
 } catch (PDOException $e) {
     error_log("Dashboard Query Error: " . $e->getMessage());
     $total_workers = 0;
@@ -135,6 +142,7 @@ try {
     $today_schedules = [];
     $attendance_trend = [];
     $recent_activities = [];
+    $nextPayrollDate = date('M d, Y', strtotime('sunday this week'));
 }
 
 // Enhanced activity description function
@@ -252,6 +260,9 @@ function getEnhancedActivityDescription($activity) {
                             <p>Here's what's happening with your workforce today</p>
                             <span style="display: inline-flex; align-items: center; gap: 8px; margin-top: 10px; background: linear-gradient(135deg, #DAA520, #b8860b); color: #fff; padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 600;">
                                 <i class="fas fa-shield-alt"></i> Super Admin Access
+                            </span>
+                            <span style="display: inline-flex; align-items: center; gap: 6px; margin-top: 10px; margin-left: 10px; background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.85); padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 500;">
+                                <i class="fas fa-calendar-alt"></i> Next Payroll: <?php echo $nextPayrollDate; ?>
                             </span>
                         </div>
                         <div class="welcome-stats">

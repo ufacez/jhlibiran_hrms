@@ -1505,8 +1505,7 @@ $pageTitle = 'Payroll Management';
         
         // View period details
         function viewPeriod(periodId) {
-            // TODO: Implement period detail view
-            alert('View period ' + periodId + ' - Coming soon!');
+            window.location.href = 'payroll_slips.php?period=' + periodId;
         }
         
         // Print payslip

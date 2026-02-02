@@ -1,6 +1,7 @@
 <?php
 /**
- * View Payroll Slip Details
+ * Enhanced Payroll Slip View - Philippine Standard Format
+ * Based on DOLE and FilePino payroll computation guidelines
  * TrackSite Construction Management System
  */
 
@@ -22,12 +23,13 @@ if (!$recordId || !is_numeric($recordId)) {
     die('Invalid record ID');
 }
 
-// Get record
+// Get record with worker details
 try {
     $stmt = $pdo->prepare("
         SELECT pr.*, 
                p.period_start, p.period_end,
-               w.first_name, w.last_name, w.worker_code, w.position, w.sss_number, w.philhealth_number, w.pagibig_number, w.tin_number AS tin
+               w.first_name, w.last_name, w.worker_code, w.position, w.daily_rate,
+               w.sss_number, w.philhealth_number, w.pagibig_number, w.tin_number AS tin
         FROM payroll_records pr
         JOIN payroll_periods p ON pr.period_id = p.period_id
         JOIN workers w ON pr.worker_id = w.worker_id
@@ -43,612 +45,548 @@ try {
     die('Error loading payroll record: ' . $e->getMessage());
 }
 
-// Get earnings
+// Get detailed attendance for this period
 try {
     $stmt = $pdo->prepare("
-        SELECT earning_type, description, hours, rate_used, multiplier_used, amount, earning_date
-        FROM payroll_earnings
-        WHERE record_id = ?
-        ORDER BY earning_date ASC, earning_type ASC
+        SELECT a.*, 
+               DATE(a.time_in) as work_date,
+               DAYNAME(a.time_in) as day_name,
+               TIME(a.time_in) as in_time,
+               TIME(a.time_out) as out_time
+        FROM attendance a
+        WHERE a.worker_id = ? 
+        AND DATE(a.time_in) BETWEEN ? AND ?
+        AND a.status = 'present'
+        ORDER BY a.time_in ASC
     ");
-    $stmt->execute([$recordId]);
-    $earnings = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $stmt->execute([$record['worker_id'], $record['period_start'], $record['period_end']]);
+    $attendance = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (Exception $e) {
-    $earnings = [];
+    $attendance = [];
 }
 
-// Calculate totals by earning type
-$earningTotals = [];
-foreach ($earnings as $earning) {
-    $type = $earning['earning_type'];
-    if (!isset($earningTotals[$type])) {
-        $earningTotals[$type] = 0;
-    }
-    $earningTotals[$type] += $earning['amount'];
-}
+// Calculate rates
+$dailyRate = $record['daily_rate'] ?? ($record['regular_pay'] / ($record['regular_hours'] / 8));
+$hourlyRate = $dailyRate / 8;
+$monthlyRate = $dailyRate * 26; // Assuming 26 working days
+
+// Philippine standard rates
+$otRate = 1.25; // 125% for regular OT
+$nightDiffRate = 0.10; // 10% additional for night diff
+$specialHolidayRate = 1.30; // 130% for special holidays
+$regularHolidayRate = 2.00; // 200% for regular holidays
+$restDayRate = 1.30; // 130% for rest days
+
+// Calculate monthly equivalent for deductions
+$weeklyGross = $record['gross_pay'];
+$monthlyGross = $weeklyGross * 4.33;
+
+// Use the stored deduction values from payroll_records (already calculated by PayrollCalculator)
+$sssWeekly = floatval($record['sss_contribution']);
+$philhealthWeekly = floatval($record['philhealth_contribution']);
+$pagibigWeekly = floatval($record['pagibig_contribution']);
+$taxWeekly = floatval($record['tax_withholding']);
+
+// Calculate monthly equivalents for display (multiply by 4)
+$sssMonthly = $sssWeekly * 4;
+$philhealthMonthly = $philhealthWeekly * 4;
+$pagibigMonthly = $pagibigWeekly * 4;
+$taxMonthly = $taxWeekly * 4;
+
+$totalDeductions = floatval($record['total_deductions']);
+$netPay = floatval($record['net_pay']);
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Payroll Slip - <?php echo htmlspecialchars($record['first_name'] . ' ' . $record['last_name']); ?></title>
+    <title>Payslip - <?php echo htmlspecialchars($record['first_name'] . ' ' . $record['last_name']); ?></title>
     <link rel="stylesheet" href="https://pro.fontawesome.com/releases/v5.10.0/css/all.css"/>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Arial, sans-serif; background: #f0f2f5; padding: 20px; }
         
-        body {
-            font-family: "Segoe UI", "Arial", sans-serif;
-            background: #f5f5f5;
-            padding: 20px;
-        }
-        
-        .container {
-            background: white;
-            max-width: 900px;
+        .payslip-container {
+            max-width: 800px;
             margin: 0 auto;
-            padding: 40px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            border-radius: 8px;
-        }
-        
-        .payslip-header {
-            text-align: center;
-            border-bottom: 3px solid #1a1a1a;
-            padding-bottom: 20px;
-            margin-bottom: 25px;
-        }
-        
-        .company-name {
-            font-size: 18px;
-            font-weight: 800;
-            color: #1a1a1a;
-            margin-bottom: 5px;
-            letter-spacing: 0.5px;
-        }
-        
-        .payslip-title {
-            font-size: 16px;
-            font-weight: 700;
-            color: #333;
-            margin-bottom: 2px;
-        }
-        
-        .payslip-subtitle {
-            font-size: 12px;
-            color: #999;
-        }
-        
-        .info-section {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 30px;
-            margin-bottom: 30px;
-            border-bottom: 1px solid #f0f0f0;
-            padding-bottom: 20px;
-        }
-        
-        .info-item {
-            display: flex;
-            flex-direction: column;
-        }
-        
-        .info-label {
-            font-size: 11px;
-            font-weight: 700;
-            color: #999;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 4px;
-        }
-        
-        .info-value {
-            font-size: 14px;
-            color: #1a1a1a;
-            font-weight: 600;
-        }
-        
-        .earnings-section, .deductions-section {
-            margin-bottom: 30px;
-        }
-        
-        .section-title {
-            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
-            color: white;
-            padding: 12px 15px;
-            font-weight: 700;
-            font-size: 12px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 15px;
-            border-radius: 4px;
-            border-left: 4px solid #DAA520;
-        }
-        
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 10px;
-            border: 1px solid #e0e0e0;
-            border-radius: 4px;
+            background: white;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            border-radius: 10px;
             overflow: hidden;
         }
         
-        th {
-            background: #f9f9f9;
-            padding: 12px;
-            text-align: left;
-            font-size: 12px;
-            font-weight: 700;
-            color: #1a1a1a;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            border-bottom: 2px solid #DAA520;
+        .payslip-header {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
         }
         
-        td {
-            padding: 12px;
-            font-size: 13px;
-            border-bottom: 1px solid #f0f0f0;
-        }
+        .company-name { font-size: 24px; font-weight: 700; margin-bottom: 5px; }
+        .payslip-title { font-size: 18px; color: #DAA520; margin-bottom: 15px; }
+        .period-info { font-size: 14px; opacity: 0.9; }
         
-        th.amount, td.amount {
-            text-align: right;
-            font-family: 'Courier New', monospace;
-        }
-        
-        tr.total-row {
-            font-weight: 700;
-            background: #f9f9f9;
-            border-top: 2px solid #DAA520;
-        }
-        
-        tr.net-pay-row {
-            font-weight: 700;
-            font-size: 14px;
-            background: linear-gradient(135deg, #FFD700 0%, #FFC700 100%);
-            border-top: 2px solid #DAA520;
-        }
-        
-        .summary-grid {
+        .employee-info {
+            background: #f8f9fa;
+            padding: 20px 30px;
             display: grid;
             grid-template-columns: repeat(3, 1fr);
             gap: 20px;
-            margin-top: 25px;
-            padding-top: 20px;
-            border-top: 1px solid #f0f0f0;
+            border-bottom: 2px solid #DAA520;
         }
         
-        .summary-item {
-            text-align: center;
-            padding: 15px;
-            background: #f9f9f9;
-            border-radius: 6px;
-        }
+        .info-item label { font-size: 11px; color: #666; text-transform: uppercase; display: block; margin-bottom: 3px; }
+        .info-item span { font-size: 15px; font-weight: 600; color: #333; }
         
-        .summary-label {
-            font-size: 11px;
-            color: #999;
-            text-transform: uppercase;
-            font-weight: 600;
-            letter-spacing: 0.5px;
-            margin-bottom: 8px;
-        }
+        .payslip-body { padding: 30px; }
         
-        .summary-value {
-            font-size: 20px;
-            font-weight: 800;
-            color: #1a1a1a;
-        }
-        
-        .summary-value.primary {
-            color: #DAA520;
-        }
-
-        .gov-summary {
-            margin-top: 30px;
-            padding: 20px;
-            border: 2px solid #DAA520;
-            border-radius: 8px;
-            background: linear-gradient(135deg, #fffdf7 0%, #fffdf7 100%);
-        }
-
-        .gov-title {
-            font-size: 12px;
+        .section { margin-bottom: 30px; }
+        .section-title {
+            font-size: 14px;
             font-weight: 700;
-            color: #DAA520;
+            color: #1a1a2e;
             text-transform: uppercase;
             letter-spacing: 1px;
             margin-bottom: 15px;
-            padding-bottom: 10px;
+            padding-bottom: 8px;
             border-bottom: 2px solid #DAA520;
         }
-
-        .gov-grid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 12px;
-            margin-bottom: 15px;
+        
+        .earnings-table, .deductions-table {
+            width: 100%;
+            border-collapse: collapse;
         }
-
-        .gov-item {
-            background: white;
-            padding: 12px;
-            border-radius: 6px;
-            border: 1px solid #DAA520;
-            text-align: center;
-            box-shadow: 0 1px 3px rgba(218, 165, 32, 0.1);
-        }
-
-        .gov-label {
-            font-size: 10px;
-            color: #DAA520;
+        
+        .earnings-table th, .deductions-table th {
+            background: #f8f9fa;
+            padding: 12px 15px;
+            text-align: left;
+            font-size: 12px;
             text-transform: uppercase;
-            font-weight: 700;
-            letter-spacing: 0.5px;
-            margin-bottom: 6px;
+            color: #666;
+            border-bottom: 1px solid #eee;
         }
-
-        .gov-value {
-            font-size: 16px;
-            font-weight: 800;
-            color: #1a1a1a;
+        
+        .earnings-table td, .deductions-table td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 14px;
         }
-
-        .gov-total {
-            margin-top: 15px;
-            padding-top: 12px;
-            border-top: 2px solid #DAA520;
+        
+        .earnings-table td:last-child, .deductions-table td:last-child {
             text-align: right;
-            color: #1a1a1a;
-            font-size: 13px;
+            font-family: 'Courier New', monospace;
+            font-weight: 600;
+        }
+        
+        .computation { color: #666; font-size: 12px; margin-top: 3px; }
+        
+        .total-row {
+            background: #f8f9fa;
+            font-weight: 700;
+        }
+        
+        .total-row td { border-top: 2px solid #DAA520; }
+        
+        .net-pay-box {
+            background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+            padding: 25px;
+            text-align: center;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        
+        .net-pay-label { font-size: 14px; color: #333; margin-bottom: 5px; }
+        .net-pay-amount { font-size: 36px; font-weight: 800; color: #1a1a2e; }
+        
+        .daily-breakdown { margin-top: 30px; }
+        
+        .daily-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .daily-table th {
+            background: #1a1a2e;
+            color: white;
+            padding: 10px;
+            text-align: left;
+            font-size: 11px;
+            text-transform: uppercase;
+        }
+        .daily-table td { padding: 10px; border-bottom: 1px solid #eee; }
+        .daily-table tr:hover { background: #f8f9fa; }
+        
+        .holiday-badge {
+            background: #fff3cd;
+            color: #856404;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            margin-left: 5px;
         }
         
         .signatures {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 30px;
+            gap: 40px;
             margin-top: 40px;
             padding-top: 30px;
-            border-top: 1px solid #f0f0f0;
+            border-top: 1px solid #eee;
         }
         
-        .signature-block {
-            text-align: center;
-        }
-        
-        .signature-line {
-            border-top: 1px solid #000;
-            margin-top: 40px;
-            padding-top: 8px;
-            font-size: 12px;
-            font-weight: 600;
-        }
-        
-        .signature-note {
-            font-size: 11px;
-            color: #999;
-            margin-top: 5px;
-        }
-        
-        .no-deduction {
-            color: #999;
-            font-style: italic;
-        }
+        .signature-block { text-align: center; }
+        .signature-line { border-top: 2px solid #333; margin-top: 50px; padding-top: 10px; }
+        .signature-label { font-size: 12px; color: #666; }
         
         .footer {
-            margin-top: 30px;
-            padding-top: 20px;
-            border-top: 1px solid #f0f0f0;
             text-align: center;
+            padding: 20px;
+            background: #f8f9fa;
             font-size: 11px;
-            color: #999;
+            color: #666;
         }
         
         .print-btn {
             position: fixed;
             top: 20px;
             right: 20px;
-            background: #DAA520;
+            background: #1a1a2e;
             color: white;
             border: none;
             padding: 12px 24px;
-            border-radius: 6px;
+            border-radius: 8px;
             cursor: pointer;
             font-weight: 600;
-            font-size: 13px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-            transition: background 0.3s;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            z-index: 1000;
         }
         
-        .print-btn:hover {
-            background: #c99019;
-        }
+        .print-btn:hover { background: #16213e; }
         
         @media print {
-            body {
-                padding: 0;
-                background: white;
-            }
-            .container {
-                box-shadow: none;
-                padding: 20px;
-            }
-            .print-btn {
-                display: none;
-            }
+            body { padding: 0; background: white; }
+            .payslip-container { box-shadow: none; }
+            .print-btn { display: none; }
         }
     </style>
 </head>
 <body>
     <button class="print-btn" onclick="window.print();">
-        <i class="fas fa-print"></i> Print
+        <i class="fas fa-print"></i> Print Payslip
     </button>
     
-    <div class="container">
+    <div class="payslip-container">
         <!-- Header -->
         <div class="payslip-header">
             <div class="company-name">TRACKSITE CONSTRUCTION MANAGEMENT</div>
             <div class="payslip-title">PAYROLL SLIP</div>
-            <div class="payslip-subtitle">
-                Period: <?php echo date('F d, Y', strtotime($record['period_start'])); ?> - 
-                <?php echo date('F d, Y', strtotime($record['period_end'])); ?>
+            <div class="period-info">
+                Pay Period: <?php echo date('F j, Y', strtotime($record['period_start'])); ?> - 
+                <?php echo date('F j, Y', strtotime($record['period_end'])); ?>
             </div>
         </div>
         
-        <!-- Employee Information -->
-        <div class="info-section">
-            <div>
-                <div class="info-item">
-                    <div class="info-label">Employee's Name</div>
-                    <div class="info-value"><?php echo htmlspecialchars($record['first_name'] . ' ' . $record['last_name']); ?></div>
-                </div>
-                <div class="info-item" style="margin-top: 15px;">
-                    <div class="info-label">Designation</div>
-                    <div class="info-value"><?php echo htmlspecialchars($record['position']); ?></div>
-                </div>
+        <!-- Employee Info -->
+        <div class="employee-info">
+            <div class="info-item">
+                <label>Employee Name</label>
+                <span><?php echo htmlspecialchars($record['first_name'] . ' ' . $record['last_name']); ?></span>
             </div>
-            <div>
-                <div class="info-item">
-                    <div class="info-label">ID No.</div>
-                    <div class="info-value"><?php echo htmlspecialchars($record['worker_code']); ?></div>
-                </div>
-                <div class="info-item" style="margin-top: 15px;">
-                    <div class="info-label">Status</div>
-                    <div class="info-value">
-                        <span style="background: <?php 
-                            echo match($record['status']) {
-                                'draft' => '#e8e8e8',
-                                'pending' => '#fff3cd',
-                                'approved' => '#d4edda',
-                                'paid' => '#d1ecf1',
-                                'cancelled' => '#f8d7da',
-                                default => '#f0f0f0'
-                            };
-                        ?>; padding: 4px 10px; border-radius: 4px; font-size: 12px;">
-                            <?php echo ucfirst($record['status']); ?>
-                        </span>
-                    </div>
-                </div>
+            <div class="info-item">
+                <label>Employee ID</label>
+                <span><?php echo htmlspecialchars($record['worker_code']); ?></span>
+            </div>
+            <div class="info-item">
+                <label>Position</label>
+                <span><?php echo htmlspecialchars($record['position']); ?></span>
+            </div>
+            <div class="info-item">
+                <label>Daily Rate</label>
+                <span>₱<?php echo number_format($dailyRate, 2); ?></span>
+            </div>
+            <div class="info-item">
+                <label>Hourly Rate</label>
+                <span>₱<?php echo number_format($hourlyRate, 2); ?></span>
+            </div>
+            <div class="info-item">
+                <label>Days Worked</label>
+                <span><?php echo number_format(floatval($record['regular_hours']) / 8, 1); ?> days</span>
             </div>
         </div>
         
-        <!-- Work Hours Summary -->
-        <div class="info-section" style="background: #f9f9f9; padding: 15px; border-radius: 6px; border: 1px solid #eee; margin-bottom: 20px;">
-            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px;">
-                <div class="info-item">
-                    <div class="info-label">Regular Hours</div>
-                    <div class="info-value" style="font-size: 18px;"><?php echo number_format($record['regular_hours'], 2); ?> hrs</div>
-                </div>
-                <div class="info-item">
-                    <div class="info-label">Overtime Hours</div>
-                    <div class="info-value" style="font-size: 18px;"><?php echo number_format($record['overtime_hours'], 2); ?> hrs</div>
-                </div>
-                <div class="info-item">
-                    <div class="info-label">Total Hours Worked</div>
-                    <div class="info-value" style="font-size: 18px; color: #DAA520; font-weight: 800;">
-                        <?php 
-                        $totalHours = $record['regular_hours'] + $record['overtime_hours'] + $record['night_diff_hours'] + 
-                                     $record['rest_day_hours'] + $record['regular_holiday_hours'] + $record['special_holiday_hours'];
-                        echo number_format($totalHours, 2); ?> hrs
-                    </div>
+        <div class="payslip-body">
+            <!-- PART 1: GROSS PAY -->
+            <div class="section">
+                <div class="section-title">Gross Pay Computation</div>
+                <table class="earnings-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 40%;">Description</th>
+                            <th style="width: 40%;">Computation</th>
+                            <th style="width: 20%;">Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php if ($record['regular_pay'] > 0): ?>
+                        <tr>
+                            <td>
+                                <strong>Basic Pay (Regular Hours)</strong>
+                                <div class="computation"><?php echo number_format($record['regular_hours'], 2); ?> hours worked</div>
+                            </td>
+                            <td>
+                                <div class="computation">
+                                    <?php echo number_format($record['regular_hours'], 2); ?> hrs × ₱<?php echo number_format($hourlyRate, 2); ?>/hr
+                                </div>
+                            </td>
+                            <td>₱<?php echo number_format($record['regular_pay'], 2); ?></td>
+                        </tr>
+                        <?php endif; ?>
+                        
+                        <?php if ($record['overtime_pay'] > 0): ?>
+                        <tr>
+                            <td>
+                                <strong>Overtime Pay</strong>
+                                <div class="computation"><?php echo number_format($record['overtime_hours'], 2); ?> OT hours @ 125%</div>
+                            </td>
+                            <td>
+                                <div class="computation">
+                                    <?php echo number_format($record['overtime_hours'], 2); ?> hrs × ₱<?php echo number_format($hourlyRate, 2); ?> × <?php echo $otRate; ?>
+                                </div>
+                            </td>
+                            <td>₱<?php echo number_format($record['overtime_pay'], 2); ?></td>
+                        </tr>
+                        <?php endif; ?>
+                        
+                        <?php if ($record['night_diff_pay'] > 0): ?>
+                        <tr>
+                            <td>
+                                <strong>Night Differential</strong>
+                                <div class="computation"><?php echo number_format($record['night_diff_hours'], 2); ?> hours (10PM-6AM)</div>
+                            </td>
+                            <td>
+                                <div class="computation">
+                                    <?php echo number_format($record['night_diff_hours'], 2); ?> hrs × ₱<?php echo number_format($hourlyRate, 2); ?> × 10%
+                                </div>
+                            </td>
+                            <td>₱<?php echo number_format($record['night_diff_pay'], 2); ?></td>
+                        </tr>
+                        <?php endif; ?>
+                        
+                        <?php if ($record['special_holiday_pay'] > 0): ?>
+                        <tr>
+                            <td>
+                                <strong>Special Holiday Pay</strong>
+                                <div class="computation"><?php echo number_format($record['special_holiday_hours'], 2); ?> hours @ 130%</div>
+                            </td>
+                            <td>
+                                <div class="computation">
+                                    <?php echo number_format($record['special_holiday_hours'], 2); ?> hrs × ₱<?php echo number_format($hourlyRate, 2); ?> × <?php echo $specialHolidayRate; ?>
+                                </div>
+                            </td>
+                            <td>₱<?php echo number_format($record['special_holiday_pay'], 2); ?></td>
+                        </tr>
+                        <?php endif; ?>
+                        
+                        <?php if ($record['regular_holiday_pay'] > 0): ?>
+                        <tr>
+                            <td>
+                                <strong>Regular Holiday Pay</strong>
+                                <div class="computation"><?php echo number_format($record['regular_holiday_hours'], 2); ?> hours @ 200%</div>
+                            </td>
+                            <td>
+                                <div class="computation">
+                                    <?php echo number_format($record['regular_holiday_hours'], 2); ?> hrs × ₱<?php echo number_format($hourlyRate, 2); ?> × <?php echo $regularHolidayRate; ?>
+                                </div>
+                            </td>
+                            <td>₱<?php echo number_format($record['regular_holiday_pay'], 2); ?></td>
+                        </tr>
+                        <?php endif; ?>
+                        
+                        <tr class="total-row">
+                            <td colspan="2"><strong>GROSS PAY (Total Taxable + Non-Taxable)</strong></td>
+                            <td><strong>₱<?php echo number_format($record['gross_pay'], 2); ?></strong></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- PART 2: DEDUCTIONS -->
+            <div class="section">
+                <div class="section-title">Gross Deductions</div>
+                <table class="deductions-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 40%;">Deduction Type</th>
+                            <th style="width: 40%;">Computation</th>
+                            <th style="width: 20%;">Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- SSS -->
+                        <tr>
+                            <td>
+                                <strong>SSS Contribution</strong>
+                                <div class="computation">Employee Share (EE)</div>
+                            </td>
+                            <td>
+                                <div class="computation">
+                                    Monthly ₱<?php echo number_format($sssMonthly, 2); ?> ÷ 4 weeks<br>
+                                    <small>Based on monthly salary: ₱<?php echo number_format($monthlyGross, 2); ?></small>
+                                </div>
+                            </td>
+                            <td>₱<?php echo number_format($sssWeekly, 2); ?></td>
+                        </tr>
+                        
+                        <!-- PhilHealth -->
+                        <tr>
+                            <td>
+                                <strong>PhilHealth Contribution</strong>
+                                <div class="computation">Employee Share (2.5%)</div>
+                            </td>
+                            <td>
+                                <div class="computation">
+                                    Monthly ₱<?php echo number_format($philhealthMonthly, 2); ?> ÷ 4 weeks<br>
+                                    <small>Based on monthly salary: ₱<?php echo number_format($monthlyGross, 2); ?></small>
+                                </div>
+                            </td>
+                            <td>₱<?php echo number_format($philhealthWeekly, 2); ?></td>
+                        </tr>
+                        
+                        <!-- Pag-IBIG -->
+                        <tr>
+                            <td>
+                                <strong>Pag-IBIG Contribution</strong>
+                                <div class="computation">Employee Share (2%)</div>
+                            </td>
+                            <td>
+                                <div class="computation">
+                                    Monthly ₱<?php echo number_format($pagibigMonthly, 2); ?> ÷ 4 weeks<br>
+                                    <small>Max compensation: ₱5,000/month</small>
+                                </div>
+                            </td>
+                            <td>₱<?php echo number_format($pagibigWeekly, 2); ?></td>
+                        </tr>
+                        
+                        <!-- Withholding Tax -->
+                        <tr>
+                            <td>
+                                <strong>Withholding Tax (BIR)</strong>
+                                <div class="computation">Based on BIR Tax Table</div>
+                            </td>
+                            <td>
+                                <div class="computation">
+                                    Monthly ₱<?php echo number_format($taxMonthly, 2); ?> ÷ 4 weeks<br>
+                                    <small>Based on taxable income after deductions</small>
+                                </div>
+                            </td>
+                            <td>₱<?php echo number_format($taxWeekly, 2); ?></td>
+                        </tr>
+                        
+                        <tr class="total-row">
+                            <td colspan="2"><strong>TOTAL DEDUCTIONS</strong></td>
+                            <td><strong>₱<?php echo number_format($totalDeductions, 2); ?></strong></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- PART 3: NET PAY -->
+            <div class="section">
+                <div class="section-title">Part 3: Net Pay Computation</div>
+                <table class="earnings-table">
+                    <tbody>
+                        <tr>
+                            <td>Gross Pay</td>
+                            <td style="text-align: right;">₱<?php echo number_format($record['gross_pay'], 2); ?></td>
+                        </tr>
+                        <tr>
+                            <td>Less: Total Deductions</td>
+                            <td style="text-align: right;">(₱<?php echo number_format($totalDeductions, 2); ?>)</td>
+                        </tr>
+                    </tbody>
+                </table>
+                
+                <div class="net-pay-box">
+                    <div class="net-pay-label">NET PAY (Take Home Pay)</div>
+                    <div class="net-pay-amount">₱<?php echo number_format($netPay, 2); ?></div>
                 </div>
             </div>
-        </div>
-        
-        <!-- Earnings Section -->
-        <div class="earnings-section">
-            <div class="section-title">EARNINGS</div>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Description</th>
-                        <th class="amount">Hours</th>
-                        <th class="amount">Rate</th>
-                        <th class="amount">Amount</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php if (!empty($earnings)): ?>
-                        <?php foreach ($earnings as $earning): ?>
-                            <tr>
-                                <td>
-                                    <?php 
-                                    $type = formatEarningType($earning['earning_type']);
-                                    $desc = $type;
-                                    if ($earning['description']) {
-                                        $desc .= ' - ' . htmlspecialchars($earning['description']);
-                                    }
-                                    echo $desc;
-                                    ?>
-                                </td>
-                                <td class="amount">
-                                    <?php echo $earning['hours'] > 0 ? number_format($earning['hours'], 2) : '-'; ?>
-                                </td>
-                                <td class="amount">₱<?php echo number_format($earning['rate_used'], 2); ?></td>
-                                <td class="amount">₱<?php echo number_format($earning['amount'], 2); ?></td>
-                            </tr>
+            
+            <!-- Daily Breakdown -->
+            <?php if (!empty($attendance)): ?>
+            <div class="section daily-breakdown">
+                <div class="section-title">Daily Time Record (DTR) Summary</div>
+                <table class="daily-table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Day</th>
+                            <th>Time In</th>
+                            <th>Time Out</th>
+                            <th>Hours</th>
+                            <th>Daily Pay</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($attendance as $att): 
+                            $dailyHours = ($att['regular_hours'] ?? 0) + ($att['overtime_hours'] ?? 0);
+                            $dailyPay = ($att['regular_hours'] ?? 0) * $hourlyRate;
+                            if ($att['overtime_hours'] > 0) {
+                                $dailyPay += ($att['overtime_hours'] * $hourlyRate * $otRate);
+                            }
+                            
+                            $workDate = strtotime($att['work_date']);
+                            $isHoliday = (date('m-d', $workDate) == '02-01'); // Chinese New Year
+                            $dayOfWeek = date('N', $workDate);
+                            $isWeekend = ($dayOfWeek >= 6);
+                        ?>
+                        <tr>
+                            <td>
+                                <?php echo date('M j, Y', $workDate); ?>
+                                <?php if ($isHoliday): ?>
+                                    <span class="holiday-badge">Chinese New Year</span>
+                                <?php elseif ($isWeekend): ?>
+                                    <span class="holiday-badge">Weekend</span>
+                                <?php endif; ?>
+                            </td>
+                            <td><?php echo date('D', $workDate); ?></td>
+                            <td><?php echo $att['in_time'] ? date('h:i A', strtotime($att['in_time'])) : '-'; ?></td>
+                            <td><?php echo $att['out_time'] ? date('h:i A', strtotime($att['out_time'])) : '-'; ?></td>
+                            <td><?php echo number_format($dailyHours, 2); ?> hrs</td>
+                            <td>₱<?php echo number_format($dailyPay, 2); ?></td>
+                        </tr>
                         <?php endforeach; ?>
-                    <?php else: ?>
-                        <tr>
-                            <td colspan="4" class="no-deduction">No earnings recorded</td>
-                        </tr>
-                    <?php endif; ?>
-                    <tr class="total-row">
-                        <td colspan="3">GROSS PAY</td>
-                        <td class="amount">₱<?php echo number_format($record['gross_pay'], 2); ?></td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-        
-        <!-- Deductions Section -->
-        <div class="deductions-section">
-            <div class="section-title">DEDUCTIONS</div>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Description</th>
-                        <th class="amount">Amount</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php 
-                    $deductions = [
-                        'SSS Contribution' => $record['sss_contribution'],
-                        'PhilHealth Contribution' => $record['philhealth_contribution'],
-                        'Pag-IBIG Contribution' => $record['pagibig_contribution'],
-                        'Withholding Tax (BIR)' => $record['tax_withholding'],
-                        'Other Deductions' => $record['other_deductions'],
-                    ];
-                    
-                    $hasDeductions = false;
-                    foreach ($deductions as $label => $amount):
-                        if ($amount > 0):
-                            $hasDeductions = true;
-                    ?>
-                        <tr>
-                            <td><?php echo htmlspecialchars($label); ?></td>
-                            <td class="amount">₱<?php echo number_format($amount, 2); ?></td>
-                        </tr>
-                    <?php endif; endforeach; 
-                    
-                    if (!$hasDeductions): ?>
-                        <tr>
-                            <td colspan="2" class="no-deduction">No deductions</td>
-                        </tr>
-                    <?php endif; ?>
-                    <tr class="total-row">
-                        <td>TOTAL DEDUCTIONS</td>
-                        <td class="amount">₱<?php echo number_format($record['total_deductions'], 2); ?></td>
-                    </tr>
-                    <tr class="net-pay-row">
-                        <td>NET PAY</td>
-                        <td class="amount">₱<?php echo number_format($record['net_pay'], 2); ?></td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-        
-        <!-- Summary -->
-        <div class="summary-grid">
-            <div class="summary-item">
-                <div class="summary-label">Gross Pay</div>
-                <div class="summary-value">₱<?php echo number_format($record['gross_pay'], 0); ?></div>
+                    </tbody>
+                </table>
             </div>
-            <div class="summary-item">
-                <div class="summary-label">Deductions</div>
-                <div class="summary-value">₱<?php echo number_format($record['total_deductions'], 0); ?></div>
-            </div>
-            <div class="summary-item">
-                <div class="summary-label">Net Pay</div>
-                <div class="summary-value primary">₱<?php echo number_format($record['net_pay'], 0); ?></div>
-            </div>
-        </div>
-
-        <?php
-            $sss = (float)($record['sss_contribution'] ?? 0);
-            $philhealth = (float)($record['philhealth_contribution'] ?? 0);
-            $pagibig = (float)($record['pagibig_contribution'] ?? 0);
-            $tax = (float)($record['tax_withholding'] ?? 0);
-            $govTotal = $sss + $philhealth + $pagibig + $tax;
-        ?>
-
-        <div class="gov-summary">
-            <div class="gov-title">Government Deductions Summary</div>
-            <div class="gov-grid">
-                <div class="gov-item">
-                    <div class="gov-label">SSS</div>
-                    <div class="gov-value">₱<?php echo number_format($sss, 2); ?></div>
-                    <div style="font-size: 9px; color: #999; margin-top: 4px;">Social Security</div>
+            <?php endif; ?>
+            
+            <!-- Signatures -->
+            <div class="signatures">
+                <div class="signature-block">
+                    <p style="font-size: 11px; color: #666; margin-bottom: 10px;">
+                        I hereby acknowledge receipt of my salary as indicated above.
+                    </p>
+                    <div class="signature-line">
+                        <strong><?php echo htmlspecialchars($record['first_name'] . ' ' . $record['last_name']); ?></strong>
+                        <div class="signature-label">Employee's Signature</div>
+                    </div>
                 </div>
-                <div class="gov-item">
-                    <div class="gov-label">PhilHealth</div>
-                    <div class="gov-value">₱<?php echo number_format($philhealth, 2); ?></div>
-                    <div style="font-size: 9px; color: #999; margin-top: 4px;">Health Insurance</div>
-                </div>
-                <div class="gov-item">
-                    <div class="gov-label">Pag-IBIG</div>
-                    <div class="gov-value">₱<?php echo number_format($pagibig, 2); ?></div>
-                    <div style="font-size: 9px; color: #999; margin-top: 4px;">Housing Fund</div>
-                </div>
-                <div class="gov-item">
-                    <div class="gov-label">Withholding Tax</div>
-                    <div class="gov-value">₱<?php echo number_format($tax, 2); ?></div>
-                    <div style="font-size: 9px; color: #999; margin-top: 4px;">BIR Tax</div>
-                </div>
-            </div>
-            <div class="gov-total">
-                <strong>Total Government Deductions: ₱<?php echo number_format($govTotal, 2); ?></strong>
-            </div>
-        </div>
-        
-        <!-- Signatures -->
-        <div class="signatures">
-            <div class="signature-block">
-                <p style="font-size: 12px; margin-bottom: 20px;">I hereby acknowledge receipt of my salaries as indicated in the Net Pay portion representing payment for my services rendered in the payroll period as specified in this payslip.</p>
-                <div class="signature-line">
-                    <strong><?php echo htmlspecialchars($record['first_name'] . ' ' . $record['last_name']); ?></strong>
-                    <div class="signature-note">Employee's Signature Over Printed Name</div>
-                </div>
-            </div>
-            <div class="signature-block">
-                <p style="font-size: 12px; margin-bottom: 20px;">&nbsp;</p>
-                <div class="signature-line">
-                    <strong>________________________</strong>
-                    <div class="signature-note">Head, Human Resources Department</div>
+                <div class="signature-block">
+                    <p style="font-size: 11px; color: #666; margin-bottom: 10px;">
+                        Certified correct:
+                    </p>
+                    <div class="signature-line">
+                        <strong>_____________________</strong>
+                        <div class="signature-label">HR / Payroll Officer</div>
+                    </div>
                 </div>
             </div>
         </div>
         
         <!-- Footer -->
         <div class="footer">
-            <p>This is an electronically generated payroll slip. No signature is required for validity.</p>
-            <p style="margin-top: 5px;">Generated on <?php echo date('F d, Y \a\t g:i A'); ?></p>
+            <p>This is a computer-generated payslip. Generated on <?php echo date('F j, Y \a\t g:i A'); ?></p>
+            <p>Reference: DOLE Department Order No. 183 | BIR RR No. 2-98</p>
         </div>
     </div>
 </body>
 </html>
-
-<?php
-function formatEarningType($type) {
-    $types = [
-        'regular' => 'Regular Hours',
-        'overtime' => 'Overtime Hours',
-        'night_diff' => 'Night Differential',
-        'regular_holiday' => 'Regular Holiday',
-        'special_holiday' => 'Special Holiday',
-        'bonus' => 'Bonus',
-        'allowance' => 'Allowance',
-        'other' => 'Other Earnings',
-    ];
-    return $types[$type] ?? ucfirst(str_replace('_', ' ', $type));
-}
-?>

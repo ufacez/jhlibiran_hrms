@@ -220,19 +220,33 @@ $pageTitle = 'Payroll Slips';
             padding: 15px 20px;
             font-weight: 600;
             display: grid;
-            grid-template-columns: 130px 220px minmax(110px, 1fr) minmax(110px, 1fr) minmax(110px, 1fr) 110px 90px;
-            gap: 15px;
+            grid-template-columns: 120px 1fr 130px 130px 130px 100px 100px;
+            gap: 10px;
             align-items: center;
             font-size: 13px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
         
+        .list-header > div:nth-child(3),
+        .list-header > div:nth-child(4),
+        .list-header > div:nth-child(5) {
+            text-align: right;
+        }
+        
+        .list-header > div:nth-child(6) {
+            text-align: center;
+        }
+        
+        .list-header > div:nth-child(7) {
+            text-align: center;
+        }
+        
         .list-item {
             padding: 15px 20px;
             display: grid;
-            grid-template-columns: 130px 220px minmax(110px, 1fr) minmax(110px, 1fr) minmax(110px, 1fr) 110px 90px;
-            gap: 15px;
+            grid-template-columns: 120px 1fr 130px 130px 130px 100px 100px;
+            gap: 10px;
             align-items: center;
             border-bottom: 1px solid #f0f0f0;
             transition: background 0.2s;
@@ -273,6 +287,7 @@ $pageTitle = 'Payroll Slips';
             text-align: right;
             font-weight: 600;
             color: #1a1a1a;
+            font-size: 13px;
         }
         
         .item-status {
@@ -317,6 +332,7 @@ $pageTitle = 'Payroll Slips';
         .item-actions {
             display: flex;
             gap: 8px;
+            justify-content: center;
         }
         
         .btn-action {
@@ -402,11 +418,11 @@ $pageTitle = 'Payroll Slips';
         @media (max-width: 1200px) {
             .list-header,
             .list-item {
-                grid-template-columns: 140px 1fr 110px 110px 110px 90px;
+                grid-template-columns: 100px 1fr 110px 110px 110px 90px;
             }
 
-            .list-header div:nth-child(6),
-            .list-item div:nth-child(6) {
+            .list-header > div:nth-child(7),
+            .list-item > div:nth-child(7) {
                 display: none;
             }
         }
@@ -555,7 +571,7 @@ $pageTitle = 'Payroll Slips';
                                 ₱<?php echo number_format($record['total_deductions'], 2); ?>
                             </div>
                             
-                            <div class="item-amount" style="color: #DAA520; font-size: 14px;">
+                            <div class="item-amount" style="color: #DAA520; font-weight: 700;">
                                 ₱<?php echo number_format($record['net_pay'], 2); ?>
                             </div>
                             
