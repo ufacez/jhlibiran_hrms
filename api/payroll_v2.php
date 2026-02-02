@@ -503,6 +503,107 @@ try {
                 'message' => 'Derived values recalculated'
             ]);
             break;
+        
+        // ==========================================
+        // TAX BRACKET ENDPOINTS
+        // ==========================================
+        
+        case 'get_tax_brackets':
+            // GET: Get all tax brackets
+            $stmt = $pdo->query("SELECT * FROM bir_tax_brackets WHERE is_active = 1 ORDER BY bracket_level ASC");
+            $brackets = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            echo json_encode([
+                'success' => true,
+                'brackets' => $brackets
+            ]);
+            break;
+            
+        case 'save_tax_brackets':
+            // POST: Save/update all tax brackets
+            if ($method !== 'POST') {
+                throw new Exception('Method not allowed');
+            }
+            
+            $brackets = $input['brackets'] ?? [];
+            
+            if (empty($brackets)) {
+                throw new Exception('No brackets provided');
+            }
+            
+            $pdo->beginTransaction();
+            
+            try {
+                // Deactivate all existing brackets
+                $pdo->exec("UPDATE bir_tax_brackets SET is_active = 0");
+                
+                // Insert/update brackets
+                $stmtInsert = $pdo->prepare("
+                    INSERT INTO bir_tax_brackets (bracket_level, lower_bound, upper_bound, base_tax, tax_rate, is_exempt, is_active)
+                    VALUES (?, ?, ?, ?, ?, ?, 1)
+                ");
+                
+                $stmtUpdate = $pdo->prepare("
+                    UPDATE bir_tax_brackets 
+                    SET bracket_level = ?, lower_bound = ?, upper_bound = ?, base_tax = ?, tax_rate = ?, is_exempt = ?, is_active = 1
+                    WHERE bracket_id = ?
+                ");
+                
+                foreach ($brackets as $b) {
+                    if ($b['bracket_id']) {
+                        $stmtUpdate->execute([
+                            $b['bracket_level'],
+                            $b['lower_bound'],
+                            $b['upper_bound'],
+                            $b['base_tax'],
+                            $b['tax_rate'],
+                            $b['is_exempt'],
+                            $b['bracket_id']
+                        ]);
+                    } else {
+                        $stmtInsert->execute([
+                            $b['bracket_level'],
+                            $b['lower_bound'],
+                            $b['upper_bound'],
+                            $b['base_tax'],
+                            $b['tax_rate'],
+                            $b['is_exempt']
+                        ]);
+                    }
+                }
+                
+                $pdo->commit();
+                
+                echo json_encode([
+                    'success' => true,
+                    'message' => 'Tax brackets saved'
+                ]);
+            } catch (Exception $e) {
+                $pdo->rollBack();
+                throw $e;
+            }
+            break;
+            
+        case 'delete_tax_bracket':
+            // POST: Delete a tax bracket
+            if ($method !== 'POST') {
+                throw new Exception('Method not allowed');
+            }
+            
+            $bracketId = $input['bracket_id'] ?? null;
+            
+            if (!$bracketId) {
+                throw new Exception('Bracket ID required');
+            }
+            
+            $stmt = $pdo->prepare("DELETE FROM bir_tax_brackets WHERE bracket_id = ?");
+            $stmt->execute([$bracketId]);
+            
+            echo json_encode([
+                'success' => true,
+                'message' => 'Bracket deleted'
+            ]);
+            break;
             
         default:
             throw new Exception('Unknown action: ' . $action);

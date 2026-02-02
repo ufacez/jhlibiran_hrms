@@ -357,6 +357,15 @@ $module_path = $is_super_admin ? '/modules/super_admin' : '/modules/admin';
                 <div class="title">Payroll Settings</div>
             </a>
         </li>
+        
+        <!-- BIR Tax Settings -->
+        <li>
+            <a href="<?php echo BASE_URL; ?>/modules/super_admin/payroll_v2/tax_brackets.php"
+               class="<?php echo ($current_dir === 'payroll_v2' && $current_page === 'tax_brackets.php') ? 'active' : ''; ?>">
+                <i class="fas fa-percentage"></i>
+                <div class="title">BIR Tax Settings</div>
+            </a>
+        </li>
         <?php endif; ?>
         
         <!-- SYSTEM SECTION (only if has permission) -->

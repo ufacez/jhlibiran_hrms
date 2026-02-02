@@ -317,6 +317,15 @@ $current_dir = basename(dirname($_SERVER['PHP_SELF']));
             </a>
         </li>
         
+        <!-- BIR Tax Settings -->
+        <li>
+            <a href="<?php echo BASE_URL; ?>/modules/super_admin/payroll_v2/tax_brackets.php"
+               class="<?php echo ($current_dir === 'payroll_v2' && $current_page === 'tax_brackets.php') ? 'active' : ''; ?>">
+                <i class="fas fa-percentage"></i>
+                <div class="title">BIR Tax Settings</div>
+            </a>
+        </li>
+        
         <div class="menu-separator"></div>
         
         <!-- SYSTEM MANAGEMENT -->
