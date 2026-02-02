@@ -75,14 +75,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_permissions'])
         // All possible permissions
         $all_permissions = [
             'can_view_workers', 'can_add_workers', 'can_edit_workers', 'can_delete_workers',
-            'can_view_attendance', 'can_add_attendance', 'can_edit_attendance', 'can_delete_attendance',
+            'can_view_attendance', 'can_mark_attendance', 'can_edit_attendance', 'can_delete_attendance',
             'can_view_schedule', 'can_manage_schedule',
-            'can_view_payroll', 'can_generate_payroll', 'can_edit_payroll', 'can_delete_payroll',
+            'can_view_payroll', 'can_generate_payroll', 'can_approve_payroll', 'can_mark_paid', 'can_edit_payroll', 'can_delete_payroll',
+            'can_view_payroll_settings', 'can_edit_payroll_settings',
             'can_view_deductions', 'can_manage_deductions',
             'can_view_cashadvance', 'can_approve_cashadvance',
-            'can_view_reports', 'can_export_data',
-            'can_manage_admins', 'can_view_settings', 'can_edit_settings', 'can_view_logs',
-            'can_access_settings', 'can_access_audit', 'can_access_archive'
+            'can_access_settings', 'can_access_audit', 'can_access_archive', 'can_manage_admins'
         ];
         
         // Build update query
@@ -379,6 +378,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_permissions'])
                                 <input type="checkbox" name="can_generate_payroll" id="can_generate_payroll" value="1"
                                        <?php echo ($permissions['can_generate_payroll'] ?? 0) ? 'checked' : ''; ?>>
                                 <label for="can_generate_payroll">Generate Payroll</label>
+                            </div>
+                            <div class="permission-item" onclick="toggleCheckbox('can_approve_payroll')">
+                                <input type="checkbox" name="can_approve_payroll" id="can_approve_payroll" value="1"
+                                       <?php echo ($permissions['can_approve_payroll'] ?? 0) ? 'checked' : ''; ?>>
+                                <label for="can_approve_payroll">Approve Payroll</label>
+                            </div>
+                            <div class="permission-item" onclick="toggleCheckbox('can_mark_paid')">
+                                <input type="checkbox" name="can_mark_paid" id="can_mark_paid" value="1"
+                                       <?php echo ($permissions['can_mark_paid'] ?? 0) ? 'checked' : ''; ?>>
+                                <label for="can_mark_paid">Mark as Paid</label>
                             </div>
                             <div class="permission-item" onclick="toggleCheckbox('can_edit_payroll')">
                                 <input type="checkbox" name="can_edit_payroll" id="can_edit_payroll" value="1"

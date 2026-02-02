@@ -11,8 +11,10 @@ require_once __DIR__ . '/../../../config/settings.php';
 require_once __DIR__ . '/../../../config/session.php';
 require_once __DIR__ . '/../../../includes/functions.php';
 require_once __DIR__ . '/../../../includes/auth.php';
+require_once __DIR__ . '/../../../includes/admin_functions.php';
 require_once __DIR__ . '/../../../includes/payroll_settings.php';
 
+// Payroll settings - Super Admin only (admins can view payroll but not configure settings)
 requireSuperAdmin();
 
 $pdo = getDBConnection();

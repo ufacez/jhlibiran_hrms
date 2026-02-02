@@ -11,8 +11,14 @@ require_once __DIR__ . '/../../../config/settings.php';
 require_once __DIR__ . '/../../../config/session.php';
 require_once __DIR__ . '/../../../includes/functions.php';
 require_once __DIR__ . '/../../../includes/auth.php';
+require_once __DIR__ . '/../../../includes/admin_functions.php';
 
-requireSuperAdmin();
+// Allow admin with payroll view permission to see this page
+requireAdminWithPermission($db, 'can_view_payroll', 'You do not have permission to view payroll settings');
+
+// Check if user can edit (super_admin or has can_edit_payroll_settings permission)
+$user_level = getCurrentUserLevel();
+$can_edit = ($user_level === 'super_admin') || hasPermission($db, 'can_edit_payroll_settings');
 
 $pdo = getDBConnection();
 
@@ -111,7 +117,13 @@ $weeklyDivisor = 4.333;
 </head>
 <body>
     <div class="container">
-        <?php include __DIR__ . '/../../../includes/sidebar.php'; ?>
+        <?php 
+        if ($user_level === 'super_admin') {
+            include __DIR__ . '/../../../includes/sidebar.php';
+        } else {
+            include __DIR__ . '/../../../includes/admin_sidebar.php';
+        }
+        ?>
         
         <div class="main">
             <?php include __DIR__ . '/../../../includes/topbar.php'; ?>
@@ -141,6 +153,13 @@ $weeklyDivisor = 4.333;
                         </div>
                     </div>
                     
+                    <?php if (!$can_edit): ?>
+                    <div class="view-only-notice" style="background: #fef3c7; border: 1px solid #f59e0b; border-radius: 8px; padding: 12px 16px; margin: 20px; display: flex; align-items: center; gap: 10px;">
+                        <i class="fas fa-eye" style="color: #d97706;"></i>
+                        <span style="color: #92400e; font-size: 14px;">You have view-only access to these settings. Contact a super admin to make changes.</span>
+                    </div>
+                    <?php endif; ?>
+                    
                     <form id="taxForm">
                         <table class="tax-table">
                             <thead>
@@ -151,7 +170,9 @@ $weeklyDivisor = 4.333;
                                     <th>Base Tax (₱)</th>
                                     <th style="width: 120px;">Tax Rate</th>
                                     <th style="width: 120px;">Tax Exempt</th>
+                                    <?php if ($can_edit): ?>
                                     <th style="width: 60px;"></th>
+                                    <?php endif; ?>
                                 </tr>
                             </thead>
                             <tbody id="bracketsBody">
@@ -169,7 +190,7 @@ $weeklyDivisor = 4.333;
                                             <input type="text" class="tax-input" name="lower_bound[]" 
                                                    value="<?php echo number_format(round($b['lower_bound'] / $weeklyDivisor), 0, '.', ','); ?>" 
                                                    data-field="lower_bound"
-                                                   data-monthly="<?php echo $b['lower_bound']; ?>">
+                                                   data-monthly="<?php echo $b['lower_bound']; ?>" <?php echo !$can_edit ? 'disabled' : ''; ?>>
                                         </div>
                                     </td>
                                     <td>
@@ -178,7 +199,7 @@ $weeklyDivisor = 4.333;
                                             <input type="text" class="tax-input" name="upper_bound[]" 
                                                    value="<?php echo number_format(round($b['upper_bound'] / $weeklyDivisor), 0, '.', ','); ?>" 
                                                    data-field="upper_bound"
-                                                   data-monthly="<?php echo $b['upper_bound']; ?>">
+                                                   data-monthly="<?php echo $b['upper_bound']; ?>" <?php echo !$can_edit ? 'disabled' : ''; ?>>
                                         </div>
                                     </td>
                                     <td>
@@ -187,35 +208,43 @@ $weeklyDivisor = 4.333;
                                             <input type="text" class="tax-input" name="base_tax[]" 
                                                    value="<?php echo number_format(round($b['base_tax'] / $weeklyDivisor), 0, '.', ','); ?>" 
                                                    data-field="base_tax"
-                                                   data-monthly="<?php echo $b['base_tax']; ?>">
+                                                   data-monthly="<?php echo $b['base_tax']; ?>" <?php echo !$can_edit ? 'disabled' : ''; ?>>
                                         </div>
                                     </td>
                                     <td>
                                         <div class="input-group">
                                             <input type="text" class="tax-input" name="tax_rate[]" 
                                                    value="<?php echo rtrim(rtrim(number_format($b['tax_rate'], 2, '.', ''), '0'), '.'); ?>" 
-                                                   data-field="tax_rate">
+                                                   data-field="tax_rate" <?php echo !$can_edit ? 'disabled' : ''; ?>>
                                             <span class="input-suffix">%</span>
                                         </div>
                                     </td>
                                     <td>
+                                        <?php if ($can_edit): ?>
                                         <label class="exempt-toggle">
                                             <div class="toggle-switch <?php echo $b['is_exempt'] ? 'active' : ''; ?>" 
                                                  onclick="toggleExempt(this)" data-value="<?php echo $b['is_exempt']; ?>"></div>
                                             <span><?php echo $b['is_exempt'] ? 'Yes' : 'No'; ?></span>
                                             <input type="hidden" name="is_exempt[]" value="<?php echo $b['is_exempt']; ?>">
                                         </label>
+                                        <?php else: ?>
+                                        <span class="exempt-badge <?php echo $b['is_exempt'] ? 'yes' : 'no'; ?>">
+                                            <?php echo $b['is_exempt'] ? 'Yes' : 'No'; ?>
+                                        </span>
+                                        <?php endif; ?>
                                     </td>
+                                    <?php if ($can_edit): ?>
                                     <td>
                                         <button type="button" class="btn-delete" onclick="deleteBracket(<?php echo $b['bracket_id']; ?>)" title="Delete">
                                             <i class="fas fa-trash"></i>
                                         </button>
                                     </td>
+                                    <?php endif; ?>
                                 </tr>
                                 <?php endforeach; ?>
                                 <?php if (empty($brackets)): ?>
                                 <tr id="emptyRow">
-                                    <td colspan="7" style="text-align: center; padding: 40px; color: #888;">
+                                    <td colspan="<?php echo $can_edit ? '7' : '6'; ?>" style="text-align: center; padding: 40px; color: #888;">
                                         <i class="fas fa-inbox" style="font-size: 40px; color: #ddd; margin-bottom: 10px;"></i>
                                         <p>No tax brackets configured</p>
                                     </td>
@@ -224,6 +253,7 @@ $weeklyDivisor = 4.333;
                             </tbody>
                         </table>
                         
+                        <?php if ($can_edit): ?>
                         <div class="table-footer">
                             <button type="button" class="btn btn-add" onclick="addBracket()">
                                 <i class="fas fa-plus"></i> Add Bracket
@@ -232,6 +262,13 @@ $weeklyDivisor = 4.333;
                                 <i class="fas fa-save"></i> Save Changes
                             </button>
                         </div>
+                        <?php else: ?>
+                        <div class="table-footer">
+                            <button type="button" class="btn btn-primary" onclick="location.href='../payroll_v2/index.php'">
+                                <i class="fas fa-arrow-left"></i> Back to Payroll
+                            </button>
+                        </div>
+                        <?php endif; ?>
                     </form>
                 </div>
             </div>

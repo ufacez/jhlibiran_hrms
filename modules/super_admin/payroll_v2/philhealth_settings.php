@@ -13,8 +13,14 @@ require_once __DIR__ . '/../../../config/settings.php';
 require_once __DIR__ . '/../../../config/session.php';
 require_once __DIR__ . '/../../../includes/functions.php';
 require_once __DIR__ . '/../../../includes/auth.php';
+require_once __DIR__ . '/../../../includes/admin_functions.php';
 
-requireSuperAdmin();
+// Allow admin with payroll view permission to see this page
+requireAdminWithPermission($db, 'can_view_payroll', 'You do not have permission to view payroll settings');
+
+// Check if user can edit (super_admin or has can_edit_payroll_settings permission)
+$user_level = getCurrentUserLevel();
+$can_edit = ($user_level === 'super_admin') || hasPermission($db, 'can_edit_payroll_settings');
 
 $pdo = getDBConnection();
 
@@ -101,7 +107,13 @@ $pageTitle = 'PhilHealth Settings';
 </head>
 <body>
     <div class="container">
-        <?php include __DIR__ . '/../../../includes/sidebar.php'; ?>
+        <?php 
+        if ($user_level === 'super_admin') {
+            include __DIR__ . '/../../../includes/sidebar.php';
+        } else {
+            include __DIR__ . '/../../../includes/admin_sidebar.php';
+        }
+        ?>
         
         <div class="main">
             <?php include __DIR__ . '/../../../includes/topbar.php'; ?>
@@ -117,13 +129,20 @@ $pageTitle = 'PhilHealth Settings';
                         <i class="fas fa-cog"></i> Contribution Settings
                     </div>
                     
+                    <?php if (!$can_edit): ?>
+                    <div class="view-only-notice" style="background: #fef3c7; border: 1px solid #f59e0b; border-radius: 8px; padding: 12px 16px; margin: 20px 25px 0 25px; display: flex; align-items: center; gap: 10px;">
+                        <i class="fas fa-eye" style="color: #d97706;"></i>
+                        <span style="color: #92400e; font-size: 14px;">You have view-only access to these settings. Contact a super admin to make changes.</span>
+                    </div>
+                    <?php endif; ?>
+                    
                     <form id="philhealthForm">
                         <div class="card-body">
                             <div class="form-group">
                                 <label class="form-label">Premium Rate <small>(Total contribution percentage)</small></label>
                                 <div class="input-group">
                                     <input type="number" class="form-input" id="premiumRate" name="premium_rate" 
-                                           value="<?php echo $settings['premium_rate']; ?>" step="0.01" min="0" max="100" required>
+                                           value="<?php echo $settings['premium_rate']; ?>" step="0.01" min="0" max="100" required <?php echo !$can_edit ? 'disabled' : ''; ?>>
                                     <span class="input-addon">%</span>
                                 </div>
                             </div>
@@ -133,7 +152,7 @@ $pageTitle = 'PhilHealth Settings';
                                     <label class="form-label">Employee Share <small>(EE pays)</small></label>
                                     <div class="input-group">
                                         <input type="number" class="form-input" id="employeeShare" name="employee_share" 
-                                               value="<?php echo $settings['employee_share']; ?>" step="0.01" min="0" max="100" required>
+                                               value="<?php echo $settings['employee_share']; ?>" step="0.01" min="0" max="100" required <?php echo !$can_edit ? 'disabled' : ''; ?>>
                                         <span class="input-addon">%</span>
                                     </div>
                                 </div>
@@ -141,7 +160,7 @@ $pageTitle = 'PhilHealth Settings';
                                     <label class="form-label">Employer Share <small>(ER pays)</small></label>
                                     <div class="input-group">
                                         <input type="number" class="form-input" id="employerShare" name="employer_share" 
-                                               value="<?php echo $settings['employer_share']; ?>" step="0.01" min="0" max="100" required>
+                                               value="<?php echo $settings['employer_share']; ?>" step="0.01" min="0" max="100" required <?php echo !$can_edit ? 'disabled' : ''; ?>>
                                         <span class="input-addon">%</span>
                                     </div>
                                 </div>
@@ -155,7 +174,7 @@ $pageTitle = 'PhilHealth Settings';
                                     <div class="input-group">
                                         <span class="input-addon-left">₱</span>
                                         <input type="number" class="form-input has-left-addon" id="minSalary" name="min_salary" 
-                                               value="<?php echo $settings['min_salary']; ?>" step="0.01" min="0" required>
+                                               value="<?php echo $settings['min_salary']; ?>" step="0.01" min="0" required <?php echo !$can_edit ? 'disabled' : ''; ?>>
                                     </div>
                                 </div>
                                 <div class="form-group">
@@ -163,7 +182,7 @@ $pageTitle = 'PhilHealth Settings';
                                     <div class="input-group">
                                         <span class="input-addon-left">₱</span>
                                         <input type="number" class="form-input has-left-addon" id="maxSalary" name="max_salary" 
-                                               value="<?php echo $settings['max_salary']; ?>" step="0.01" min="0" required>
+                                               value="<?php echo $settings['max_salary']; ?>" step="0.01" min="0" required <?php echo !$can_edit ? 'disabled' : ''; ?>>
                                     </div>
                                 </div>
                             </div>
@@ -171,7 +190,7 @@ $pageTitle = 'PhilHealth Settings';
                             <div class="form-group">
                                 <label class="form-label">Effective Date</label>
                                 <input type="date" class="form-input" id="effectiveDate" name="effective_date" 
-                                       value="<?php echo $settings['effective_date'] ?? date('Y-m-d'); ?>" required>
+                                       value="<?php echo $settings['effective_date'] ?? date('Y-m-d'); ?>" required <?php echo !$can_edit ? 'disabled' : ''; ?>>
                             </div>
                             
                             <div class="calc-preview">
@@ -199,11 +218,19 @@ $pageTitle = 'PhilHealth Settings';
                             </div>
                         </div>
                         
+                        <?php if ($can_edit): ?>
                         <div class="card-footer">
                             <button type="submit" class="btn btn-primary">
                                 <i class="fas fa-save"></i> Save Settings
                             </button>
                         </div>
+                        <?php else: ?>
+                        <div class="card-footer">
+                            <button type="button" class="btn btn-primary" onclick="location.href='../payroll_v2/index.php'">
+                                <i class="fas fa-arrow-left"></i> Back to Payroll
+                            </button>
+                        </div>
+                        <?php endif; ?>
                     </form>
                 </div>
             </div>

@@ -15,25 +15,45 @@ $is_admin = ($user_level === 'admin' || $user_level === 'super_admin');
 // Get permissions for admin users
 $permissions = [];
 if ($is_admin && !$is_super_admin) {
-    require_once __DIR__ . '/../includes/admin_functions.php';
+    // Check if admin_functions is not already included
+    if (!function_exists('getAdminPermissions')) {
+        require_once __DIR__ . '/admin_functions.php';
+    }
     $permissions = getAdminPermissions($db, getCurrentUserId());
 } else {
     // Super admin has all permissions
     $permissions = [
         'can_view_workers' => true,
+        'can_add_workers' => true,
+        'can_edit_workers' => true,
+        'can_delete_workers' => true,
         'can_view_attendance' => true,
+        'can_mark_attendance' => true,
+        'can_edit_attendance' => true,
+        'can_delete_attendance' => true,
         'can_view_schedule' => true,
+        'can_manage_schedule' => true,
         'can_view_payroll' => true,
+        'can_generate_payroll' => true,
+        'can_approve_payroll' => true,
+        'can_mark_paid' => true,
+        'can_edit_payroll' => true,
+        'can_delete_payroll' => true,
+        'can_view_payroll_settings' => true,
+        'can_edit_payroll_settings' => true,
         'can_view_deductions' => true,
+        'can_manage_deductions' => true,
         'can_view_cashadvance' => true,
+        'can_approve_cashadvance' => true,
         'can_access_archive' => true,
         'can_access_audit' => true,
-        'can_access_settings' => true
+        'can_access_settings' => true,
+        'can_manage_admins' => true
     ];
 }
 
-// Determine base path for links
-$module_path = $is_super_admin ? '/modules/super_admin' : '/modules/admin';
+// Both admins and super_admins use the same pages (super_admin module with permission checks)
+$module_path = '/modules/super_admin';
 ?>
 <style>
 /* Enhanced Sidebar Styles */
@@ -94,6 +114,32 @@ $module_path = $is_super_admin ? '/modules/super_admin' : '/modules/admin';
     height: 1px;
     background: linear-gradient(90deg, transparent, rgba(218, 165, 32, 0.3), transparent);
     margin: 15px 20px;
+}
+
+/* Sub-category for nested sections */
+.menu-subcategory {
+    padding: 12px 20px 6px 30px;
+    color: #888;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.menu-subcategory::before {
+    content: '';
+    width: 12px;
+    height: 1px;
+    background: #555;
+}
+
+.menu-mini-separator {
+    height: 1px;
+    background: rgba(255, 255, 255, 0.05);
+    margin: 8px 30px 8px 60px;
 }
 
 /* Menu Items */
@@ -346,7 +392,15 @@ $module_path = $is_super_admin ? '/modules/super_admin' : '/modules/admin';
                 <div class="title">Payroll</div>
             </a>
         </li>
-        <?php endif; ?>
+        
+        <!-- Payroll Slips -->
+        <li>
+            <a href="<?php echo BASE_URL; ?>/modules/super_admin/payroll_v2/payroll_slips.php"
+               class="<?php echo ($current_dir === 'payroll_v2' && $current_page === 'payroll_slips.php') ? 'active' : ''; ?>">
+                <i class="fas fa-receipt"></i>
+                <div class="title">Payroll Slips</div>
+            </a>
+        </li>
         
         <!-- Payroll Settings (Super Admin Only) -->
         <?php if ($is_super_admin): ?>
@@ -357,13 +411,19 @@ $module_path = $is_super_admin ? '/modules/super_admin' : '/modules/admin';
                 <div class="title">Payroll Settings</div>
             </a>
         </li>
+        <?php endif; ?>
         
-        <!-- BIR Tax Settings -->
+        <div class="menu-mini-separator"></div>
+        
+        <!-- Government Contributions Sub-section -->
+        <div class="menu-subcategory">Government</div>
+        
+        <!-- BIR Tax Brackets -->
         <li>
             <a href="<?php echo BASE_URL; ?>/modules/super_admin/payroll_v2/tax_brackets.php"
                class="<?php echo ($current_dir === 'payroll_v2' && $current_page === 'tax_brackets.php') ? 'active' : ''; ?>">
                 <i class="fas fa-percentage"></i>
-                <div class="title">BIR Tax Settings</div>
+                <div class="title">BIR Tax Brackets</div>
             </a>
         </li>
         
@@ -371,7 +431,7 @@ $module_path = $is_super_admin ? '/modules/super_admin' : '/modules/admin';
         <li>
             <a href="<?php echo BASE_URL; ?>/modules/super_admin/payroll_v2/sss_settings.php"
                class="<?php echo ($current_dir === 'payroll_v2' && $current_page === 'sss_settings.php') ? 'active' : ''; ?>">
-                <i class="fas fa-cog"></i>
+                <i class="fas fa-shield-alt"></i>
                 <div class="title">SSS Settings</div>
             </a>
         </li>
@@ -382,6 +442,38 @@ $module_path = $is_super_admin ? '/modules/super_admin' : '/modules/admin';
                class="<?php echo ($current_dir === 'payroll_v2' && $current_page === 'sss_matrix.php') ? 'active' : ''; ?>">
                 <i class="fas fa-table"></i>
                 <div class="title">SSS Matrix</div>
+            </a>
+        </li>
+        
+        <!-- PhilHealth Settings -->
+        <li>
+            <a href="<?php echo BASE_URL; ?>/modules/super_admin/payroll_v2/philhealth_settings.php"
+               class="<?php echo ($current_dir === 'payroll_v2' && $current_page === 'philhealth_settings.php') ? 'active' : ''; ?>">
+                <i class="fas fa-heartbeat"></i>
+                <div class="title">PhilHealth</div>
+            </a>
+        </li>
+        
+        <!-- Pag-IBIG Settings -->
+        <li>
+            <a href="<?php echo BASE_URL; ?>/modules/super_admin/payroll_v2/pagibig_settings.php"
+               class="<?php echo ($current_dir === 'payroll_v2' && $current_page === 'pagibig_settings.php') ? 'active' : ''; ?>">
+                <i class="fas fa-home"></i>
+                <div class="title">Pag-IBIG</div>
+            </a>
+        </li>
+        
+        <div class="menu-mini-separator"></div>
+        
+        <!-- Calendar Sub-section -->
+        <div class="menu-subcategory">Calendar</div>
+        
+        <!-- Holiday Settings -->
+        <li>
+            <a href="<?php echo BASE_URL; ?>/modules/super_admin/payroll_v2/holiday_settings.php"
+               class="<?php echo ($current_dir === 'payroll_v2' && $current_page === 'holiday_settings.php') ? 'active' : ''; ?>">
+                <i class="fas fa-calendar-star"></i>
+                <div class="title">Holiday Settings</div>
             </a>
         </li>
         <?php endif; ?>

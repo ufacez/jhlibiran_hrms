@@ -18,11 +18,13 @@ require_once __DIR__ . '/../../../config/settings.php';
 require_once __DIR__ . '/../../../config/session.php';
 require_once __DIR__ . '/../../../includes/functions.php';
 require_once __DIR__ . '/../../../includes/auth.php';
+require_once __DIR__ . '/../../../includes/admin_functions.php';
 require_once __DIR__ . '/../../../includes/payroll_calculator.php';
 require_once __DIR__ . '/../../../includes/payroll_settings.php';
 
-// Require super admin access
-requireSuperAdmin();
+// Require admin access with payroll view permission
+// This allows both super_admin and admin users with can_view_payroll permission
+requireAdminWithPermission($db, 'can_view_payroll', 'You do not have permission to view payroll');
 
 $pdo = getDBConnection();
 $calculator = new PayrollCalculator($pdo);
@@ -763,8 +765,15 @@ $pageTitle = 'Payroll Management';
 </head>
 <body>
     <div class="container">
-        <!-- Sidebar -->
-        <?php include __DIR__ . '/../../../includes/sidebar.php'; ?>
+        <!-- Sidebar - Use admin_sidebar for admin users, regular sidebar for super_admin -->
+        <?php 
+        $user_level = getCurrentUserLevel();
+        if ($user_level === 'super_admin') {
+            include __DIR__ . '/../../../includes/sidebar.php';
+        } else {
+            include __DIR__ . '/../../../includes/admin_sidebar.php';
+        }
+        ?>
         
         <!-- Main Content -->
         <div class="main">

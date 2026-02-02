@@ -12,14 +12,33 @@ require_once __DIR__ . '/../../../config/session.php';
 require_once __DIR__ . '/../../../includes/functions.php';
 require_once __DIR__ . '/../../../includes/auth.php';
 require_once __DIR__ . '/../../../includes/address_helper.php';
+require_once __DIR__ . '/../../../includes/admin_functions.php';
 
-requireSuperAdmin();
+// Require admin level or super_admin
+$user_level = getCurrentUserLevel();
+if ($user_level !== 'admin' && $user_level !== 'super_admin') {
+    setFlashMessage('Access denied', 'error');
+    redirect(BASE_URL . '/login.php');
+}
+
+// Check permission for viewing workers
+$permissions = getAdminPermissions($db);
+if (!$permissions['can_view_workers']) {
+    setFlashMessage('You do not have permission to view workers', 'error');
+    redirect(BASE_URL . '/modules/admin/dashboard.php');
+}
 
 $user_id = getCurrentUserId();
 $full_name = $_SESSION['full_name'] ?? 'Administrator';
 
 // Handle delete from URL parameter (from edit page)
 if (isset($_GET['delete'])) {
+    // Check delete permission
+    if (!$permissions['can_delete_workers']) {
+        setFlashMessage('You do not have permission to delete workers', 'error');
+        redirect(BASE_URL . '/modules/super_admin/workers/index.php');
+    }
+    
     $delete_id = intval($_GET['delete']);
     
     try {
@@ -232,7 +251,13 @@ try {
 </head>
 <body>
     <div class="container">
-        <?php include __DIR__ . '/../../../includes/sidebar.php'; ?>
+        <?php 
+        if ($user_level === 'super_admin') {
+            include __DIR__ . '/../../../includes/sidebar.php';
+        } else {
+            include __DIR__ . '/../../../includes/admin_sidebar.php';
+        }
+        ?>
         
         <div class="main">
             <?php include __DIR__ . '/../../../includes/topbar.php'; ?>
@@ -256,9 +281,11 @@ try {
                         <h1>Worker Management</h1>
                         <p class="subtitle">Manage construction workers and their information</p>
                     </div>
+                    <?php if ($permissions['can_add_workers']): ?>
                     <button class="btn btn-add-worker" onclick="window.location.href='add.php'">
                         <i class="fas fa-plus"></i> Add New Worker
                     </button>
+                    <?php endif; ?>
                 </div>
                 
                 <!-- Filters -->
@@ -332,9 +359,11 @@ try {
                                     <td colspan="7" class="no-data">
                                         <i class="fas fa-users"></i>
                                         <p>No workers found</p>
+                                        <?php if ($permissions['can_add_workers']): ?>
                                         <button class="btn btn-sm btn-primary" onclick="window.location.href='add.php'">
                                             <i class="fas fa-plus"></i> Add Your First Worker
                                         </button>
+                                        <?php endif; ?>
                                     </td>
                                 </tr>
                                 <?php else: ?>
@@ -375,16 +404,20 @@ try {
                                                         title="View Details">
                                                     <i class="fas fa-eye"></i>
                                                 </button>
+                                                <?php if ($permissions['can_edit_workers']): ?>
                                                 <button class="action-btn btn-edit" 
                                                         onclick="window.location.href='edit.php?id=<?php echo $worker['worker_id']; ?>'"
                                                         title="Edit">
                                                     <i class="fas fa-edit"></i>
                                                 </button>
+                                                <?php endif; ?>
+                                                <?php if ($permissions['can_delete_workers']): ?>
                                                 <button class="action-btn btn-delete" 
                                                         onclick="confirmDelete(<?php echo $worker['worker_id']; ?>, '<?php echo htmlspecialchars($worker['first_name'] . ' ' . $worker['last_name']); ?>')"
                                                         title="Delete">
                                                     <i class="fas fa-trash-alt"></i>
                                                 </button>
+                                                <?php endif; ?>
                                             </div>
                                         </td>
                                     </tr>

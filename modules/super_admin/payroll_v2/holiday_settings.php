@@ -13,8 +13,14 @@ require_once __DIR__ . '/../../../config/settings.php';
 require_once __DIR__ . '/../../../config/session.php';
 require_once __DIR__ . '/../../../includes/functions.php';
 require_once __DIR__ . '/../../../includes/auth.php';
+require_once __DIR__ . '/../../../includes/admin_functions.php';
 
-requireSuperAdmin();
+// Allow admin with payroll view permission to see this page
+requireAdminWithPermission($db, 'can_view_payroll', 'You do not have permission to view payroll settings');
+
+// Check if user can edit (super_admin or has can_edit_payroll_settings permission)
+$user_level = getCurrentUserLevel();
+$can_edit = ($user_level === 'super_admin') || hasPermission($db, 'can_edit_payroll_settings');
 
 $pdo = getDBConnection();
 
@@ -149,7 +155,13 @@ $pageTitle = 'Holiday Settings';
 </head>
 <body>
     <div class="container">
-        <?php include __DIR__ . '/../../../includes/sidebar.php'; ?>
+        <?php 
+        if ($user_level === 'super_admin') {
+            include __DIR__ . '/../../../includes/sidebar.php';
+        } else {
+            include __DIR__ . '/../../../includes/admin_sidebar.php';
+        }
+        ?>
         
         <div class="main">
             <?php include __DIR__ . '/../../../includes/topbar.php'; ?>
@@ -166,11 +178,20 @@ $pageTitle = 'Holiday Settings';
                             <span class="year"><?php echo $currentYear; ?></span>
                             <button onclick="changeYear(1)"><i class="fas fa-chevron-right"></i></button>
                         </div>
+                        <?php if ($can_edit): ?>
                         <button class="btn btn-primary" onclick="openModal()">
                             <i class="fas fa-plus"></i> Add Holiday
                         </button>
+                        <?php endif; ?>
                     </div>
                 </div>
+                
+                <?php if (!$can_edit): ?>
+                <div class="view-only-notice" style="background: #fef3c7; border: 1px solid #f59e0b; border-radius: 12px; padding: 15px 20px; margin-bottom: 25px; display: flex; align-items: center; gap: 12px;">
+                    <i class="fas fa-eye" style="color: #d97706; font-size: 18px;"></i>
+                    <span style="color: #92400e; font-size: 14px;">You have view-only access to holiday settings. Contact a super admin to make changes.</span>
+                </div>
+                <?php endif; ?>
                 
                 <!-- Stats -->
                 <div class="stats-row">
@@ -229,6 +250,7 @@ $pageTitle = 'Holiday Settings';
                                         <?php endif; ?>
                                     </div>
                                 </div>
+                                <?php if ($can_edit): ?>
                                 <div class="holiday-actions">
                                     <button class="btn-icon" onclick="editHoliday(<?php echo $h['holiday_id']; ?>)" title="Edit">
                                         <i class="fas fa-edit"></i>
@@ -237,6 +259,7 @@ $pageTitle = 'Holiday Settings';
                                         <i class="fas fa-trash"></i>
                                     </button>
                                 </div>
+                                <?php endif; ?>
                             </div>
                             <?php endforeach; ?>
                             <?php endif; ?>
@@ -273,6 +296,7 @@ $pageTitle = 'Holiday Settings';
                                         <?php endif; ?>
                                     </div>
                                 </div>
+                                <?php if ($can_edit): ?>
                                 <div class="holiday-actions">
                                     <button class="btn-icon" onclick="editHoliday(<?php echo $h['holiday_id']; ?>)" title="Edit">
                                         <i class="fas fa-edit"></i>
@@ -281,6 +305,7 @@ $pageTitle = 'Holiday Settings';
                                         <i class="fas fa-trash"></i>
                                     </button>
                                 </div>
+                                <?php endif; ?>
                             </div>
                             <?php endforeach; ?>
                             <?php endif; ?>
@@ -292,6 +317,7 @@ $pageTitle = 'Holiday Settings';
     </div>
     
     <!-- Add/Edit Holiday Modal -->
+    <?php if ($can_edit): ?>
     <div class="modal-overlay" id="holidayModal">
         <div class="modal">
             <div class="modal-header">
@@ -338,10 +364,12 @@ $pageTitle = 'Holiday Settings';
             </form>
         </div>
     </div>
+    <?php endif; ?>
     
     <div class="toast" id="toast"></div>
     
     <script>
+        const canEdit = <?php echo $can_edit ? 'true' : 'false'; ?>;
         const currentYear = <?php echo $currentYear; ?>;
         
         function changeYear(delta) {

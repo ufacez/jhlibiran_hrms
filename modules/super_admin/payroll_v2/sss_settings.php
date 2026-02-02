@@ -13,8 +13,14 @@ require_once __DIR__ . '/../../../config/settings.php';
 require_once __DIR__ . '/../../../config/session.php';
 require_once __DIR__ . '/../../../includes/functions.php';
 require_once __DIR__ . '/../../../includes/auth.php';
+require_once __DIR__ . '/../../../includes/admin_functions.php';
 
-requireSuperAdmin();
+// Allow admin with payroll view permission to see this page
+requireAdminWithPermission($db, 'can_view_payroll', 'You do not have permission to view payroll settings');
+
+// Check if user can edit (super_admin or has can_edit_payroll_settings permission)
+$user_level = getCurrentUserLevel();
+$can_edit = ($user_level === 'super_admin') || hasPermission($db, 'can_edit_payroll_settings');
 
 $pdo = getDBConnection();
 
@@ -67,7 +73,13 @@ $pageTitle = 'SSS Contribution Settings';
 </head>
 <body>
     <div class="container">
-        <?php include __DIR__ . '/../../../includes/sidebar.php'; ?>
+        <?php 
+        if ($user_level === 'super_admin') {
+            include __DIR__ . '/../../../includes/sidebar.php';
+        } else {
+            include __DIR__ . '/../../../includes/admin_sidebar.php';
+        }
+        ?>
         
         <div class="main">
             <?php include __DIR__ . '/../../../includes/topbar.php'; ?>
@@ -85,6 +97,13 @@ $pageTitle = 'SSS Contribution Settings';
                     </div>
                     <?php endif; ?>
                     
+                    <?php if (!$can_edit): ?>
+                    <div class="view-only-notice" style="background: #fef3c7; border: 1px solid #f59e0b; border-radius: 8px; padding: 12px 16px; margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
+                        <i class="fas fa-eye" style="color: #d97706;"></i>
+                        <span style="color: #92400e; font-size: 14px;">You have view-only access to these settings. Contact a super admin to make changes.</span>
+                    </div>
+                    <?php endif; ?>
+                    
                     <form id="settingsForm">
                         <div class="settings-grid">
                             <!-- Left Column -->
@@ -93,7 +112,7 @@ $pageTitle = 'SSS Contribution Settings';
                                     <label class="form-label">ECP Minimum Value <span style="color: #ef4444;">*</span></label>
                                     <span class="input-prefix">₱</span>
                                     <input type="number" name="ecp_minimum" class="form-input form-input-with-prefix" 
-                                           value="<?php echo $settings['ecp_minimum'] ?? ''; ?>" step="0.01" required>
+                                           value="<?php echo $settings['ecp_minimum'] ?? ''; ?>" step="0.01" required <?php echo !$can_edit ? 'disabled' : ''; ?>>
                                     <small style="color: #666; font-size: 11px;">Employees Compensation Protection minimum</small>
                                 </div>
                                 
@@ -101,7 +120,7 @@ $pageTitle = 'SSS Contribution Settings';
                                     <label class="form-label">MSC ECP Boundary Value <span style="color: #ef4444;">*</span></label>
                                     <span class="input-prefix">₱</span>
                                     <input type="number" name="ecp_boundary" class="form-input form-input-with-prefix" 
-                                           value="<?php echo $settings['ecp_boundary'] ?? ''; ?>" step="0.01" required>
+                                           value="<?php echo $settings['ecp_boundary'] ?? ''; ?>" step="0.01" required <?php echo !$can_edit ? 'disabled' : ''; ?>>
                                     <small style="color: #666; font-size: 11px;">Salary level for ECP coverage</small>
                                 </div>
 
@@ -109,14 +128,14 @@ $pageTitle = 'SSS Contribution Settings';
                                     <label class="form-label">ECP Maximum Value <span style="color: #ef4444;">*</span></label>
                                     <span class="input-prefix">₱</span>
                                     <input type="number" name="ecp_maximum" class="form-input form-input-with-prefix" 
-                                           value="<?php echo $settings['ecp_maximum'] ?? ''; ?>" step="0.01" required>
+                                           value="<?php echo $settings['ecp_maximum'] ?? ''; ?>" step="0.01" required <?php echo !$can_edit ? 'disabled' : ''; ?>>
                                     <small style="color: #666; font-size: 11px;">Maximum ECP contribution amount</small>
                                 </div>
                                 
                                 <div class="form-group">
                                     <label class="form-label">Employee Contribution Rate <span style="color: #ef4444;">*</span></label>
                                     <input type="number" name="employee_contribution_rate" class="form-input" 
-                                           value="<?php echo $settings['employee_contribution_rate'] ?? ''; ?>" step="0.01" required>
+                                           value="<?php echo $settings['employee_contribution_rate'] ?? ''; ?>" step="0.01" required <?php echo !$can_edit ? 'disabled' : ''; ?>>
                                     <small style="color: #666; font-size: 11px;">Percentage deducted from employee salary</small>
                                 </div>
                             </div>
@@ -127,7 +146,7 @@ $pageTitle = 'SSS Contribution Settings';
                                     <label class="form-label">MPF Minimum Value (Maximum SS) <span style="color: #ef4444;">*</span></label>
                                     <span class="input-prefix">₱</span>
                                     <input type="number" name="mpf_minimum" class="form-input form-input-with-prefix" 
-                                           value="<?php echo $settings['mpf_minimum'] ?? ''; ?>" step="0.01" required>
+                                           value="<?php echo $settings['mpf_minimum'] ?? ''; ?>" step="0.01" required <?php echo !$can_edit ? 'disabled' : ''; ?>>
                                     <small style="color: #666; font-size: 11px;">Mandatory Provident Fund minimum salary</small>
                                 </div>
                                 
@@ -135,14 +154,14 @@ $pageTitle = 'SSS Contribution Settings';
                                     <label class="form-label">MPF Maximum Value <span style="color: #ef4444;">*</span></label>
                                     <span class="input-prefix">₱</span>
                                     <input type="number" name="mpf_maximum" class="form-input form-input-with-prefix" 
-                                           value="<?php echo $settings['mpf_maximum'] ?? ''; ?>" step="0.01" required>
+                                           value="<?php echo $settings['mpf_maximum'] ?? ''; ?>" step="0.01" required <?php echo !$can_edit ? 'disabled' : ''; ?>>
                                     <small style="color: #666; font-size: 11px;">Maximum salary for SS contributions</small>
                                 </div>
                                 
                                 <div class="form-group">
                                     <label class="form-label">Employer Contribution Rate <span style="color: #ef4444;">*</span></label>
                                     <input type="number" name="employer_contribution_rate" class="form-input" 
-                                           value="<?php echo $settings['employer_contribution_rate'] ?? ''; ?>" step="0.01" required>
+                                           value="<?php echo $settings['employer_contribution_rate'] ?? ''; ?>" step="0.01" required <?php echo !$can_edit ? 'disabled' : ''; ?>>
                                     <small style="color: #666; font-size: 11px;">Company contribution to SSS</small>
                                 </div>
                             </div>
@@ -151,14 +170,20 @@ $pageTitle = 'SSS Contribution Settings';
                         <div class="form-group">
                             <label class="form-label">Effective Date <span style="color: #ef4444;">*</span></label>
                             <input type="date" name="effective_date" class="form-input" 
-                                   value="<?php echo $settings['effective_date'] ?? date('Y-m-d'); ?>" required>
+                                   value="<?php echo $settings['effective_date'] ?? date('Y-m-d'); ?>" required <?php echo !$can_edit ? 'disabled' : ''; ?>>
                             <small style="color: #666; font-size: 11px;">When these settings become effective</small>
                         </div>
                         
+                        <?php if ($can_edit): ?>
                         <div class="button-group">
                             <button type="button" class="btn-cancel" onclick="location.href='../payroll_v2/index.php'">Cancel</button>
                             <button type="submit" class="btn-save"><i class="fas fa-save"></i> Save Settings</button>
                         </div>
+                        <?php else: ?>
+                        <div class="button-group">
+                            <button type="button" class="btn-cancel" onclick="location.href='../payroll_v2/index.php'">Back to Payroll</button>
+                        </div>
+                        <?php endif; ?>
                     </form>
                 </div>
             </div>

@@ -12,8 +12,10 @@ require_once __DIR__ . '/../../../config/settings.php';
 require_once __DIR__ . '/../../../config/session.php';
 require_once __DIR__ . '/../../../includes/functions.php';
 require_once __DIR__ . '/../../../includes/auth.php';
+require_once __DIR__ . '/../../../includes/admin_functions.php';
 
-requireSuperAdmin();
+// Allow both super_admin and admin with payroll view permission
+requireAdminWithPermission($db, 'can_view_payroll', 'You do not have permission to view payroll');
 
 $pdo = getDBConnection();
 

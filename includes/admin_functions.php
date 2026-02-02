@@ -37,8 +37,12 @@ function getAdminPermissions($db, $user_id = null) {
             'can_delete_attendance' => true,
             'can_view_payroll' => true,
             'can_generate_payroll' => true,
+            'can_approve_payroll' => true,
+            'can_mark_paid' => true,
             'can_edit_payroll' => true,
             'can_delete_payroll' => true,
+            'can_view_payroll_settings' => true,
+            'can_edit_payroll_settings' => true,
             'can_view_deductions' => true,
             'can_manage_deductions' => true,
             'can_view_reports' => true,
@@ -77,6 +81,8 @@ function getAdminPermissions($db, $user_id = null) {
                 'can_delete_attendance' => false,
                 'can_view_payroll' => false,
                 'can_generate_payroll' => false,
+                'can_approve_payroll' => false,
+                'can_mark_paid' => false,
                 'can_edit_payroll' => false,
                 'can_delete_payroll' => false,
                 'can_view_deductions' => false,
@@ -127,8 +133,12 @@ function getAdminPermissions($db, $user_id = null) {
             'can_delete_attendance' => (bool)($permissions['can_delete_attendance'] ?? 0),
             'can_view_payroll' => (bool)($permissions['can_view_payroll'] ?? 0),
             'can_generate_payroll' => (bool)($permissions['can_generate_payroll'] ?? 0),
+            'can_approve_payroll' => (bool)($permissions['can_approve_payroll'] ?? 0),
+            'can_mark_paid' => (bool)($permissions['can_mark_paid'] ?? 0),
             'can_edit_payroll' => (bool)($permissions['can_edit_payroll'] ?? 0),
             'can_delete_payroll' => (bool)($permissions['can_delete_payroll'] ?? 0),
+            'can_view_payroll_settings' => (bool)($permissions['can_view_payroll_settings'] ?? 1),
+            'can_edit_payroll_settings' => (bool)($permissions['can_edit_payroll_settings'] ?? 0),
             'can_view_deductions' => (bool)($permissions['can_view_deductions'] ?? 0),
             'can_manage_deductions' => (bool)($permissions['can_manage_deductions'] ?? 0),
             'can_view_reports' => (bool)($permissions['can_view_reports'] ?? 0),
@@ -152,7 +162,7 @@ function getAdminPermissions($db, $user_id = null) {
         return array_fill_keys([
             'can_view_workers', 'can_add_workers', 'can_edit_workers', 'can_delete_workers',
             'can_view_attendance', 'can_add_attendance', 'can_edit_attendance', 'can_delete_attendance',
-            'can_view_payroll', 'can_generate_payroll', 'can_edit_payroll', 'can_delete_payroll',
+            'can_view_payroll', 'can_generate_payroll', 'can_approve_payroll', 'can_mark_paid', 'can_edit_payroll', 'can_delete_payroll',
             'can_view_deductions', 'can_manage_deductions', 'can_view_reports', 'can_export_data',
             'can_manage_admins', 'can_view_settings', 'can_edit_settings', 'can_view_logs',
             'can_view_schedule', 'can_manage_schedule', 'can_view_cashadvance', 'can_approve_cashadvance',
@@ -195,6 +205,53 @@ function requirePermission($db, $permission, $error_message = null) {
         } else {
             redirect(BASE_URL . '/modules/worker/dashboard.php');
         }
+    }
+}
+
+/**
+ * Require admin or super admin access
+ * Allows both admin and super_admin to access the page
+ */
+function requireAdminAccess() {
+    if (!isLoggedIn()) {
+        redirect(BASE_URL . '/login.php');
+    }
+    
+    $user_level = getCurrentUserLevel();
+    if ($user_level !== 'admin' && $user_level !== 'super_admin') {
+        setFlashMessage('You do not have permission to access this page', 'error');
+        redirect(BASE_URL . '/login.php');
+    }
+}
+
+/**
+ * Require admin or super admin access with specific permission
+ * Use this for pages that both admin and super_admin can access but need permission check
+ * 
+ * @param PDO $db Database connection
+ * @param string $permission Permission name to check
+ * @param string $error_message Custom error message (optional)
+ */
+function requireAdminWithPermission($db, $permission, $error_message = null) {
+    // First check if logged in
+    if (!isLoggedIn()) {
+        redirect(BASE_URL . '/login.php');
+    }
+    
+    // Check if admin or super_admin
+    $user_level = getCurrentUserLevel();
+    if ($user_level !== 'admin' && $user_level !== 'super_admin') {
+        setFlashMessage('You do not have permission to access this page', 'error');
+        redirect(BASE_URL . '/login.php');
+    }
+    
+    // Check specific permission (super_admin has all permissions by default)
+    if (!hasPermission($db, $permission)) {
+        if ($error_message === null) {
+            $error_message = 'You do not have permission to access this page';
+        }
+        setFlashMessage($error_message, 'error');
+        redirect(BASE_URL . '/modules/admin/dashboard.php');
     }
 }
 

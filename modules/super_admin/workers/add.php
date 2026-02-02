@@ -19,8 +19,21 @@ require_once __DIR__ . '/../../../config/settings.php';
 require_once __DIR__ . '/../../../config/session.php';
 require_once __DIR__ . '/../../../includes/functions.php';
 require_once __DIR__ . '/../../../includes/auth.php';
+require_once __DIR__ . '/../../../includes/admin_functions.php';
 
-requireSuperAdmin();
+// Require admin level or super_admin
+$user_level = getCurrentUserLevel();
+if ($user_level !== 'admin' && $user_level !== 'super_admin') {
+    setFlashMessage('Access denied', 'error');
+    redirect(BASE_URL . '/login.php');
+}
+
+// Check permission for adding workers
+$permissions = getAdminPermissions($db);
+if (!$permissions['can_add_workers']) {
+    setFlashMessage('You do not have permission to add workers', 'error');
+    redirect(BASE_URL . '/modules/super_admin/workers/index.php');
+}
 
 $full_name = $_SESSION['full_name'] ?? 'Administrator';
 
@@ -557,7 +570,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </head>
 <body>
     <div class="container">
-        <?php include __DIR__ . '/../../../includes/sidebar.php'; ?>
+        <?php 
+        if ($user_level === 'super_admin') {
+            include __DIR__ . '/../../../includes/sidebar.php';
+        } else {
+            include __DIR__ . '/../../../includes/admin_sidebar.php';
+        }
+        ?>
         
         <div class="main">
             <?php include __DIR__ . '/../../../includes/topbar.php'; ?>

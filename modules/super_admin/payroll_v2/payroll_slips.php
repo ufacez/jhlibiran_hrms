@@ -15,8 +15,10 @@ require_once __DIR__ . '/../../../config/settings.php';
 require_once __DIR__ . '/../../../config/session.php';
 require_once __DIR__ . '/../../../includes/functions.php';
 require_once __DIR__ . '/../../../includes/auth.php';
+require_once __DIR__ . '/../../../includes/admin_functions.php';
 
-requireSuperAdmin();
+// Allow both super_admin and admin with payroll view permission
+requireAdminWithPermission($db, 'can_view_payroll', 'You do not have permission to view payroll');
 
 $pdo = getDBConnection();
 
@@ -449,8 +451,15 @@ $pageTitle = 'Payroll Slips';
 </head>
 <body>
     <div class="container">
-        <!-- Sidebar -->
-        <?php include __DIR__ . '/../../../includes/sidebar.php'; ?>
+        <!-- Sidebar - Use admin_sidebar for admin users, regular sidebar for super_admin -->
+        <?php 
+        $user_level = getCurrentUserLevel();
+        if ($user_level === 'super_admin') {
+            include __DIR__ . '/../../../includes/sidebar.php';
+        } else {
+            include __DIR__ . '/../../../includes/admin_sidebar.php';
+        }
+        ?>
         
         <!-- Main Content -->
         <div class="main">

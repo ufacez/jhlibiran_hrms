@@ -24,8 +24,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 // Include dependencies
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../config/settings.php';
+require_once __DIR__ . '/../config/session.php';
+require_once __DIR__ . '/../includes/auth.php';
+require_once __DIR__ . '/../includes/admin_functions.php';
 require_once __DIR__ . '/../includes/payroll_calculator.php';
 require_once __DIR__ . '/../includes/payroll_settings.php';
+
+// Helper function to check if user can edit payroll settings
+function canEditPayrollSettings($db) {
+    if (!isset($_SESSION['user_id'])) {
+        return false;
+    }
+    $userLevel = getCurrentUserLevel();
+    if ($userLevel === 'super_admin') {
+        return true;
+    }
+    if ($userLevel === 'admin') {
+        return hasPermission($db, 'can_edit_payroll_settings');
+    }
+    return false;
+}
+
+// Helper function to check if user can view payroll
+function canViewPayroll($db) {
+    if (!isset($_SESSION['user_id'])) {
+        return false;
+    }
+    $userLevel = getCurrentUserLevel();
+    if ($userLevel === 'super_admin' || $userLevel === 'admin') {
+        return hasPermission($db, 'can_view_payroll');
+    }
+    return false;
+}
 
 // Initialize
 try {
@@ -86,6 +116,11 @@ try {
                 throw new Exception('Method not allowed');
             }
             
+            // Check permission
+            if (!canEditPayrollSettings($db)) {
+                throw new Exception('You do not have permission to edit payroll settings');
+            }
+            
             $key = $input['key'] ?? '';
             $value = $input['value'] ?? null;
             $userId = $input['user_id'] ?? null;
@@ -112,6 +147,11 @@ try {
             // POST: Update multiple settings at once
             if ($method !== 'POST') {
                 throw new Exception('Method not allowed');
+            }
+            
+            // Check permission
+            if (!canEditPayrollSettings($db)) {
+                throw new Exception('You do not have permission to edit payroll settings');
             }
             
             $settings = $input['settings'] ?? [];
@@ -147,6 +187,11 @@ try {
             // POST: Save only SSS employee/employer contribution rates
             if ($method !== 'POST') {
                 throw new Exception('Method not allowed');
+            }
+            
+            // Check permission
+            if (!canEditPayrollSettings($db)) {
+                throw new Exception('You do not have permission to edit payroll settings');
             }
 
             $employeeRate = floatval($input['employee_contribution_rate'] ?? 0);
@@ -190,6 +235,11 @@ try {
             // POST: Save SSS contribution settings
             if ($method !== 'POST') {
                 throw new Exception('Method not allowed');
+            }
+            
+            // Check permission
+            if (!canEditPayrollSettings($db)) {
+                throw new Exception('You do not have permission to edit payroll settings');
             }
 
             $ecpMinimum = floatval($input['ecp_minimum'] ?? 0);
@@ -243,6 +293,11 @@ try {
             // POST: Save SSS contribution matrix
             if ($method !== 'POST') {
                 throw new Exception('Method not allowed');
+            }
+            
+            // Check permission
+            if (!canEditPayrollSettings($db)) {
+                throw new Exception('You do not have permission to edit payroll settings');
             }
 
             $matrix = $input['matrix'] ?? [];
@@ -322,6 +377,11 @@ try {
             // POST: Save PhilHealth contribution settings
             if ($method !== 'POST') {
                 throw new Exception('Method not allowed');
+            }
+            
+            // Check permission
+            if (!canEditPayrollSettings($db)) {
+                throw new Exception('You do not have permission to edit payroll settings');
             }
 
             $premiumRate = floatval($input['premium_rate'] ?? 5.00);
@@ -409,6 +469,11 @@ try {
             // POST: Save Pag-IBIG contribution settings
             if ($method !== 'POST') {
                 throw new Exception('Method not allowed');
+            }
+            
+            // Check permission
+            if (!canEditPayrollSettings($db)) {
+                throw new Exception('You do not have permission to edit payroll settings');
             }
 
             $employeeRateBelow = floatval($input['employee_rate_below'] ?? 1.00);
@@ -515,6 +580,11 @@ try {
                 throw new Exception('Method not allowed');
             }
             
+            // Check permission
+            if (!canEditPayrollSettings($db)) {
+                throw new Exception('You do not have permission to edit payroll settings');
+            }
+            
             $name = trim($input['holiday_name'] ?? '');
             $date = $input['holiday_date'] ?? '';
             $type = $input['holiday_type'] ?? 'regular';
@@ -551,6 +621,11 @@ try {
             // POST: Update an existing holiday
             if ($method !== 'POST') {
                 throw new Exception('Method not allowed');
+            }
+            
+            // Check permission
+            if (!canEditPayrollSettings($db)) {
+                throw new Exception('You do not have permission to edit payroll settings');
             }
             
             $id = intval($input['holiday_id'] ?? 0);
@@ -596,6 +671,11 @@ try {
             // POST: Delete (deactivate) a holiday
             if ($method !== 'POST') {
                 throw new Exception('Method not allowed');
+            }
+            
+            // Check permission
+            if (!canEditPayrollSettings($db)) {
+                throw new Exception('You do not have permission to edit payroll settings');
             }
             
             $id = intval($input['holiday_id'] ?? 0);
@@ -864,6 +944,11 @@ try {
                 throw new Exception('Method not allowed');
             }
             
+            // Check permission
+            if (!canEditPayrollSettings($db)) {
+                throw new Exception('You do not have permission to edit payroll settings');
+            }
+            
             $userId = $input['user_id'] ?? null;
             $holidayId = $settingsManager->addHoliday($input, $userId);
             
@@ -878,6 +963,11 @@ try {
             // POST: Update a holiday
             if ($method !== 'POST') {
                 throw new Exception('Method not allowed');
+            }
+            
+            // Check permission
+            if (!canEditPayrollSettings($db)) {
+                throw new Exception('You do not have permission to edit payroll settings');
             }
             
             $holidayId = intval($input['holiday_id'] ?? 0);
@@ -897,6 +987,11 @@ try {
             // POST: Delete a holiday
             if ($method !== 'POST') {
                 throw new Exception('Method not allowed');
+            }
+            
+            // Check permission
+            if (!canEditPayrollSettings($db)) {
+                throw new Exception('You do not have permission to edit payroll settings');
             }
             
             $holidayId = intval($input['holiday_id'] ?? 0);
@@ -995,6 +1090,11 @@ try {
                 throw new Exception('Method not allowed');
             }
             
+            // Check permission
+            if (!canEditPayrollSettings($db)) {
+                throw new Exception('You do not have permission to edit payroll settings');
+            }
+            
             $brackets = $input['brackets'] ?? [];
             
             if (empty($brackets)) {
@@ -1058,6 +1158,11 @@ try {
             // POST: Delete a tax bracket
             if ($method !== 'POST') {
                 throw new Exception('Method not allowed');
+            }
+            
+            // Check permission
+            if (!canEditPayrollSettings($db)) {
+                throw new Exception('You do not have permission to edit payroll settings');
             }
             
             $bracketId = $input['bracket_id'] ?? null;

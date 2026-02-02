@@ -13,8 +13,14 @@ require_once __DIR__ . '/../../../config/settings.php';
 require_once __DIR__ . '/../../../config/session.php';
 require_once __DIR__ . '/../../../includes/functions.php';
 require_once __DIR__ . '/../../../includes/auth.php';
+require_once __DIR__ . '/../../../includes/admin_functions.php';
 
-requireSuperAdmin();
+// Allow admin with payroll view permission to see this page
+requireAdminWithPermission($db, 'can_view_payroll', 'You do not have permission to view payroll settings');
+
+// Check if user can edit (super_admin or has can_edit_payroll_settings permission)
+$user_level = getCurrentUserLevel();
+$can_edit = ($user_level === 'super_admin') || hasPermission($db, 'can_edit_payroll_settings');
 
 $pdo = getDBConnection();
 
@@ -94,7 +100,13 @@ $pageTitle = 'SSS Contribution Matrix';
 </head>
 <body>
     <div class="container">
-        <?php include __DIR__ . '/../../../includes/sidebar.php'; ?>
+        <?php 
+        if ($user_level === 'super_admin') {
+            include __DIR__ . '/../../../includes/sidebar.php';
+        } else {
+            include __DIR__ . '/../../../includes/admin_sidebar.php';
+        }
+        ?>
         
         <div class="main">
             <?php include __DIR__ . '/../../../includes/topbar.php'; ?>
@@ -105,6 +117,12 @@ $pageTitle = 'SSS Contribution Matrix';
                     <p class="page-subtitle">Manage SSS contribution brackets - Upload CSV, Edit, or Download</p>
                 </div>
                 
+                <?php if (!$can_edit): ?>
+                <div class="view-only-notice" style="background: #fef3c7; border: 1px solid #f59e0b; border-radius: 12px; padding: 15px 20px; margin-bottom: 25px; display: flex; align-items: center; gap: 12px;">
+                    <i class="fas fa-eye" style="color: #d97706; font-size: 18px;"></i>
+                    <span style="color: #92400e; font-size: 14px;">You have view-only access to the SSS Matrix. Contact a super admin to make changes.</span>
+                </div>
+                <?php else: ?>
                 <div class="toolbar">
                     <div class="toolbar-row">
                         <div class="upload-zone" id="uploadZone">
@@ -124,6 +142,7 @@ $pageTitle = 'SSS Contribution Matrix';
                         </div>
                     </div>
                 </div>
+                <?php endif; ?>
                 
                 <div class="matrix-wrap">
                     <div class="table-header">
@@ -158,27 +177,27 @@ $pageTitle = 'SSS Contribution Matrix';
                                     <td>
                                         <input type="text" class="matrix-input" name="lower_range[]" 
                                                value="<?php echo number_format($row['lower_range'], 2, '.', ','); ?>" 
-                                               data-field="lower_range">
+                                               data-field="lower_range" <?php echo !$can_edit ? 'disabled' : ''; ?>>
                                     </td>
                                     <td>
                                         <input type="text" class="matrix-input" name="upper_range[]" 
                                                value="<?php echo number_format($row['upper_range'], 2, '.', ','); ?>" 
-                                               data-field="upper_range">
+                                               data-field="upper_range" <?php echo !$can_edit ? 'disabled' : ''; ?>>
                                     </td>
                                     <td>
                                         <input type="text" class="matrix-input" name="regular_ss[]" 
                                                value="<?php echo number_format($regularSS, 2, '.', ','); ?>" 
-                                               data-field="regular_ss">
+                                               data-field="regular_ss" <?php echo !$can_edit ? 'disabled' : ''; ?>>
                                     </td>
                                     <td>
                                         <input type="text" class="matrix-input" name="ec_contribution[]" 
                                                value="<?php echo number_format($ec, 2, '.', ','); ?>" 
-                                               data-field="ec_contribution">
+                                               data-field="ec_contribution" <?php echo !$can_edit ? 'disabled' : ''; ?>>
                                     </td>
                                     <td>
                                         <input type="text" class="matrix-input" name="mpf[]" 
                                                value="<?php echo number_format($mpf, 2, '.', ','); ?>" 
-                                               data-field="mpf">
+                                               data-field="mpf" <?php echo !$can_edit ? 'disabled' : ''; ?>>
                                     </td>
                                     <td>
                                         <input type="text" class="matrix-input" name="total[]" 
@@ -190,6 +209,7 @@ $pageTitle = 'SSS Contribution Matrix';
                             </tbody>
                         </table>
                         
+                        <?php if ($can_edit): ?>
                         <div class="table-footer">
                             <div style="color: #666; font-size: 12px;">
                                 <i class="fas fa-info-circle"></i> Total automatically calculates: Regular SS + EC + MPF
@@ -198,6 +218,16 @@ $pageTitle = 'SSS Contribution Matrix';
                                 <i class="fas fa-save"></i> Save Matrix
                             </button>
                         </div>
+                        <?php else: ?>
+                        <div class="table-footer">
+                            <div style="color: #666; font-size: 12px;">
+                                <i class="fas fa-info-circle"></i> Total = Regular SS + EC + MPF
+                            </div>
+                            <button type="button" class="btn btn-primary" onclick="location.href='../payroll_v2/index.php'">
+                                <i class="fas fa-arrow-left"></i> Back to Payroll
+                            </button>
+                        </div>
+                        <?php endif; ?>
                     </form>
                 </div>
             </div>
