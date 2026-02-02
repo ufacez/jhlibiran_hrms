@@ -490,7 +490,7 @@ $netPay = floatval($record['net_pay']);
             
             <!-- PART 3: NET PAY -->
             <div class="section">
-                <div class="section-title">Part 3: Net Pay Computation</div>
+                <div class="section-title">Net Pay Computation</div>
                 <table class="earnings-table">
                     <tbody>
                         <tr>

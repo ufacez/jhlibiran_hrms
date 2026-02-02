@@ -100,6 +100,20 @@ class PayrollCalculator {
      * @return array Tax calculation details
      */
     public function calculateWithholdingTax($weeklyGross) {
+        // No tax if no gross pay (no attendance)
+        if ($weeklyGross <= 0) {
+            return [
+                'taxable_income' => 0,
+                'bracket_level' => 0,
+                'lower_bound' => 0,
+                'base_tax' => 0,
+                'tax_rate' => 0,
+                'tax_amount' => 0,
+                'is_exempt' => true,
+                'formula' => 'No gross pay - no tax applicable'
+            ];
+        }
+        
         if (empty($this->taxBrackets)) {
             return [
                 'taxable_income' => $weeklyGross,
@@ -221,6 +235,22 @@ class PayrollCalculator {
      * @return array SSS calculation details (weekly amount)
      */
     public function calculateSSSContribution($grossPay, $periodEnd = null) {
+        // No SSS contribution if no gross pay (no attendance)
+        if ($grossPay <= 0) {
+            return [
+                'bracket_number' => 0,
+                'lower_range' => 0,
+                'upper_range' => 0,
+                'employee_contribution' => 0,
+                'mpf_contribution' => 0,
+                'employer_contribution' => 0,
+                'ec_contribution' => 0,
+                'total_contribution' => 0,
+                'monthly_total' => 0,
+                'formula' => 'No gross pay - no SSS contribution'
+            ];
+        }
+        
         try {
             // Look up the monthly SSS bracket based on monthly salary range
             // Note: We use the WEEKLY gross to estimate monthly (multiply by 4.333)
@@ -309,6 +339,19 @@ class PayrollCalculator {
      * @return array PhilHealth calculation details (weekly amount)
      */
     public function calculatePhilHealthContribution($grossPay) {
+        // No PhilHealth contribution if no gross pay (no attendance)
+        if ($grossPay <= 0) {
+            return [
+                'employee_contribution' => 0,
+                'employer_contribution' => 0,
+                'total_contribution' => 0,
+                'monthly_employee' => 0,
+                'monthly_employer' => 0,
+                'monthly_total' => 0,
+                'formula' => 'No gross pay - no PhilHealth contribution'
+            ];
+        }
+        
         try {
             // Estimate monthly salary from weekly gross (multiply by 4.333)
             $estimatedMonthlySalary = $grossPay * self::WEEKLY_DIVISOR;
@@ -385,6 +428,19 @@ class PayrollCalculator {
      * @return array Pag-IBIG calculation details (weekly amount)
      */
     public function calculatePagIBIGContribution($grossPay) {
+        // No Pag-IBIG contribution if no gross pay (no attendance)
+        if ($grossPay <= 0) {
+            return [
+                'employee_contribution' => 0,
+                'employer_contribution' => 0,
+                'total_contribution' => 0,
+                'monthly_employee' => 0,
+                'monthly_employer' => 0,
+                'monthly_total' => 0,
+                'formula' => 'No gross pay - no Pag-IBIG contribution'
+            ];
+        }
+        
         try {
             // Estimate monthly salary from weekly gross (multiply by 4.333)
             $estimatedMonthlySalary = $grossPay * self::WEEKLY_DIVISOR;
