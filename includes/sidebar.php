@@ -301,28 +301,19 @@ $current_dir = basename(dirname($_SERVER['PHP_SELF']));
         
         <!-- Payroll -->
         <li>
-            <a href="<?php echo BASE_URL; ?>/modules/super_admin/payroll/index.php"
-               class="<?php echo ($current_dir === 'payroll') ? 'active' : ''; ?>">
+            <a href="<?php echo BASE_URL; ?>/modules/super_admin/payroll_v2/index.php"
+               class="<?php echo ($current_dir === 'payroll_v2' && $current_page === 'index.php') ? 'active' : ''; ?>">
                 <i class="fas fa-money-check-edit-alt"></i>
                 <div class="title">Payroll</div>
             </a>
         </li>
         
-        <!-- Deductions -->
+        <!-- Payroll Settings -->
         <li>
-            <a href="<?php echo BASE_URL; ?>/modules/super_admin/deductions/index.php"
-               class="<?php echo ($current_dir === 'deductions') ? 'active' : ''; ?>">
-                <i class="fas fa-money-check-alt"></i>
-                <div class="title">Deductions</div>
-            </a>
-        </li>
-        
-        <!-- Cash Advance -->
-        <li>
-            <a href="<?php echo BASE_URL; ?>/modules/super_admin/cashadvance/index.php"
-               class="<?php echo ($current_dir === 'cashadvance') ? 'active' : ''; ?>">
-                <i class="fas fa-hand-holding-usd"></i>
-                <div class="title">Cash Advance</div>
+            <a href="<?php echo BASE_URL; ?>/modules/super_admin/payroll_v2/configure.php"
+               class="<?php echo ($current_dir === 'payroll_v2' && $current_page === 'configure.php') ? 'active' : ''; ?>">
+                <i class="fas fa-sliders-h"></i>
+                <div class="title">Payroll Settings</div>
             </a>
         </li>
         

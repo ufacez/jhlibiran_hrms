@@ -156,7 +156,7 @@ try {
     <link rel="stylesheet" href="<?php echo CSS_URL; ?>/dashboard.css">
     <link rel="stylesheet" href="<?php echo CSS_URL; ?>/workers.css">
     <link rel="stylesheet" href="<?php echo CSS_URL; ?>/buttons.css">
-    <link rel="stylesheet" href="<?php echo CSS_URL; ?>/payroll.css">
+    <link rel="stylesheet" href="<?php echo CSS_URL; ?>/payroll_v2.css">
     <style>
         /* Enhanced Modal Styles */
         .modal-body-content {

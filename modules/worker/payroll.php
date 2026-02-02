@@ -90,7 +90,7 @@ try {
     <link rel="stylesheet" href="https://pro.fontawesome.com/releases/v5.10.0/css/all.css"/>
     <link rel="stylesheet" href="<?php echo CSS_URL; ?>/dashboard.css">
     <link rel="stylesheet" href="<?php echo CSS_URL; ?>/worker.css">
-    <link rel="stylesheet" href="<?php echo CSS_URL; ?>/payroll.css">
+    <link rel="stylesheet" href="<?php echo CSS_URL; ?>/payroll_v2.css">
     <style>
         /* Additional styles for worker payroll */
         .payroll-detail-card {
@@ -448,7 +448,7 @@ try {
             modal.classList.add('show');
             
             // Fetch payroll details
-            fetch(`../../api/payroll.php?action=get&id=${payrollId}`)
+            fetch(`../../api/payroll_v2.php?action=get_record&id=${payrollId}`)
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {

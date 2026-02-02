@@ -137,7 +137,7 @@ try {
                 'title' => $row['worker_name'] . ' - ' . formatCurrency($row['net_pay']),
                 'subtitle' => formatDate($row['period_start']) . ' to ' . formatDate($row['period_end']),
                 'status' => 'paid',
-                'link' => BASE_URL . '/modules/super_admin/payroll/view.php?id=' . $row['payroll_id']
+                'link' => BASE_URL . '/modules/super_admin/payroll_v2/index.php'
             ];
         }
     }
@@ -180,42 +180,7 @@ try {
         }
     }
     
-    // Search Cash Advance
-    if ($category === 'all' || $category === 'cashadvance') {
-        $sql = "SELECT 
-                    ca.cash_advance_id,
-                    ca.amount,
-                    ca.status,
-                    ca.request_date,
-                    CONCAT(w.first_name, ' ', w.last_name) as worker_name,
-                    w.worker_code,
-                    'cashadvance' as result_type
-                FROM cash_advance ca
-                JOIN workers w ON ca.worker_id = w.worker_id
-                WHERE (
-                    w.first_name LIKE ? OR 
-                    w.last_name LIKE ? OR 
-                    w.worker_code LIKE ?
-                )
-                ORDER BY ca.request_date DESC
-                LIMIT 5";
-        
-        $search_term = "%{$query}%";
-        $stmt = $db->prepare($sql);
-        $stmt->execute([$search_term, $search_term, $search_term]);
-        
-        while ($row = $stmt->fetch()) {
-            $results[] = [
-                'id' => $row['cash_advance_id'],
-                'type' => 'cashadvance',
-                'icon' => 'dollar-sign',
-                'title' => $row['worker_name'] . ' - ' . formatCurrency($row['amount']),
-                'subtitle' => 'Requested on ' . formatDate($row['request_date']),
-                'status' => $row['status'],
-                'link' => BASE_URL . '/modules/super_admin/cashadvance/index.php'
-            ];
-        }
-    }
+    // Note: Cash Advance search removed - feature excluded from payroll v2
     
     jsonSuccess('Search completed', [
         'query' => $query,

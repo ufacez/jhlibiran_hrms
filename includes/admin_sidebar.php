@@ -340,32 +340,21 @@ $module_path = $is_super_admin ? '/modules/super_admin' : '/modules/admin';
         <!-- Payroll -->
         <?php if ($permissions['can_view_payroll']): ?>
         <li>
-            <a href="<?php echo BASE_URL . $module_path; ?>/payroll/index.php"
-               class="<?php echo ($current_dir === 'payroll') ? 'active' : ''; ?>">
+            <a href="<?php echo BASE_URL; ?>/modules/super_admin/payroll_v2/index.php"
+               class="<?php echo ($current_dir === 'payroll_v2' && $current_page === 'index.php') ? 'active' : ''; ?>">
                 <i class="fas fa-money-check-edit-alt"></i>
                 <div class="title">Payroll</div>
             </a>
         </li>
         <?php endif; ?>
         
-        <!-- Deductions -->
-        <?php if ($permissions['can_view_deductions']): ?>
+        <!-- Payroll Settings (Super Admin Only) -->
+        <?php if ($is_super_admin): ?>
         <li>
-            <a href="<?php echo BASE_URL . $module_path; ?>/deductions/index.php"
-               class="<?php echo ($current_dir === 'deductions') ? 'active' : ''; ?>">
-                <i class="fas fa-money-check-alt"></i>
-                <div class="title">Deductions</div>
-            </a>
-        </li>
-        <?php endif; ?>
-        
-        <!-- Cash Advance -->
-        <?php if ($permissions['can_view_cashadvance']): ?>
-        <li>
-            <a href="<?php echo BASE_URL . $module_path; ?>/cashadvance/index.php"
-               class="<?php echo ($current_dir === 'cashadvance') ? 'active' : ''; ?>">
-                <i class="fas fa-hand-holding-usd"></i>
-                <div class="title">Cash Advance</div>
+            <a href="<?php echo BASE_URL; ?>/modules/super_admin/payroll_v2/configure.php"
+               class="<?php echo ($current_dir === 'payroll_v2' && $current_page === 'configure.php') ? 'active' : ''; ?>">
+                <i class="fas fa-sliders-h"></i>
+                <div class="title">Payroll Settings</div>
             </a>
         </li>
         <?php endif; ?>

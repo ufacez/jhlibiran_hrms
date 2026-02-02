@@ -148,7 +148,7 @@ try {
     <link rel="stylesheet" href="<?php echo CSS_URL; ?>/dashboard.css">
     <link rel="stylesheet" href="<?php echo CSS_URL; ?>/schedule.css">
     <link rel="stylesheet" href="<?php echo CSS_URL; ?>/forms.css">
-    <link rel="stylesheet" href="<?php echo CSS_URL; ?>/payroll.css">
+    <link rel="stylesheet" href="<?php echo CSS_URL; ?>/payroll_v2.css">
 
     <style>
          input[type="time"] {

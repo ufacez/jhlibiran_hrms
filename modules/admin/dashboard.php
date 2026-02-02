@@ -299,7 +299,7 @@ try {
                                 <div class="quick-action-desc">Record today's attendance</div>
                             </div>
                         </a>
-                        <a href="<?php echo BASE_URL; ?>/modules/admin/payroll/index.php" class="quick-action-btn">
+                        <a href="<?php echo BASE_URL; ?>/modules/super_admin/payroll_v2/index.php" class="quick-action-btn">
                             <div class="quick-action-icon" style="background: rgba(155, 89, 182, 0.1); color: #9b59b6;">
                                 <i class="fas fa-money-check-alt"></i>
                             </div>
