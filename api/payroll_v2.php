@@ -57,6 +57,36 @@ function canViewPayroll($db) {
     return false;
 }
 
+// Helper function to check if user can approve payroll
+function canApprovePayroll($db) {
+    if (!isset($_SESSION['user_id'])) {
+        return false;
+    }
+    $userLevel = getCurrentUserLevel();
+    if ($userLevel === 'super_admin') {
+        return true;
+    }
+    if ($userLevel === 'admin') {
+        return hasPermission($db, 'can_approve_payroll');
+    }
+    return false;
+}
+
+// Helper function to check if user can mark payroll as paid
+function canMarkPaid($db) {
+    if (!isset($_SESSION['user_id'])) {
+        return false;
+    }
+    $userLevel = getCurrentUserLevel();
+    if ($userLevel === 'super_admin') {
+        return true;
+    }
+    if ($userLevel === 'admin') {
+        return hasPermission($db, 'can_mark_paid');
+    }
+    return false;
+}
+
 // Initialize
 try {
     $pdo = getDBConnection();
@@ -1182,6 +1212,129 @@ try {
             
         default:
             throw new Exception('Unknown action: ' . $action);
+            
+        // ==========================================
+        // PAYROLL STATUS ENDPOINTS
+        // ==========================================
+        
+        case 'update_payroll_status':
+            // POST: Update payroll record status (approve, mark as paid, etc.)
+            if ($method !== 'POST') {
+                throw new Exception('Method not allowed');
+            }
+            
+            $recordId = $input['record_id'] ?? null;
+            $newStatus = $input['status'] ?? '';
+            
+            if (!$recordId) {
+                throw new Exception('Record ID is required');
+            }
+            
+            // Validate status
+            $validStatuses = ['draft', 'pending', 'approved', 'paid', 'cancelled'];
+            if (!in_array($newStatus, $validStatuses)) {
+                throw new Exception('Invalid status: ' . $newStatus);
+            }
+            
+            // Check permissions based on status change
+            if ($newStatus === 'approved') {
+                if (!canApprovePayroll($db)) {
+                    throw new Exception('You do not have permission to approve payroll');
+                }
+            } elseif ($newStatus === 'paid') {
+                if (!canMarkPaid($db)) {
+                    throw new Exception('You do not have permission to mark payroll as paid');
+                }
+            } elseif (!canEditPayrollSettings($db) && !canApprovePayroll($db)) {
+                // For other status changes, require either edit settings or approve permission
+                throw new Exception('You do not have permission to change payroll status');
+            }
+            
+            // Get current record status
+            $stmt = $pdo->prepare("SELECT status FROM payroll_records WHERE record_id = ?");
+            $stmt->execute([$recordId]);
+            $currentRecord = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if (!$currentRecord) {
+                throw new Exception('Payroll record not found');
+            }
+            
+            // Update the status
+            $paymentDate = null;
+            if ($newStatus === 'paid') {
+                $paymentDate = date('Y-m-d H:i:s');
+            }
+            
+            if ($paymentDate) {
+                $stmt = $pdo->prepare("UPDATE payroll_records SET status = ?, payment_date = ?, updated_at = NOW() WHERE record_id = ?");
+                $stmt->execute([$newStatus, $paymentDate, $recordId]);
+            } else {
+                $stmt = $pdo->prepare("UPDATE payroll_records SET status = ?, updated_at = NOW() WHERE record_id = ?");
+                $stmt->execute([$newStatus, $recordId]);
+            }
+            
+            echo json_encode([
+                'success' => true,
+                'message' => 'Payroll status updated to ' . ucfirst($newStatus),
+                'record_id' => $recordId,
+                'new_status' => $newStatus
+            ]);
+            break;
+            
+        case 'batch_update_status':
+            // POST: Update multiple payroll records status at once
+            if ($method !== 'POST') {
+                throw new Exception('Method not allowed');
+            }
+            
+            $recordIds = $input['record_ids'] ?? [];
+            $newStatus = $input['status'] ?? '';
+            
+            if (empty($recordIds)) {
+                throw new Exception('Record IDs are required');
+            }
+            
+            // Validate status
+            $validStatuses = ['draft', 'pending', 'approved', 'paid', 'cancelled'];
+            if (!in_array($newStatus, $validStatuses)) {
+                throw new Exception('Invalid status: ' . $newStatus);
+            }
+            
+            // Check permissions based on status change
+            if ($newStatus === 'approved') {
+                if (!canApprovePayroll($db)) {
+                    throw new Exception('You do not have permission to approve payroll');
+                }
+            } elseif ($newStatus === 'paid') {
+                if (!canMarkPaid($db)) {
+                    throw new Exception('You do not have permission to mark payroll as paid');
+                }
+            } elseif (!canEditPayrollSettings($db) && !canApprovePayroll($db)) {
+                throw new Exception('You do not have permission to change payroll status');
+            }
+            
+            // Update all records
+            $paymentDate = ($newStatus === 'paid') ? date('Y-m-d H:i:s') : null;
+            $placeholders = implode(',', array_fill(0, count($recordIds), '?'));
+            
+            if ($paymentDate) {
+                $stmt = $pdo->prepare("UPDATE payroll_records SET status = ?, payment_date = ?, updated_at = NOW() WHERE record_id IN ($placeholders)");
+                $params = array_merge([$newStatus, $paymentDate], $recordIds);
+            } else {
+                $stmt = $pdo->prepare("UPDATE payroll_records SET status = ?, updated_at = NOW() WHERE record_id IN ($placeholders)");
+                $params = array_merge([$newStatus], $recordIds);
+            }
+            $stmt->execute($params);
+            
+            $updatedCount = $stmt->rowCount();
+            
+            echo json_encode([
+                'success' => true,
+                'message' => $updatedCount . ' payroll record(s) updated to ' . ucfirst($newStatus),
+                'updated_count' => $updatedCount,
+                'new_status' => $newStatus
+            ]);
+            break;
     }
     
 } catch (Exception $e) {

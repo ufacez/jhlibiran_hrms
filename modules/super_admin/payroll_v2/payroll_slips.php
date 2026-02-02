@@ -22,6 +22,11 @@ requireAdminWithPermission($db, 'can_view_payroll', 'You do not have permission 
 
 $pdo = getDBConnection();
 
+// Get user permissions for approve/mark paid actions
+$userLevel = getCurrentUserLevel();
+$canApprovePayroll = ($userLevel === 'super_admin') || hasPermission($db, 'can_approve_payroll');
+$canMarkPaid = ($userLevel === 'super_admin') || hasPermission($db, 'can_mark_paid');
+
 // Get filters from request
 $filter_worker = $_GET['worker'] ?? '';
 $filter_period = $_GET['period'] ?? '';
@@ -222,7 +227,7 @@ $pageTitle = 'Payroll Slips';
             padding: 15px 20px;
             font-weight: 600;
             display: grid;
-            grid-template-columns: 120px 1fr 130px 130px 130px 100px 100px;
+            grid-template-columns: 120px 1fr 130px 130px 130px 100px 150px;
             gap: 10px;
             align-items: center;
             font-size: 13px;
@@ -247,7 +252,7 @@ $pageTitle = 'Payroll Slips';
         .list-item {
             padding: 15px 20px;
             display: grid;
-            grid-template-columns: 120px 1fr 130px 130px 130px 100px 100px;
+            grid-template-columns: 120px 1fr 130px 130px 130px 100px 150px;
             gap: 10px;
             align-items: center;
             border-bottom: 1px solid #f0f0f0;
@@ -374,6 +379,32 @@ $pageTitle = 'Payroll Slips';
         .btn-download:hover {
             background: #28a745;
             color: white;
+        }
+        
+        .btn-approve {
+            color: #17a2b8;
+        }
+        
+        .btn-approve:hover {
+            background: #17a2b8;
+            color: white;
+            border-color: #17a2b8;
+        }
+        
+        .btn-paid {
+            color: #28a745;
+        }
+        
+        .btn-paid:hover {
+            background: #28a745;
+            color: white;
+            border-color: #28a745;
+        }
+        
+        .btn-action.disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            pointer-events: none;
         }
         
         .empty-state {
@@ -597,6 +628,16 @@ $pageTitle = 'Payroll Slips';
                                 <a href="download_pdf.php?id=<?php echo $record['record_id']; ?>" class="btn-action btn-download" title="Download PDF">
                                     <i class="fas fa-download"></i>
                                 </a>
+                                <?php if ($canApprovePayroll && ($record['status'] === 'draft' || $record['status'] === 'pending')): ?>
+                                <a href="#" class="btn-action btn-approve" onclick="updatePayrollStatus(<?php echo $record['record_id']; ?>, 'approved'); return false;" title="Approve Payroll">
+                                    <i class="fas fa-check"></i>
+                                </a>
+                                <?php endif; ?>
+                                <?php if ($canMarkPaid && $record['status'] === 'approved'): ?>
+                                <a href="#" class="btn-action btn-paid" onclick="updatePayrollStatus(<?php echo $record['record_id']; ?>, 'paid'); return false;" title="Mark as Paid">
+                                    <i class="fas fa-money-bill"></i>
+                                </a>
+                                <?php endif; ?>
                             </div>
                         </div>
                     <?php endforeach; ?>
@@ -616,6 +657,45 @@ $pageTitle = 'Payroll Slips';
         function viewPayslip(recordId) {
             // Open payroll slip details in a new window or modal
             window.open('view_slip.php?id=' + recordId, 'payslip_' + recordId, 'width=900,height=600,scrollbars=yes');
+        }
+        
+        function updatePayrollStatus(recordId, newStatus) {
+            const statusLabels = {
+                'approved': 'Approve',
+                'paid': 'Mark as Paid',
+                'pending': 'Set as Pending',
+                'draft': 'Set as Draft',
+                'cancelled': 'Cancel'
+            };
+            
+            if (!confirm('Are you sure you want to ' + statusLabels[newStatus].toLowerCase() + ' this payroll record?')) {
+                return;
+            }
+            
+            fetch('<?php echo BASE_URL; ?>/api/payroll_v2.php?action=update_payroll_status', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    record_id: recordId,
+                    status: newStatus
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(data.message);
+                    // Reload the page to show updated status
+                    location.reload();
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while updating the payroll status.');
+            });
         }
     </script>
     </div>

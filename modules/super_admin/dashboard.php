@@ -14,9 +14,10 @@ require_once __DIR__ . '/../../config/settings.php';
 require_once __DIR__ . '/../../config/session.php';
 require_once __DIR__ . '/../../includes/functions.php';
 require_once __DIR__ . '/../../includes/auth.php';
+require_once __DIR__ . '/../../includes/admin_functions.php';
 
-// Require super admin access
-requireSuperAdmin();
+// Allow both super_admin and admin access to the dashboard
+requireAdminAccess();
 
 // Get current user info
 $user_id = getCurrentUserId();
@@ -230,8 +231,15 @@ function getEnhancedActivityDescription($activity) {
 </head>
 <body>
     <div class="container">
-        <!-- Sidebar -->
-        <?php include __DIR__ . '/../../includes/sidebar.php'; ?>
+        <!-- Sidebar - Use admin_sidebar for admin users, regular sidebar for super_admin -->
+        <?php 
+        $user_level = getCurrentUserLevel();
+        if ($user_level === 'super_admin') {
+            include __DIR__ . '/../../includes/sidebar.php';
+        } else {
+            include __DIR__ . '/../../includes/admin_sidebar.php';
+        }
+        ?>
         
         <!-- Main Content -->
         <div class="main">

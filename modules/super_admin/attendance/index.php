@@ -11,8 +11,10 @@ require_once __DIR__ . '/../../../config/settings.php';
 require_once __DIR__ . '/../../../config/session.php';
 require_once __DIR__ . '/../../../includes/functions.php';
 require_once __DIR__ . '/../../../includes/auth.php';
+require_once __DIR__ . '/../../../includes/admin_functions.php';
 
-requireSuperAdmin();
+// Allow both super_admin and admin with attendance view permission
+requireAdminWithPermission($db, 'can_view_attendance', 'You do not have permission to view attendance');
 
 $full_name = $_SESSION['full_name'] ?? 'Administrator';
 $flash = getFlashMessage();
@@ -87,7 +89,14 @@ try {
 </head>
 <body>
     <div class="container">
-        <?php include __DIR__ . '/../../../includes/sidebar.php'; ?>
+        <?php 
+        $user_level = getCurrentUserLevel();
+        if ($user_level === 'super_admin') {
+            include __DIR__ . '/../../../includes/sidebar.php';
+        } else {
+            include __DIR__ . '/../../../includes/admin_sidebar.php';
+        }
+        ?>
         
         <div class="main">
             <?php include __DIR__ . '/../../../includes/topbar.php'; ?>

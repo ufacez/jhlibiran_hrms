@@ -11,8 +11,10 @@ require_once __DIR__ . '/../../../config/settings.php';
 require_once __DIR__ . '/../../../config/session.php';
 require_once __DIR__ . '/../../../includes/functions.php';
 require_once __DIR__ . '/../../../includes/auth.php';
+require_once __DIR__ . '/../../../includes/admin_functions.php';
 
-requireSuperAdmin();
+// Allow both super_admin and admin with attendance view permission
+requireAdminWithPermission($db, 'can_view_attendance', 'You do not have permission to export attendance');
 
 // Get filter parameters
 $date_filter = isset($_GET['date']) ? sanitizeString($_GET['date']) : date('Y-m-d');
