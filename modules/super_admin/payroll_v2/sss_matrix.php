@@ -153,10 +153,12 @@ $pageTitle = 'SSS Contribution Matrix';
                         <table class="matrix-table">
                             <thead>
                                 <tr>
-                                    <th style="width: 80px;">Bracket</th>
-                                    <th>Lower Range</th>
-                                    <th>Upper Range</th>
-                                    <th>Regular SS (₱)</th>
+                                    <th style="width: 60px;">Bracket</th>
+                                    <th>Salary Range (From)</th>
+                                    <th>Salary Range (To)</th>
+                                    <th>Monthly Salary Credit</th>
+                                    <th>EE (₱)</th>
+                                    <th>ER (₱)</th>
                                     <th>EC (₱)</th>
                                     <th>MPF (₱)</th>
                                     <th>Total (₱)</th>
@@ -165,10 +167,12 @@ $pageTitle = 'SSS Contribution Matrix';
                             <tbody>
                                 <?php 
                                 foreach ($matrix as $row): 
+                                    $msc = $row['monthly_salary_credit'];
                                     $regularSS = $row['employee_contribution'];
+                                    $erSS = $row['employer_contribution'];
                                     $ec = $row['ec_contribution'];
                                     $mpf = isset($row['mpf_contribution']) ? $row['mpf_contribution'] : 0;
-                                    $total = $regularSS + $ec + $mpf;
+                                    $total = $regularSS + $erSS + $ec + $mpf;
                                 ?>
                                 <tr data-id="<?php echo $row['bracket_id']; ?>">
                                     <td>
@@ -185,9 +189,19 @@ $pageTitle = 'SSS Contribution Matrix';
                                                data-field="upper_range" <?php echo !$can_edit ? 'disabled' : ''; ?>>
                                     </td>
                                     <td>
-                                        <input type="text" class="matrix-input" name="regular_ss[]" 
+                                        <input type="text" class="matrix-input msc-input" name="monthly_salary_credit[]" 
+                                               value="<?php echo number_format($msc, 2, '.', ','); ?>" 
+                                               data-field="monthly_salary_credit" <?php echo !$can_edit ? 'disabled' : ''; ?>>
+                                    </td>
+                                    <td>
+                                        <input type="text" class="matrix-input" name="employee_contribution[]" 
                                                value="<?php echo number_format($regularSS, 2, '.', ','); ?>" 
-                                               data-field="regular_ss" <?php echo !$can_edit ? 'disabled' : ''; ?>>
+                                               data-field="employee_contribution" <?php echo !$can_edit ? 'disabled' : ''; ?>>
+                                    </td>
+                                    <td>
+                                        <input type="text" class="matrix-input" name="employer_contribution[]" 
+                                               value="<?php echo number_format($erSS, 2, '.', ','); ?>" 
+                                               data-field="employer_contribution" <?php echo !$can_edit ? 'disabled' : ''; ?>>
                                     </td>
                                     <td>
                                         <input type="text" class="matrix-input" name="ec_contribution[]" 
@@ -212,7 +226,7 @@ $pageTitle = 'SSS Contribution Matrix';
                         <?php if ($can_edit): ?>
                         <div class="table-footer">
                             <div style="color: #666; font-size: 12px;">
-                                <i class="fas fa-info-circle"></i> Total automatically calculates: Regular SS + EC + MPF
+                                <i class="fas fa-info-circle"></i> Total = EE + ER + EC + MPF. EE/ER are calculated using SSS Settings rates applied to Monthly Salary Credit.
                             </div>
                             <button type="submit" class="btn btn-primary">
                                 <i class="fas fa-save"></i> Save Matrix
@@ -221,7 +235,7 @@ $pageTitle = 'SSS Contribution Matrix';
                         <?php else: ?>
                         <div class="table-footer">
                             <div style="color: #666; font-size: 12px;">
-                                <i class="fas fa-info-circle"></i> Total = Regular SS + EC + MPF
+                                <i class="fas fa-info-circle"></i> Total = EE + ER + EC + MPF
                             </div>
                             <button type="button" class="btn btn-primary" onclick="location.href='../payroll_v2/index.php'">
                                 <i class="fas fa-arrow-left"></i> Back to Payroll
@@ -421,18 +435,20 @@ $pageTitle = 'SSS Contribution Matrix';
         // Download CSV
         document.getElementById('downloadBtn').addEventListener('click', function() {
             const rows = document.querySelectorAll('tbody tr');
-            let csv = 'Bracket,Lower_Range,Upper_Range,Regular_SS,EC_Contribution,MPF,Total\n';
+            let csv = 'Bracket,Lower_Range,Upper_Range,Monthly_Salary_Credit,Employee_Contribution,Employer_Contribution,EC_Contribution,MPF,Total\n';
             
             rows.forEach(row => {
                 const bracket = row.querySelector('.bracket-label').textContent;
                 const lower = parseNumber(row.querySelector('[data-field="lower_range"]').value);
                 const upper = parseNumber(row.querySelector('[data-field="upper_range"]').value);
-                const regularSS = parseNumber(row.querySelector('[data-field="regular_ss"]').value);
+                const msc = parseNumber(row.querySelector('[data-field="monthly_salary_credit"]').value);
+                const ee = parseNumber(row.querySelector('[data-field="employee_contribution"]').value);
+                const er = parseNumber(row.querySelector('[data-field="employer_contribution"]').value);
                 const ec = parseNumber(row.querySelector('[data-field="ec_contribution"]').value);
                 const mpf = parseNumber(row.querySelector('[data-field="mpf"]').value);
                 const total = parseNumber(row.querySelector('[data-field="total"]').value);
                 
-                csv += `${bracket},${lower},${upper},${regularSS},${ec},${mpf},${total}\n`;
+                csv += `${bracket},${lower},${upper},${msc},${ee},${er},${ec},${mpf},${total}\n`;
             });
             
             const blob = new Blob([csv], { type: 'text/csv' });
@@ -454,7 +470,8 @@ $pageTitle = 'SSS Contribution Matrix';
             
             const rows = document.querySelectorAll('tbody tr');
             rows.forEach(row => {
-                row.querySelector('[data-field="regular_ss"]').value = '0.00';
+                row.querySelector('[data-field="employee_contribution"]').value = '0.00';
+                row.querySelector('[data-field="employer_contribution"]').value = '0.00';
                 row.querySelector('[data-field="ec_contribution"]').value = '0.00';
                 row.querySelector('[data-field="mpf"]').value = '0.00';
                 updateRowTotal(row);
@@ -464,17 +481,18 @@ $pageTitle = 'SSS Contribution Matrix';
         });
         
         // Update total when fields change
-        document.querySelectorAll('[data-field="regular_ss"], [data-field="ec_contribution"], [data-field="mpf"]').forEach(input => {
+        document.querySelectorAll('[data-field="employee_contribution"], [data-field="employer_contribution"], [data-field="ec_contribution"], [data-field="mpf"]').forEach(input => {
             input.addEventListener('input', function() {
                 updateRowTotal(this.closest('tr'));
             });
         });
         
         function updateRowTotal(row) {
-            const regularSS = parseNumber(row.querySelector('[data-field="regular_ss"]').value);
+            const ee = parseNumber(row.querySelector('[data-field="employee_contribution"]').value);
+            const er = parseNumber(row.querySelector('[data-field="employer_contribution"]').value);
             const ec = parseNumber(row.querySelector('[data-field="ec_contribution"]').value);
             const mpf = parseNumber(row.querySelector('[data-field="mpf"]').value);
-            const total = regularSS + ec + mpf;
+            const total = ee + er + ec + mpf;
             row.querySelector('[data-field="total"]').value = formatNumber(total.toFixed(2));
         }
         
@@ -494,7 +512,9 @@ $pageTitle = 'SSS Contribution Matrix';
             const matrix = [];
             
             rows.forEach((row, index) => {
-                const regularSS = parseNumber(row.querySelector('[data-field="regular_ss"]').value);
+                const msc = parseNumber(row.querySelector('[data-field="monthly_salary_credit"]').value);
+                const ee = parseNumber(row.querySelector('[data-field="employee_contribution"]').value);
+                const er = parseNumber(row.querySelector('[data-field="employer_contribution"]').value);
                 const ec = parseNumber(row.querySelector('[data-field="ec_contribution"]').value);
                 const mpf = parseNumber(row.querySelector('[data-field="mpf"]').value);
                 
@@ -503,7 +523,9 @@ $pageTitle = 'SSS Contribution Matrix';
                     bracket_number: index + 1,
                     lower_range: parseNumber(row.querySelector('[data-field="lower_range"]').value),
                     upper_range: parseNumber(row.querySelector('[data-field="upper_range"]').value),
-                    employee_contribution: regularSS,
+                    monthly_salary_credit: msc,
+                    employee_contribution: ee,
+                    employer_contribution: er,
                     ec_contribution: ec,
                     mpf_contribution: mpf
                 });

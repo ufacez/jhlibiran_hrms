@@ -93,10 +93,9 @@ try {
         $redirect_url = $redirect;
     } else {
         // Redirect based on user level - EXPLICIT CHECK
-        if ($user['user_level'] === 'super_admin') {
+        // Both super_admin and admin go to super_admin dashboard (with permission checks)
+        if ($user['user_level'] === 'super_admin' || $user['user_level'] === 'admin') {
             $redirect_url = BASE_URL . '/modules/super_admin/dashboard.php';
-        } elseif ($user['user_level'] === 'admin') {
-            $redirect_url = BASE_URL . '/modules/admin/dashboard.php';
         } elseif ($user['user_level'] === 'worker') {
             $redirect_url = BASE_URL . '/modules/worker/dashboard.php';
         } else {

@@ -97,6 +97,15 @@ $pageTitle = 'SSS Contribution Settings';
                     </div>
                     <?php endif; ?>
                     
+                    <div style="background: #ecfdf5; border: 1px solid #10b981; border-radius: 8px; padding: 15px; margin-bottom: 20px;">
+                        <p style="color: #065f46; font-size: 13px; margin: 0;"><i class="fas fa-info-circle"></i> <strong>How SSS Calculation Works:</strong></p>
+                        <ul style="color: #065f46; font-size: 12px; margin: 8px 0 0 20px; padding: 0;">
+                            <li>Employee (EE) Contribution = Monthly Salary Credit × EE Rate</li>
+                            <li>Employer (ER) Contribution = Monthly Salary Credit × ER Rate</li>
+                            <li>EC = ₱<?php echo number_format($settings['ecp_minimum'] ?? 10, 2); ?> if MSC &lt; ₱<?php echo number_format($settings['ecp_boundary'] ?? 15000, 2); ?>, otherwise ₱<?php echo number_format($settings['ecp_maximum'] ?? 30, 2); ?></li>
+                        </ul>
+                    </div>
+                    
                     <?php if (!$can_edit): ?>
                     <div class="view-only-notice" style="background: #fef3c7; border: 1px solid #f59e0b; border-radius: 8px; padding: 12px 16px; margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
                         <i class="fas fa-eye" style="color: #d97706;"></i>
@@ -133,10 +142,10 @@ $pageTitle = 'SSS Contribution Settings';
                                 </div>
                                 
                                 <div class="form-group">
-                                    <label class="form-label">Employee Contribution Rate <span style="color: #ef4444;">*</span></label>
+                                    <label class="form-label">Employee Contribution Rate (%) <span style="color: #ef4444;">*</span></label>
                                     <input type="number" name="employee_contribution_rate" class="form-input" 
                                            value="<?php echo $settings['employee_contribution_rate'] ?? ''; ?>" step="0.01" required <?php echo !$can_edit ? 'disabled' : ''; ?>>
-                                    <small style="color: #666; font-size: 11px;">Percentage deducted from employee salary</small>
+                                    <small style="color: #666; font-size: 11px;">EE rate applied to Monthly Salary Credit (Standard: 5%)</small>
                                 </div>
                             </div>
                             
@@ -159,10 +168,10 @@ $pageTitle = 'SSS Contribution Settings';
                                 </div>
                                 
                                 <div class="form-group">
-                                    <label class="form-label">Employer Contribution Rate <span style="color: #ef4444;">*</span></label>
+                                    <label class="form-label">Employer Contribution Rate (%) <span style="color: #ef4444;">*</span></label>
                                     <input type="number" name="employer_contribution_rate" class="form-input" 
                                            value="<?php echo $settings['employer_contribution_rate'] ?? ''; ?>" step="0.01" required <?php echo !$can_edit ? 'disabled' : ''; ?>>
-                                    <small style="color: #666; font-size: 11px;">Company contribution to SSS</small>
+                                    <small style="color: #666; font-size: 11px;">ER rate applied to Monthly Salary Credit (Standard: 10%)</small>
                                 </div>
                             </div>
                         </div>

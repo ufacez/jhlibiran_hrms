@@ -144,8 +144,10 @@ try {
                 exit;
             }
             
-            if (strlen($new) < 6) {
-                echo json_encode(['success' => false, 'message' => 'Password must be 6+ characters']);
+            // Validate password strength
+            $password_check = validatePassword($new);
+            if (!$password_check['valid']) {
+                echo json_encode(['success' => false, 'message' => $password_check['message']]);
                 exit;
             }
             

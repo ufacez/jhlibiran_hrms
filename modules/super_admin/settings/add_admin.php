@@ -78,7 +78,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_admin'])) {
     if (empty($email)) $errors[] = 'Email is required';
     if (!filter_var($email, FILTER_VALIDATE_EMAIL)) $errors[] = 'Invalid email format';
     if (empty($password)) $errors[] = 'Password is required';
-    if (strlen($password) < 6) $errors[] = 'Password must be at least 6 characters';
+    
+    // Validate password strength using validatePassword function
+    if (!empty($password)) {
+        $password_check = validatePassword($password);
+        if (!$password_check['valid']) {
+            $errors[] = $password_check['message'];
+        }
+    }
+    
     if ($password !== $confirm_password) $errors[] = 'Passwords do not match';
     
     if (empty($first_name)) $errors[] = 'First name is required';
@@ -961,6 +969,49 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_admin'])) {
             const password = document.getElementById('password');
             const confirm = document.getElementById('confirm_password');
             
+            // Password requirements validation
+            password.addEventListener('input', function() {
+                const value = this.value;
+                let isValid = true;
+                let message = '';
+                
+                // Check minimum length (8 characters)
+                if (value.length < 8) {
+                    isValid = false;
+                    message = 'Must be at least 8 characters';
+                }
+                // Check for symbol
+                else if (!/[!@#$%^&*()_+\-=\[\]{};\':\"\\|,.<>\/?]/.test(value)) {
+                    isValid = false;
+                    message = 'Must contain at least one symbol (!@#$%^&*...)';
+                }
+                
+                if (value.length > 0) {
+                    this.classList.toggle('valid', isValid);
+                    this.classList.toggle('invalid', !isValid);
+                    
+                    // Show/update hint
+                    let hint = this.parentNode.querySelector('.password-hint');
+                    if (!hint) {
+                        hint = document.createElement('small');
+                        hint.className = 'password-hint';
+                        hint.style.cssText = 'display: block; margin-top: 5px; font-size: 11px;';
+                        this.parentNode.appendChild(hint);
+                    }
+                    hint.textContent = isValid ? '✓ Password meets requirements' : message;
+                    hint.style.color = isValid ? '#10b981' : '#ef4444';
+                } else {
+                    this.classList.remove('valid', 'invalid');
+                    const hint = this.parentNode.querySelector('.password-hint');
+                    if (hint) hint.remove();
+                }
+                
+                // Re-validate confirm password if it has value
+                if (confirm.value) {
+                    confirm.dispatchEvent(new Event('input'));
+                }
+            });
+            
             confirm.addEventListener('input', function() {
                 if (this.value && password.value !== this.value) {
                     this.classList.add('invalid');
@@ -984,6 +1035,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_admin'])) {
         document.getElementById('adminForm').addEventListener('submit', function(e) {
             const password = document.getElementById('password').value;
             const confirm = document.getElementById('confirm_password').value;
+            
+            // Check password length
+            if (password.length < 8) {
+                e.preventDefault();
+                alert('Password must be at least 8 characters long!');
+                document.getElementById('password').focus();
+                return false;
+            }
+            
+            // Check for symbol
+            if (!/[!@#$%^&*()_+\-=\[\]{};\':\"\\|,.<>\/?]/.test(password)) {
+                e.preventDefault();
+                alert('Password must contain at least one symbol (!@#$%^&*()_+-=[]{};"|\':,.<>/?\\)');
+                document.getElementById('password').focus();
+                return false;
+            }
             
             if (password !== confirm) {
                 e.preventDefault();

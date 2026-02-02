@@ -267,7 +267,7 @@ function getEnhancedActivityDescription($activity) {
                             <h1>Welcome back, <?php echo htmlspecialchars($full_name); ?>!</h1>
                             <p>Here's what's happening with your workforce today</p>
                             <span style="display: inline-flex; align-items: center; gap: 8px; margin-top: 10px; background: linear-gradient(135deg, #DAA520, #b8860b); color: #fff; padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 600;">
-                                <i class="fas fa-shield-alt"></i> Super Admin Access
+                                <i class="fas fa-<?php echo ($_SESSION['user_level'] === 'super_admin') ? 'crown' : 'shield-alt'; ?>"></i> <?php echo ($_SESSION['user_level'] === 'super_admin') ? 'Super Admin Access' : 'Admin Access'; ?>
                             </span>
                             <span style="display: inline-flex; align-items: center; gap: 6px; margin-top: 10px; margin-left: 10px; background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.85); padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 500;">
                                 <i class="fas fa-calendar-alt"></i> Next Payroll: <?php echo $nextPayrollDate; ?>

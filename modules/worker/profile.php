@@ -860,21 +860,21 @@ try {
                             <div class="form-row">
                                 <div class="form-group">
                                     <label>New Password <span class="required">*</span></label>
-                                    <input type="password" name="new_password" id="newPassword" required minlength="6">
+                                    <input type="password" name="new_password" id="newPassword" required minlength="8">
                                 </div>
                                 
                                 <div class="form-group">
                                     <label>Confirm New Password <span class="required">*</span></label>
-                                    <input type="password" name="confirm_password" id="confirmPassword" required minlength="6">
+                                    <input type="password" name="confirm_password" id="confirmPassword" required minlength="8">
                                 </div>
                             </div>
                             
                             <div class="password-requirements">
                                 <h4><i class="fas fa-info-circle"></i> Password Requirements</h4>
                                 <ul>
-                                    <li>Minimum 6 characters</li>
+                                    <li>Minimum 8 characters</li>
+                                    <li>Must contain at least one symbol (!@#$%^&*...)</li>
                                     <li>Must not match current password</li>
-                                    <li>Keep it secure and unique</li>
                                 </ul>
                             </div>
                         </div>
@@ -947,6 +947,20 @@ try {
         document.getElementById('changePasswordForm')?.addEventListener('submit', function(e) {
             const newPassword = document.getElementById('newPassword').value;
             const confirmPassword = document.getElementById('confirmPassword').value;
+            
+            // Check minimum length (8 characters)
+            if (newPassword.length < 8) {
+                e.preventDefault();
+                alert('Password must be at least 8 characters long!');
+                return false;
+            }
+            
+            // Check for symbol
+            if (!/[!@#$%^&*()_+\-=\[\]{};\':\"\\|,.<>\/?]/.test(newPassword)) {
+                e.preventDefault();
+                alert('Password must contain at least one symbol (!@#$%^&*()_+-=[]{};\':"|,.<>/?)');
+                return false;
+            }
             
             if (newPassword !== confirmPassword) {
                 e.preventDefault();

@@ -81,6 +81,7 @@ function validatePhone($phone) {
 
 /**
  * Validate password strength
+ * Requires minimum 8 characters and at least one symbol
  * 
  * @param string $password Password
  * @return array Array with 'valid' (bool) and 'message' (string)
@@ -88,10 +89,20 @@ function validatePhone($phone) {
 function validatePassword($password) {
     $result = ['valid' => true, 'message' => ''];
     
+    // Check minimum length (8 characters)
     if (strlen($password) < PASSWORD_MIN_LENGTH) {
         $result['valid'] = false;
         $result['message'] = 'Password must be at least ' . PASSWORD_MIN_LENGTH . ' characters long.';
         return $result;
+    }
+    
+    // Check for at least one symbol (special character)
+    if (defined('PASSWORD_REQUIRE_SYMBOL') && PASSWORD_REQUIRE_SYMBOL) {
+        if (!preg_match('/[!@#$%^&*()_+\-=\[\]{};\'":"\\|,.<>\/?]/', $password)) {
+            $result['valid'] = false;
+            $result['message'] = 'Password must contain at least one symbol (!@#$%^&*()_+-=[]{};\':"|,.<>/?)';
+            return $result;
+        }
     }
     
     return $result;

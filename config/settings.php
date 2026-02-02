@@ -55,7 +55,8 @@ define('SESSION_HTTPONLY', true);
 // ============================================
 // SECURITY SETTINGS
 // ============================================
-define('PASSWORD_MIN_LENGTH', 6);
+define('PASSWORD_MIN_LENGTH', 8);
+define('PASSWORD_REQUIRE_SYMBOL', true);
 define('PASSWORD_HASH_ALGO', PASSWORD_DEFAULT);
 define('MAX_LOGIN_ATTEMPTS', 5);
 define('LOGIN_LOCKOUT_TIME', 900); // 15 minutes in seconds

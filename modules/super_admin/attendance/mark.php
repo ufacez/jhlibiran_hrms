@@ -13,6 +13,7 @@ require_once __DIR__ . '/../../../includes/functions.php';
 require_once __DIR__ . '/../../../includes/auth.php';
 require_once __DIR__ . '/../../../includes/admin_functions.php';
 
+
 // Allow both super_admin and admin with attendance mark permission
 requireAdminWithPermission($db, 'can_mark_attendance', 'You do not have permission to mark attendance');
 

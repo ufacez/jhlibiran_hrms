@@ -343,31 +343,21 @@ try {
                     $bracketNumber = $bracket['bracket_number'] ?? 0;
                     $lowerRange = floatval($bracket['lower_range'] ?? 0);
                     $upperRange = floatval($bracket['upper_range'] ?? 0);
+                    $monthlySalaryCredit = floatval($bracket['monthly_salary_credit'] ?? 0);
                     $employeeContribution = floatval($bracket['employee_contribution'] ?? 0);
+                    $employerContribution = floatval($bracket['employer_contribution'] ?? 0);
                     $ecContribution = floatval($bracket['ec_contribution'] ?? 0);
                     $mpfContribution = floatval($bracket['mpf_contribution'] ?? 0);
                     
-                    // Calculate total contribution
-                    $totalContribution = $employeeContribution + $ecContribution + $mpfContribution;
-                    
-                    // For backward compatibility, check if employer_contribution was explicitly provided
-                    $employerContribution = floatval($bracket['employer_contribution'] ?? 0);
-                    
-                    if ($bracketId) {
-                        // Preserve employer_contribution if not explicitly provided
-                        $current = $pdo->prepare("SELECT employer_contribution FROM sss_contribution_matrix WHERE bracket_id = ?");
-                        $current->execute([$bracketId]);
-                        $currentRow = $current->fetch(PDO::FETCH_ASSOC);
-                        if ($currentRow && $employerContribution <= 0) {
-                            $employerContribution = floatval($currentRow['employer_contribution']);
-                        }
-                    }
+                    // Calculate total contribution (EE + ER + EC + MPF)
+                    $totalContribution = $employeeContribution + $employerContribution + $ecContribution + $mpfContribution;
 
                     $stmt = $pdo->prepare("
                         UPDATE sss_contribution_matrix SET
                             bracket_number = ?,
                             lower_range = ?,
                             upper_range = ?,
+                            monthly_salary_credit = ?,
                             employee_contribution = ?,
                             employer_contribution = ?,
                             ec_contribution = ?,
@@ -381,6 +371,7 @@ try {
                         $bracketNumber,
                         $lowerRange,
                         $upperRange,
+                        $monthlySalaryCredit,
                         $employeeContribution,
                         $employerContribution,
                         $ecContribution,

@@ -278,12 +278,43 @@ class PayrollCalculator {
             }
             
             if ($bracket) {
-                // Get monthly SSS contribution amounts
-                $monthlySSS = floatval($bracket['employee_contribution']);
+                // Get SSS settings for contribution rates
+                $sssSettingsStmt = $this->pdo->query("
+                    SELECT employee_contribution_rate, employer_contribution_rate, 
+                           ecp_minimum, ecp_maximum, ecp_boundary
+                    FROM sss_settings 
+                    WHERE is_active = 1 
+                    ORDER BY effective_date DESC 
+                    LIMIT 1
+                ");
+                $sssSettings = $sssSettingsStmt->fetch(PDO::FETCH_ASSOC);
+                
+                // Get Monthly Salary Credit (MSC) from the bracket
+                $monthlySalaryCredit = floatval($bracket['monthly_salary_credit']);
+                
+                // If no MSC set, fall back to bracket's fixed contribution values
+                if ($monthlySalaryCredit <= 0) {
+                    $monthlySalaryCredit = floatval($bracket['employee_contribution']) / 0.05; // Estimate MSC from fixed EE (5%)
+                }
+                
+                // Calculate EE and ER contributions using rates from sss_settings
+                // Default rates: EE = 5%, ER = 10% (if no settings found)
+                $eeRate = $sssSettings ? floatval($sssSettings['employee_contribution_rate']) / 100 : 0.05;
+                $erRate = $sssSettings ? floatval($sssSettings['employer_contribution_rate']) / 100 : 0.10;
+                
+                // Calculate contributions based on MSC and rates
+                $monthlySSS = round($monthlySalaryCredit * $eeRate, 2);
+                $monthlyEmployerSSS = round($monthlySalaryCredit * $erRate, 2);
+                
+                // MPF contribution (for salaries above 20,000)
                 $monthlyMPF = floatval($bracket['mpf_contribution'] ?? 0);
                 $monthlyEmployeeTotal = $monthlySSS + $monthlyMPF;
-                $monthlyEmployerSSS = floatval($bracket['employer_contribution']);
-                $monthlyECSSS = floatval($bracket['ec_contribution']);
+                
+                // EC contribution - based on boundary settings
+                $ecpBoundary = $sssSettings ? floatval($sssSettings['ecp_boundary']) : 15000.00;
+                $ecpMinimum = $sssSettings ? floatval($sssSettings['ecp_minimum']) : 10.00;
+                $ecpMaximum = $sssSettings ? floatval($sssSettings['ecp_maximum']) : 30.00;
+                $monthlyECSSS = ($monthlySalaryCredit >= $ecpBoundary) ? $ecpMaximum : $ecpMinimum;
                 
                 // Divide by 4 weeks to get weekly amount
                 // Week 1-4 will each deduct this amount, totaling the monthly contribution
@@ -296,15 +327,21 @@ class PayrollCalculator {
                     'bracket_number' => $bracket['bracket_number'],
                     'lower_range' => $bracket['lower_range'],
                     'upper_range' => $bracket['upper_range'],
+                    'monthly_salary_credit' => $monthlySalaryCredit,
+                    'employee_rate' => $eeRate * 100,
+                    'employer_rate' => $erRate * 100,
                     'employee_contribution' => $weeklySSS,
                     'mpf_contribution' => $weeklyMPF,
                     'employer_contribution' => $weeklyEmployerSSS,
                     'ec_contribution' => $weeklyECSSS,
                     'total_contribution' => round(($weeklySSS + $weeklyEmployerSSS + $weeklyECSSS), 2),
+                    'monthly_employee' => $monthlySSS,
+                    'monthly_employer' => $monthlyEmployerSSS,
+                    'monthly_ec' => $monthlyECSSS,
                     'monthly_total' => round($monthlyEmployeeTotal, 2),
                     'formula' => sprintf(
-                        "Bracket %d: Monthly salary ₱%.2f = ₱%.2f/month (SSS+MPF) ÷ 4 weeks = ₱%.2f/week (Employee)",
-                        $bracket['bracket_number'], $estimatedMonthlySalary, $monthlyEmployeeTotal, $weeklySSS
+                        "Bracket %d: MSC ₱%.2f × %.1f%% = ₱%.2f/month ÷ 4 = ₱%.2f/week (EE)",
+                        $bracket['bracket_number'], $monthlySalaryCredit, $eeRate * 100, $monthlySSS, $weeklySSS
                     )
                 ];
             }
