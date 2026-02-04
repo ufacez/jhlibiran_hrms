@@ -83,7 +83,15 @@ try {
             <div>
                 <span class="user-name"><?php echo htmlspecialchars($full_name); ?></span>
                 <span class="user-role">
-                    <?php echo $user_level === 'super_admin' ? 'Super Admin' : 'Worker'; ?>
+                    <?php
+                    if ($user_level === USER_LEVEL_SUPER_ADMIN) {
+                        echo 'Super Admin';
+                    } elseif ($user_level === USER_LEVEL_ADMIN) {
+                        echo 'Admin';
+                    } else {
+                        echo 'Worker';
+                    }
+                    ?>
                 </span>
             </div>
         </div>

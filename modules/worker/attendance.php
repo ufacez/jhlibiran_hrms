@@ -67,9 +67,9 @@ try {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My Attendance - <?php echo SYSTEM_NAME; ?></title>
     <link rel="stylesheet" href="https://pro.fontawesome.com/releases/v5.10.0/css/all.css"/>
-    <link rel="stylesheet" href="<?php echo CSS_URL; ?>../dashboard.css">
-    <link rel="stylesheet" href="<?php echo CSS_URL; ?>../worker.css">
-    <link rel="stylesheet" href="<?php echo CSS_URL; ?>../attendance.css">
+    <link rel="stylesheet" href="<?php echo CSS_URL; ?>/dashboard.css">
+    <link rel="stylesheet" href="<?php echo CSS_URL; ?>/worker.css">
+    <link rel="stylesheet" href="<?php echo CSS_URL; ?>/attendance.css">
 </head>
 <body>
     <div class="container">
@@ -128,8 +128,8 @@ try {
                         <div class="stat-icon"><i class="fas fa-business-time"></i></div>
                         <div class="stat-info">
                             <div class="stat-label">Total Hours</div>
-                            <div class="stat-value"><?php echo number_format($stats['total_hours'] ?? 0, 1); ?></div>
-                            <div class="stat-sublabel">+<?php echo number_format($stats['overtime_hours'] ?? 0, 1); ?>h OT</div>
+                            <div class="stat-value"><?php echo number_format(max(0, floatval($stats['total_hours'] ?? 0)), 1); ?></div>
+                            <div class="stat-sublabel">+<?php echo number_format(max(0, floatval($stats['overtime_hours'] ?? 0)), 1); ?>h OT</div>
                         </div>
                     </div>
                 </div>
@@ -200,8 +200,8 @@ try {
                                         <td><?php echo date('l', strtotime($record['attendance_date'])); ?></td>
                                         <td class="time-cell"><?php echo formatTime($record['time_in']); ?></td>
                                         <td class="time-cell"><?php echo $record['time_out'] ? formatTime($record['time_out']) : '--'; ?></td>
-                                        <td><strong><?php echo number_format($record['hours_worked'], 2); ?>h</strong></td>
-                                        <td><?php echo number_format($record['overtime_hours'], 2); ?>h</td>
+                                        <td><strong><?php echo number_format(max(0, floatval($record['hours_worked'] ?? 0)), 2); ?>h</strong></td>
+                                        <td><?php echo number_format(max(0, floatval($record['overtime_hours'] ?? 0)), 2); ?>h</td>
                                         <td>
                                             <span class="status-badge status-<?php echo $record['status']; ?>">
                                                 <?php echo ucfirst($record['status']); ?>

@@ -134,11 +134,11 @@ function displayAttendanceDetails(attendance) {
                     <div class="info-row">
                         <div class="info-item">
                             <span class="info-label">Hours Worked</span>
-                            <span class="info-value">${attendance.hours_worked || 0} hours</span>
+                            <span class="info-value">${(Math.max(0, Number(attendance.hours_worked) || 0)).toFixed(2)} hours</span>
                         </div>
                         <div class="info-item">
                             <span class="info-label">Overtime Hours</span>
-                            <span class="info-value">${attendance.overtime_hours || 0} hours</span>
+                            <span class="info-value">${(Math.max(0, Number(attendance.overtime_hours) || 0)).toFixed(2)} hours</span>
                         </div>
                     </div>
                     ${attendance.notes ? `

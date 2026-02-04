@@ -232,6 +232,68 @@ class PayrollCalculator {
             return [];
         }
     }
+
+    /**
+     * Get a single rate value by key with optional default
+     *
+     * @param string $key
+     * @param mixed $default
+     * @return float|mixed
+     */
+    public function getRate($key, $default = null) {
+        if (isset($this->rates[$key])) {
+            return $this->rates[$key];
+        }
+
+        // Provide computed fallbacks for some derived keys
+        switch ($key) {
+            case 'overtime_rate':
+                $hourly = $this->rates['hourly_rate'] ?? ($this->rates['daily_rate'] / 8 ?? null);
+                $mult = $this->rates['overtime_multiplier'] ?? 1.25;
+                return $hourly !== null ? round($hourly * $mult, 4) : $default;
+            case 'night_diff_rate':
+                $hourly = $this->rates['hourly_rate'] ?? ($this->rates['daily_rate'] / 8 ?? null);
+                $pct = $this->rates['night_diff_percentage'] ?? 0;
+                return $hourly !== null ? round($hourly * ($pct / 100), 4) : $default;
+            case 'weekly_rate':
+                if (isset($this->rates['daily_rate'])) {
+                    return round($this->rates['daily_rate'] * ($this->rates['standard_days_per_week'] ?? 6), 4);
+                }
+                return $default;
+            default:
+                return $default;
+        }
+    }
+
+    /**
+     * Return a set of rates formatted for display (includes computed values)
+     *
+     * @return array
+     */
+    public function getRatesForDisplay() {
+        $hourly = $this->getRate('hourly_rate', 0);
+        $daily = $this->getRate('daily_rate', $hourly * 8);
+        $weekly = $this->getRate('weekly_rate', $daily * ($this->rates['standard_days_per_week'] ?? 6));
+        $otMult = $this->getRate('overtime_multiplier', 1.25);
+        $otRate = $this->getRate('overtime_rate', null);
+        if ($otRate === null) $otRate = $hourly * $otMult;
+        $ndPct = $this->getRate('night_diff_percentage', 0);
+        $ndRate = $this->getRate('night_diff_rate', null);
+        if ($ndRate === null) $ndRate = $hourly * ($ndPct / 100);
+
+        return [
+            'hourly_rate' => (float)$hourly,
+            'daily_rate' => (float)$daily,
+            'weekly_rate' => (float)$weekly,
+            'overtime_multiplier' => (float)$otMult,
+            'overtime_rate' => (float)$otRate,
+            'night_diff_percentage' => (float)$ndPct,
+            'night_diff_rate' => (float)$ndRate,
+            'regular_holiday_multiplier' => (float)($this->rates['regular_holiday_multiplier'] ?? 2.0),
+            'special_holiday_multiplier' => (float)($this->rates['special_holiday_multiplier'] ?? 1.3),
+            'rest_day_multiplier' => (float)($this->rates['rest_day_multiplier'] ?? 1.3)
+        ];
+    }
     
     /**
      * Calculate withholding tax based on weekly gross income
@@ -799,16 +861,6 @@ class PayrollCalculator {
         return $deductions;
     }
     
-    /**
-     * Get a specific rate from loaded settings
-     * 
-     * @param string $key Setting key
-     * @param float $default Default value if not found
-     * @return float The rate value
-     */
-    public function getRate($key, $default = 0) {
-        return $this->rates[$key] ?? $default;
-    }
     
     /**
      * Get all loaded settings

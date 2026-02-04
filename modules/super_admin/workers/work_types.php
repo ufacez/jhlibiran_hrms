@@ -167,10 +167,60 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $can_manage) {
                 }
                 break;
             case 'delete_work_type':
-                // ...existing code...
+                $work_type_id = sanitizeInt($_POST['work_type_id'] ?? 0);
+                if (!$work_type_id) throw new Exception('Invalid work type ID');
+                // Check if any active workers assigned
+                $stmt = $db->prepare("SELECT COUNT(*) FROM workers WHERE work_type_id = ? AND is_archived = 0");
+                $stmt->execute([$work_type_id]);
+                if ($stmt->fetchColumn() > 0) {
+                    throw new Exception('Cannot delete work type assigned to active workers');
+                }
+                // Get name for logging
+                $stmt = $db->prepare("SELECT work_type_name FROM work_types WHERE work_type_id = ?");
+                $stmt->execute([$work_type_id]);
+                $wtname = $stmt->fetchColumn();
+                $stmt = $db->prepare("DELETE FROM work_types WHERE work_type_id = ?");
+                $stmt->execute([$work_type_id]);
+                // Optionally clear rate history for this type (non-fatal)
+                try {
+                    $hstmt = $db->prepare("DELETE FROM work_type_rate_history WHERE work_type_id = ?");
+                    $hstmt->execute([$work_type_id]);
+                } catch (Exception $e) {}
+                logActivity($db, $user_id, 'delete', 'work_types', $work_type_id, "Deleted work type: $wtname");
+                setFlashMessage('Work type deleted successfully', 'success');
                 break;
             case 'add_classification':
-                // ...existing code...
+                $classification_code = strtoupper(sanitizeString($_POST['classification_code'] ?? ''));
+                $classification_name = sanitizeString($_POST['classification_name'] ?? '');
+                $skill_level = sanitizeString($_POST['skill_level'] ?? 'entry');
+                $min_exp = intval($_POST['minimum_experience_years'] ?? 0);
+                $min_exp = max(0, $min_exp);
+                $description = sanitizeString($_POST['description'] ?? '');
+
+                if (empty($classification_code) || empty($classification_name)) {
+                    throw new Exception('Classification code and name are required');
+                }
+
+                if (!in_array($skill_level, array_keys($skill_levels ?? ['entry'=>'Entry Level','skilled'=>'Skilled','senior'=>'Senior','master'=>'Master/Foreman']))) {
+                    $skill_level = 'entry';
+                }
+
+                // Ensure unique code
+                $stmt = $db->prepare("SELECT COUNT(*) FROM worker_classifications WHERE classification_code = ?");
+                $stmt->execute([$classification_code]);
+                if ($stmt->fetchColumn() > 0) {
+                    throw new Exception('Classification code already exists');
+                }
+
+                // Determine display order
+                $stmt = $db->query("SELECT COALESCE(MAX(display_order), 0) + 1 FROM worker_classifications");
+                $display_order = $stmt ? (int)$stmt->fetchColumn() : 1;
+
+                $ins = $db->prepare("INSERT INTO worker_classifications (classification_code, classification_name, description, skill_level, minimum_experience_years, is_active, display_order, created_at) VALUES (?, ?, ?, ?, ?, 1, ?, NOW())");
+                $ins->execute([$classification_code, $classification_name, $description, $skill_level, $min_exp, $display_order]);
+                $new_id = $db->lastInsertId();
+                logActivity($db, $user_id, 'create', 'worker_classifications', $new_id, "Added classification: $classification_name ($classification_code)");
+                setFlashMessage('Classification added successfully', 'success');
                 break;
             case 'delete_classification':
                 $classification_id = sanitizeInt($_POST['classification_id'] ?? 0);

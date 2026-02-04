@@ -29,16 +29,21 @@ $date_filter = isset($_GET['date']) ? sanitizeString($_GET['date']) : date('Y-m-
 
 // Build query for attendance - FIXED to exclude archived records
 
-$sql = "SELECT a.*, w.worker_code, w.first_name, w.last_name, wc.classification_name, wt.work_type_name 
-        FROM attendance a
+$sql = "SELECT a.*, w.worker_code, w.first_name, w.last_name,
+           COALESCE(wc.classification_name, wct.classification_name) AS classification_name,
+           wt.work_type_name
+    FROM attendance a
         JOIN workers w ON a.worker_id = w.worker_id
         LEFT JOIN worker_classifications wc ON w.classification_id = wc.classification_id
         LEFT JOIN work_types wt ON w.work_type_id = wt.work_type_id
+        LEFT JOIN worker_classifications wct ON wt.classification_id = wct.classification_id 
         WHERE a.attendance_date = ? AND a.is_archived = FALSE AND w.is_archived = FALSE";
 $params = [$date_filter];
 
 if (!empty($classification_filter)) {
-    $sql .= " AND w.classification_id = ?";
+    // Match worker's classification OR the classification assigned to their work type
+    $sql .= " AND (w.classification_id = ? OR wt.classification_id = ?)";
+    $params[] = $classification_filter;
     $params[] = $classification_filter;
 }
 if (!empty($work_type_filter)) {
@@ -150,10 +155,12 @@ try {
                         <div class="filter-row">
                             <div class="filter-group">
                                 <label>Classification</label>
-                                <select name="classification" id="classificationFilter" onchange="document.getElementById('filterForm').submit()">
+                                <select name="classification" id="classificationFilter" onchange="submitFilter()">
                                     <option value="">All Classifications</option>
                                     <?php foreach ($classifications as $c): ?>
-                                        <option value="<?php echo $c['classification_id']; ?>" <?php echo $classification_filter == $c['classification_id'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($c['classification_name']); ?></option>
+                                        <option value="<?php echo $c['classification_id']; ?>" <?php echo $classification_filter == $c['classification_id'] ? 'selected' : ''; ?>>
+                                            <?php echo htmlspecialchars($c['classification_name']); ?>
+                                        </option>
                                     <?php endforeach; ?>
                                 </select>
                             </div>

@@ -23,7 +23,7 @@ $flash = getFlashMessage();
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>My Payroll (Detailed) - <?php echo SYSTEM_NAME; ?></title>
+    <title>My Payroll (v2) - <?php echo SYSTEM_NAME; ?></title>
     <link rel="stylesheet" href="https://pro.fontawesome.com/releases/v5.10.0/css/all.css"/>
     <link rel="stylesheet" href="<?php echo CSS_URL; ?>/dashboard.css">
     <link rel="stylesheet" href="<?php echo CSS_URL; ?>/worker.css">
@@ -50,6 +50,7 @@ $flash = getFlashMessage();
                 <div class="page-header">
                     <div class="header-left">
                         <h1><i class="fas fa-money-check-alt"></i> My Payroll (Detailed)</h1>
+                        <p class="subtitle">Payroll v2 breakdowns and detailed slip</p>
                     </div>
                 </div>
 
@@ -145,7 +146,12 @@ $flash = getFlashMessage();
                 for (const rec of records) {
                     const tr = document.createElement('tr');
                     const period = `<strong>${formatDate(rec.period_start)}</strong> - <strong>${formatDate(rec.period_end)}</strong>`;
-                    const hours = `${parseFloat((rec.regular_hours || 0) + (rec.overtime_hours || 0)).toFixed(1)}h`;
+                    // Clamp negative values to zero to avoid "backwards" attendance
+                    const regularHours = Math.max(0, parseFloat(rec.regular_hours || 0));
+                    const overtimeHours = Math.max(0, parseFloat(rec.overtime_hours || 0));
+                    const nightDiffHours = Math.max(0, parseFloat(rec.night_diff_hours || 0));
+                    // Show total (regular + OT + NND), but do not allow negatives to subtract
+                    const hours = `${(regularHours + overtimeHours + nightDiffHours).toFixed(1)}h`;
                     const gross = `₱${parseFloat(rec.gross_pay || 0).toFixed(2)}`;
                     const ded = `-₱${Math.abs(parseFloat(rec.total_deductions || 0)).toFixed(2)}`;
                     const net = `₱${parseFloat(rec.net_pay || 0).toFixed(2)}`;
@@ -182,7 +188,7 @@ $flash = getFlashMessage();
                 }
                 const rec = data.record;
                 const earnings = data.earnings || [];
-                content.innerHTML = generatePayrollDetailHTML(rec, earnings);
+                    content.innerHTML = generatePayrollDetailHTML(rec, earnings);
             } catch (e) {
                 content.innerHTML = '<div class="alert alert-error">Failed to load payroll details</div>';
                 console.error(e);
@@ -191,7 +197,11 @@ $flash = getFlashMessage();
 
         function generatePayrollDetailHTML(rec, earnings) {
             const period = `${formatDate(rec.period_start)} - ${formatDate(rec.period_end)}`;
-            const totalHours = (parseFloat(rec.regular_hours||0) + parseFloat(rec.overtime_hours||0)).toFixed(2);
+            // Clamp negative values to zero to avoid "backwards" attendance
+            const regularHours = Math.max(0, parseFloat(rec.regular_hours || 0));
+            const overtimeHours = Math.max(0, parseFloat(rec.overtime_hours || 0));
+            const nightDiffHours = Math.max(0, parseFloat(rec.night_diff_hours || 0));
+            const totalHours = (regularHours + overtimeHours + nightDiffHours).toFixed(2);
             const rowsEarnings = earnings.map(e => {
                 const when = e.date ? formatDate(e.date) : '';
                 const hours = e.hours ? `${parseFloat(e.hours).toFixed(2)}h` : '';
@@ -201,20 +211,11 @@ $flash = getFlashMessage();
             return `
                 <div class="payroll-detail-card">
                     <h3>Pay Period: ${period}</h3>
-                        <div class="info-list">
-                            <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:10px;">
-                                <div>
-                                    <div class="info-item"><span class="info-label">Days (records)</span><span class="info-value">${rec.days_count || '-'}</span></div>
-                                    <div class="info-item"><span class="info-label">Total Hours</span><span class="info-value">${totalHours} hours</span></div>
-                                    <div class="info-item"><span class="info-label">Gross Pay</span><span class="info-value">₱${parseFloat(rec.gross_pay||0).toFixed(2)}</span></div>
-                                </div>
-                                <div>
-                                    <a href="${API}?action=download_record&record_id=${rec.record_id}" target="_blank" class="btn-download">
-                                        <i class="fas fa-file-download"></i> Download PDF
-                                    </a>
-                                </div>
-                            </div>
-                        </div>
+                    <div class="info-list">
+                        <div class="info-item"><span class="info-label">Days (records)</span><span class="info-value">${rec.days_count || '-'}</span></div>
+                        <div class="info-item"><span class="info-label">Total Hours</span><span class="info-value">${totalHours} hours</span></div>
+                        <div class="info-item"><span class="info-label">Gross Pay</span><span class="info-value">₱${parseFloat(rec.gross_pay||0).toFixed(2)}</span></div>
+                    </div>
 
                     <h4>Earnings Breakdown</h4>
                     <div style="overflow:auto"><table class="small-table" style="width:100%; border-collapse:collapse"><thead><tr><th>Date</th><th>Type</th><th>Hours</th><th>Amount</th></tr></thead><tbody>${rowsEarnings || '<tr><td colspan="4">No earnings lines</td></tr>'}</tbody></table></div>
@@ -233,7 +234,7 @@ $flash = getFlashMessage();
             `;
         }
 
-        function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+        function closeModal(id) { document.getElementById(id).classList.remove('show'); }
         function formatDate(d) { if(!d) return '-'; const dt = new Date(d); return dt.toLocaleDateString('en-US', { year:'numeric', month:'short', day:'numeric'}); }
     </script>
 </body>

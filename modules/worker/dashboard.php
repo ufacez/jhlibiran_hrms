@@ -79,7 +79,7 @@ try {
     // Calculate estimated pay
     $schedule = getWorkerScheduleHours($db, $worker_id);
     $hourly_rate = $worker['daily_rate'] / $schedule['hours_per_day'];
-    $estimated_gross = $hourly_rate * ($period_data['total_hours'] ?? 0);
+    $estimated_gross = $hourly_rate * (max(0, floatval($period_data['total_hours'] ?? 0)));
     
     // Get deductions
     $stmt = $db->prepare("SELECT COALESCE(SUM(amount), 0) as total_deductions 
@@ -116,8 +116,8 @@ try {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My Dashboard - <?php echo SYSTEM_NAME; ?></title>
     <link rel="stylesheet" href="https://pro.fontawesome.com/releases/v5.10.0/css/all.css"/>
-    <link rel="stylesheet" href="<?php echo CSS_URL; ?>../dashboard.css">
-    <link rel="stylesheet" href="<?php echo CSS_URL; ?>../worker.css">
+    <link rel="stylesheet" href="<?php echo CSS_URL; ?>/dashboard.css">
+    <link rel="stylesheet" href="<?php echo CSS_URL; ?>/worker.css">
 </head>
 <body>
     <div class="container">
@@ -198,9 +198,9 @@ try {
                         </div>
                         <div class="stat-info">
                             <div class="stat-label">Total Hours</div>
-                            <div class="stat-value"><?php echo number_format($month_summary['total_hours'] ?? 0, 1); ?>h</div>
+                            <div class="stat-value"><?php echo number_format(max(0, floatval($month_summary['total_hours'] ?? 0)), 1); ?>h</div>
                             <div class="stat-sublabel">
-                                +<?php echo number_format($month_summary['overtime_hours'] ?? 0, 1); ?>h overtime
+                                +<?php echo number_format(max(0, floatval($month_summary['overtime_hours'] ?? 0)), 1); ?>h overtime
                             </div>
                         </div>
                     </div>
@@ -261,9 +261,11 @@ try {
                                                 <?php endif; ?>
                                             </div>
                                             <div class="attendance-hours">
-                                                <?php echo number_format($record['hours_worked'], 2); ?> hours
-                                                <?php if ($record['overtime_hours'] > 0): ?>
-                                                    <span class="ot-badge">+<?php echo number_format($record['overtime_hours'], 2); ?>h OT</span>
+                                                <?php $rw = max(0, floatval($record['hours_worked'] ?? 0)); ?>
+                                                <?php $ro = max(0, floatval($record['overtime_hours'] ?? 0)); ?>
+                                                <?php echo number_format($rw, 2); ?> hours
+                                                <?php if ($ro > 0): ?>
+                                                    <span class="ot-badge">+<?php echo number_format($ro, 2); ?>h OT</span>
                                                 <?php endif; ?>
                                             </div>
                                         </div>

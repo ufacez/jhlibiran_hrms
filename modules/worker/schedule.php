@@ -109,8 +109,8 @@ try {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My Schedule - <?php echo SYSTEM_NAME; ?></title>
     <link rel="stylesheet" href="https://pro.fontawesome.com/releases/v5.10.0/css/all.css"/>
-    <link rel="stylesheet" href="<?php echo CSS_URL; ?>../dashboard.css">
-    <link rel="stylesheet" href="<?php echo CSS_URL; ?>../worker.css">
+    <link rel="stylesheet" href="<?php echo CSS_URL; ?>/dashboard.css">
+    <link rel="stylesheet" href="<?php echo CSS_URL; ?>/worker.css">
     <style>
         .schedule-header-card {
             background: linear-gradient(135deg, #DAA520, #B8860B);
@@ -439,7 +439,7 @@ try {
                                 </div>
                                 <div class="schedule-meta-item">
                                     <i class="fas fa-clock"></i>
-                                    <span><?php echo number_format($weekly_stats['total_hours'] ?? 0, 1); ?> hours/week</span>
+                                    <span><?php echo number_format(max(0, floatval($weekly_stats['total_hours'] ?? 0)), 1); ?> hours/week</span>
                                 </div>
                                 <div class="schedule-meta-item">
                                     <i class="fas fa-briefcase"></i>
@@ -475,10 +475,11 @@ try {
                         <div class="stat-icon"><i class="fas fa-clock"></i></div>
                         <div class="stat-info">
                             <div class="stat-label">Hours This Week</div>
-                            <div class="stat-value"><?php echo number_format($week_attendance['hours_worked'] ?? 0, 1); ?>h</div>
-                            <div class="stat-sublabel">Out of <?php echo number_format($weekly_stats['total_hours'] ?? 0, 1); ?>h scheduled</div>
+                            <div class="stat-value"><?php echo number_format(max(0, floatval($week_attendance['hours_worked'] ?? 0)), 1); ?>h</div>
+                            <div class="stat-sublabel">Out of <?php echo number_format(max(0, floatval($weekly_stats['total_hours'] ?? 0)), 1); ?>h scheduled</div>
                         </div>
                     </div>
+                        <div class="stat-sublabel">Out of <?php echo number_format(max(0, floatval($weekly_stats['total_hours'] ?? 0)), 1); ?>h scheduled</div>
                     
                     <div class="stat-card card-orange">
                         <div class="stat-icon"><i class="fas fa-percentage"></i></div>
