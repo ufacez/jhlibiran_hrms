@@ -1052,35 +1052,20 @@ class PayrollCalculator {
     public function calculateNightDiffHours($timeIn, $timeOut, $date) {
         $nightStart = $this->getRate('night_diff_start', 22); // 10 PM
         $nightEnd = $this->getRate('night_diff_end', 6);      // 6 AM
-        
-        $inTime = strtotime($date . ' ' . $timeIn);
-        $outTime = strtotime($date . ' ' . $timeOut);
-        
-        // Handle overnight shifts
-        if ($outTime <= $inTime) {
-            $outTime = strtotime('+1 day', $outTime);
+        $date = $date ?: date('Y-m-d');
+        $inTs = strtotime($date . ' ' . $timeIn);
+        $outTs = strtotime($date . ' ' . $timeOut);
+        if ($outTs <= $inTs) {
+            $outTs = strtotime('+1 day', $outTs);
         }
-        
         $nightDiffHours = 0;
-        
-        // Night period 1: Current day 10PM to midnight
-        $nightPeriod1Start = strtotime($date . ' ' . sprintf('%02d:00:00', $nightStart));
-        $nightPeriod1End = strtotime($date . ' 23:59:59');
-        
-        // Night period 2: Next day midnight to 6AM
-        $nextDay = date('Y-m-d', strtotime($date . ' +1 day'));
-        $nightPeriod2Start = strtotime($nextDay . ' 00:00:00');
-        $nightPeriod2End = strtotime($nextDay . ' ' . sprintf('%02d:00:00', $nightEnd));
-        
-        // Calculate overlap with night periods
-        $nightDiffHours += $this->calculateOverlapHours($inTime, $outTime, $nightPeriod1Start, $nightPeriod1End);
-        $nightDiffHours += $this->calculateOverlapHours($inTime, $outTime, $nightPeriod2Start, $nightPeriod2End);
-        
-        // Also check same day early morning (midnight to 6AM if they start before 6AM)
-        $sameDayNightStart = strtotime($date . ' 00:00:00');
-        $sameDayNightEnd = strtotime($date . ' ' . sprintf('%02d:00:00', $nightEnd));
-        $nightDiffHours += $this->calculateOverlapHours($inTime, $outTime, $sameDayNightStart, $sameDayNightEnd);
-        
+        // Night period: 10PM to 6AM (spans two days)
+        $nightStartTs = strtotime($date . ' ' . sprintf('%02d:00:00', $nightStart));
+        $nightEndTs = strtotime($date . ' ' . sprintf('%02d:00:00', $nightEnd));
+        if ($nightEndTs <= $nightStartTs) {
+            $nightEndTs = strtotime('+1 day', $nightEndTs);
+        }
+        $nightDiffHours += $this->calculateOverlapHours($inTs, $outTs, $nightStartTs, $nightEndTs);
         return round($nightDiffHours, 2);
     }
     

@@ -78,35 +78,32 @@ class AttendanceCalculator {
                 'calculation_details' => 'Missing time in or time out'
             ];
         }
-        
-        $timeInTs = strtotime($timeIn);
-        $timeOutTs = strtotime($timeOut);
-        
-        // Handle overnight shifts
-        if ($timeOutTs < $timeInTs) {
-            $timeOutTs += 86400; // Add 24 hours
+        // Use date if provided, else today
+        $date = $date ?: date('Y-m-d');
+        $inTs = strtotime($date . ' ' . $timeIn);
+        $outTs = strtotime($date . ' ' . $timeOut);
+        // If time out is less than or equal to time in, add 1 day to outTs
+        if ($outTs <= $inTs) {
+            $outTs = strtotime('+1 day', $outTs);
         }
-        
         // Calculate raw hours
-        $rawHours = ($timeOutTs - $timeInTs) / 3600;
+        $rawHours = ($outTs - $inTs) / 3600;
         
         // Apply grace period for late arrivals
         $lateMinutes = $this->calculateLateMinutes($timeIn, $date);
         $gracePeriod = $this->settings['grace_period_minutes'];
-        
         // If late is within grace period, don't penalize
-        $adjustedTimeIn = $timeInTs;
+        $adjustedTimeIn = $inTs;
         if ($lateMinutes > 0 && $lateMinutes <= $gracePeriod) {
             // Don't adjust time - grace period covers it
             $lateMinutes = 0;
         } elseif ($lateMinutes > $gracePeriod) {
             // Penalize only the amount beyond grace period
             $lateMinutes = $lateMinutes - $gracePeriod;
-            $adjustedTimeIn = $timeInTs + ($lateMinutes * 60);
+            $adjustedTimeIn = $inTs + ($lateMinutes * 60);
         }
-        
         // Recalculate hours after grace period adjustment
-        $adjustedHours = ($timeOutTs - $adjustedTimeIn) / 3600;
+        $adjustedHours = ($outTs - $adjustedTimeIn) / 3600;
         
         // Apply break deduction for full day shifts (8+ hours)
         $breakHours = 0;

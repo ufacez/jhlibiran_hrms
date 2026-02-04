@@ -103,14 +103,18 @@ $pageTitle = 'Payroll Management';
         /* Layout */
         .payroll-grid {
             display: grid;
-            grid-template-columns: 1fr 450px;
-            gap: 20px;
+            grid-template-columns: 1fr 1.1fr;
+            gap: 32px;
             margin-top: 20px;
         }
         
         @media (max-width: 1200px) {
             .payroll-grid {
                 grid-template-columns: 1fr;
+            }
+            .results-panel {
+                max-width: 100%;
+                min-width: 0;
             }
         }
         
@@ -371,34 +375,36 @@ $pageTitle = 'Payroll Management';
             box-shadow: 0 2px 10px rgba(0,0,0,0.05);
             position: sticky;
             top: 90px;
+            overflow-x: auto;
+            overflow-x: visible;
+            word-break: break-word;
+            width: 100%;
+            min-width: 700px;
+            max-width: none;
         }
-        
-        .results-header {
-            padding: 20px;
-            border-bottom: 1px solid #f0f0f0;
-            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
-            color: white;
-            border-radius: 12px 12px 0 0;
-        }
-        
-        .results-header h3 {
-            font-size: 16px;
-            font-weight: 600;
-            margin-bottom: 5px;
-        }
-        
-        .results-header .period {
-            font-size: 12px;
-            opacity: 0.8;
-        }
-        
-        /* Payroll Breakdown */
-        .payroll-breakdown {
-            padding: 20px;
-        }
+            /* Status badge styles removed from index */
+            .status-badge.draft {
+                background: #fef3c7;
+                color: #92400e;
+            }
+            .status-badge.pending {
+                background: #dbeafe;
+                color: #1e40af;
+            }
+            .status-badge.approved {
+                background: #d1fae5;
+                color: #065f46;
+            }
+            .status-badge.paid {
+                background: #10b981;
+                color: white;
+            }
         
         .breakdown-section {
             margin-bottom: 20px;
+            overflow-x: auto;
+            word-break: break-word;
+            max-width: 100%;
         }
         
         .breakdown-section h4 {
@@ -422,6 +428,9 @@ $pageTitle = 'Payroll Management';
             padding: 8px 0;
             border-bottom: 1px solid #f0f0f0;
             font-size: 13px;
+            flex-wrap: wrap;
+            word-break: break-word;
+            overflow-wrap: anywhere;
         }
         
         .breakdown-row:last-child {
@@ -432,12 +441,17 @@ $pageTitle = 'Payroll Management';
             color: #555;
             display: flex;
             flex-direction: column;
+            min-width: 0;
+            word-break: break-word;
+            overflow-wrap: anywhere;
         }
         
         .breakdown-row .formula {
             font-size: 10px;
             color: #999;
             font-family: monospace;
+            word-break: break-word;
+            overflow-wrap: anywhere;
         }
         
         .breakdown-row .amount {
@@ -726,8 +740,12 @@ $pageTitle = 'Payroll Management';
         
         .modal-body {
             padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-left: 0;
+            padding-right: 0;
         }
-        
         .modal-footer {
             padding: 15px 20px;
             border-top: 1px solid #f0f0f0;
@@ -745,8 +763,12 @@ $pageTitle = 'Payroll Management';
             margin-bottom: 25px;
             flex-wrap: wrap;
             gap: 15px;
+            max-width: 520px;
+            margin-left: auto;
+            margin-right: auto;
+            padding-left: 16px;
+            padding-right: 16px;
         }
-        
         .page-title-section h1 {
             font-size: 24px;
             font-weight: 700;
@@ -754,7 +776,7 @@ $pageTitle = 'Payroll Management';
             display: flex;
             align-items: center;
             gap: 10px;
-        }
+        } 
         
         .page-title-section h1 i {
             color: #DAA520;
@@ -942,7 +964,7 @@ $pageTitle = 'Payroll Management';
                                             <th>Period</th>
                                             <th>Workers</th>
                                             <th>Total Net</th>
-                                            <th>Status</th>
+                                            <!-- Status column removed -->
                                             <th></th>
                                         </tr>
                                     </thead>
@@ -959,17 +981,13 @@ $pageTitle = 'Payroll Management';
                                             <td><?php echo date('M d', strtotime($period['period_start'])); ?> - <?php echo date('M d, Y', strtotime($period['period_end'])); ?></td>
                                             <td><?php echo $period['total_workers']; ?></td>
                                             <td class="amount positive">₱<?php echo number_format($period['total_net'], 2); ?></td>
-                                            <td><span class="status-badge <?php echo $period['status']; ?>"><?php echo ucfirst($period['status']); ?></span></td>
+                                            <!-- Status cell removed -->
                                             <td style="display:flex; gap:6px; align-items:center;">
                                                 <button class="action-btn" style="padding: 5px 10px; background:#111; color:#fff; border-radius:8px; border:none; display:flex; align-items:center; justify-content:center;"
                                                         onclick="viewPeriod(<?php echo $period['period_id']; ?>)">
                                                     <i class="fas fa-eye" style="color:#fff;"></i>
                                                 </button>
-                                                <?php if ($period['status'] === 'open'): ?>
-                                                <button class="action-btn" style="padding: 5px 10px; background:#c0392b; color:#fff; border-radius:8px; border:none; display:flex; align-items:center; justify-content:center; font-size:13px;" onclick="closePayrollPeriod(<?php echo $period['period_id']; ?>, this)">
-                                                    <i class="fas fa-lock"></i> Close
-                                                </button>
-                                                <?php endif; ?>
+                                                <!-- Close button removed -->
                                             </td>
                                         </tr>
                                         <?php endforeach; ?>

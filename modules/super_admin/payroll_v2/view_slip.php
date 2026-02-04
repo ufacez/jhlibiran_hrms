@@ -55,9 +55,9 @@ try {
                DAYNAME(a.attendance_date) as day_name,
                a.time_in as in_time,
                a.time_out as out_time,
-               CASE WHEN a.hours_worked >= 8 THEN a.hours_worked - 1 ELSE a.hours_worked END as total_hours,
+               GREATEST(0, CASE WHEN a.hours_worked >= 8 THEN a.hours_worked - 1 ELSE a.hours_worked END) as total_hours,
                GREATEST(0, CASE WHEN a.hours_worked >= 8 THEN a.hours_worked - 1 ELSE a.hours_worked END - 8) as overtime_hours,
-               LEAST(CASE WHEN a.hours_worked >= 8 THEN a.hours_worked - 1 ELSE a.hours_worked END, 8) as regular_hours
+               GREATEST(0, LEAST(CASE WHEN a.hours_worked >= 8 THEN a.hours_worked - 1 ELSE a.hours_worked END, 8)) as regular_hours
         FROM attendance a
         WHERE a.worker_id = ?
         AND a.attendance_date BETWEEN ? AND ?
@@ -119,44 +119,38 @@ $netPay = floatval($record['net_pay']);
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Segoe UI', Arial, sans-serif; background: #f0f2f5; padding: 20px; }
-        
         .payslip-container {
             max-width: 800px;
             margin: 0 auto;
             background: white;
             box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-            border-radius: 10px;
+            border-radius: 12px;
             overflow: hidden;
+            padding-bottom: 30px;
         }
-        
         .payslip-header {
             background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
             color: white;
-            padding: 30px;
+            padding: 30px 30px 20px 30px;
             text-align: center;
         }
-        
-        .company-name { font-size: 24px; font-weight: 700; margin-bottom: 5px; }
-        .payslip-title { font-size: 18px; color: #DAA520; margin-bottom: 15px; }
-        .period-info { font-size: 14px; opacity: 0.9; }
-        
+        .company-name { font-size: 26px; font-weight: 700; margin-bottom: 5px; letter-spacing: 1px; }
+        .payslip-title { font-size: 20px; color: #FFD700; margin-bottom: 10px; font-weight: 600; }
+        .period-info { font-size: 15px; opacity: 0.95; }
         .employee-info {
             background: #f8f9fa;
-            padding: 20px 30px;
+            padding: 22px 30px 18px 30px;
             display: grid;
             grid-template-columns: repeat(3, 1fr);
             gap: 20px;
             border-bottom: 2px solid #DAA520;
         }
-        
         .info-item label { font-size: 11px; color: #666; text-transform: uppercase; display: block; margin-bottom: 3px; }
-        .info-item span { font-size: 15px; font-weight: 600; color: #333; }
-        
-        .payslip-body { padding: 30px; }
-        
-        .section { margin-bottom: 30px; }
+        .info-item span { font-size: 16px; font-weight: 600; color: #222; }
+        .payslip-body { padding: 30px 30px 0 30px; }
+        .section { margin-bottom: 32px; }
         .section-title {
-            font-size: 14px;
+            font-size: 15px;
             font-weight: 700;
             color: #1a1a2e;
             text-transform: uppercase;
@@ -165,12 +159,11 @@ $netPay = floatval($record['net_pay']);
             padding-bottom: 8px;
             border-bottom: 2px solid #DAA520;
         }
-        
         .earnings-table, .deductions-table {
             width: 100%;
             border-collapse: collapse;
+            margin-bottom: 10px;
         }
-        
         .earnings-table th, .deductions-table th {
             background: #f8f9fa;
             padding: 12px 15px;
@@ -180,53 +173,44 @@ $netPay = floatval($record['net_pay']);
             color: #666;
             border-bottom: 1px solid #eee;
         }
-        
         .earnings-table td, .deductions-table td {
             padding: 12px 15px;
             border-bottom: 1px solid #f0f0f0;
-            font-size: 14px;
+            font-size: 15px;
         }
-        
         .earnings-table td:last-child, .deductions-table td:last-child {
             text-align: right;
             font-family: 'Courier New', monospace;
             font-weight: 600;
         }
-        
-        .computation { color: #666; font-size: 12px; margin-top: 3px; }
-        
+        .computation { color: #888; font-size: 12px; margin-top: 3px; }
         .total-row {
             background: #f8f9fa;
             font-weight: 700;
         }
-        
         .total-row td { border-top: 2px solid #DAA520; }
-        
         .net-pay-box {
             background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
-            padding: 25px;
+            padding: 30px 0 20px 0;
             text-align: center;
-            border-radius: 8px;
-            margin: 20px 0;
+            border-radius: 10px;
+            margin: 30px 0 20px 0;
+            box-shadow: 0 2px 8px rgba(255,193,7,0.08);
         }
-        
-        .net-pay-label { font-size: 14px; color: #333; margin-bottom: 5px; }
-        .net-pay-amount { font-size: 36px; font-weight: 800; color: #1a1a2e; }
-        
-        .daily-breakdown { margin-top: 30px; }
-        
-        .daily-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .net-pay-label { font-size: 16px; color: #333; margin-bottom: 5px; font-weight: 600; }
+        .net-pay-amount { font-size: 40px; font-weight: 900; color: #1a1a2e; letter-spacing: 1px; }
+        .daily-breakdown { margin-top: 35px; }
+        .daily-table { width: 100%; border-collapse: collapse; font-size: 14px; background: #fff; border-radius: 8px; overflow: hidden; }
         .daily-table th {
             background: #1a1a2e;
             color: white;
-            padding: 10px;
+            padding: 12px;
             text-align: left;
-            font-size: 11px;
+            font-size: 12px;
             text-transform: uppercase;
         }
-        .daily-table td { padding: 10px; border-bottom: 1px solid #eee; }
+        .daily-table td { padding: 12px; border-bottom: 1px solid #eee; }
         .daily-table tr:hover { background: #f8f9fa; }
-        
         .holiday-badge {
             background: #fff3cd;
             color: #856404;
@@ -235,7 +219,6 @@ $netPay = floatval($record['net_pay']);
             font-size: 11px;
             margin-left: 5px;
         }
-        
         .signatures {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -244,11 +227,9 @@ $netPay = floatval($record['net_pay']);
             padding-top: 30px;
             border-top: 1px solid #eee;
         }
-        
         .signature-block { text-align: center; }
         .signature-line { border-top: 2px solid #333; margin-top: 50px; padding-top: 10px; }
         .signature-label { font-size: 12px; color: #666; }
-        
         .footer {
             text-align: center;
             padding: 20px;
@@ -256,7 +237,6 @@ $netPay = floatval($record['net_pay']);
             font-size: 11px;
             color: #666;
         }
-        
         .print-btn {
             position: fixed;
             top: 20px;
@@ -270,14 +250,31 @@ $netPay = floatval($record['net_pay']);
             font-weight: 600;
             box-shadow: 0 4px 15px rgba(0,0,0,0.2);
             z-index: 1000;
+            transition: background 0.2s;
         }
-        
         .print-btn:hover { background: #16213e; }
-        
-        @media print {
-            body { padding: 0; background: white; }
-            .payslip-container { box-shadow: none; }
-            .print-btn { display: none; }
+        .btn-action {
+            display: inline-block;
+            padding: 12px 28px;
+            margin: 10px 8px 0 0;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(26,26,46,0.08);
+            transition: background 0.2s;
+        }
+        .btn-action:last-child { margin-right: 0; }
+        .btn-action:hover { background: #FFD700; color: #1a1a2e; }
+        @media (max-width: 900px) {
+            .employee-info { grid-template-columns: 1fr 1fr; }
+        }
+        @media (max-width: 600px) {
+            .employee-info { grid-template-columns: 1fr; padding: 18px 10px; }
+            .payslip-body, .payslip-header { padding: 15px 8px; }
         }
     </style>
 </head>
