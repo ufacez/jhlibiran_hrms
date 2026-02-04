@@ -118,7 +118,53 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $can_manage) {
                 setFlashMessage('Worker type added successfully', 'success');
                 break;
             case 'update_work_type':
-                // ...existing code...
+                $work_type_id = sanitizeInt($_POST['work_type_id'] ?? 0);
+                $work_type_name = sanitizeString($_POST['work_type_name'] ?? '');
+                $daily_rate = (float) sanitizeFloat($_POST['daily_rate'] ?? 0);
+                $classification_id = sanitizeInt($_POST['classification_id'] ?? 0);
+                $classification_id = $classification_id > 0 ? $classification_id : null;
+                $description = sanitizeString($_POST['description'] ?? '');
+                $is_active = isset($_POST['is_active']) && intval($_POST['is_active']) === 1 ? 1 : 0;
+
+                if (!$work_type_id) throw new Exception('Invalid work type ID');
+                if (empty($work_type_name) || $daily_rate <= 0) throw new Exception('Please provide a valid name and daily rate');
+
+                // Load existing work type
+                $stmt = $db->prepare("SELECT * FROM work_types WHERE work_type_id = ?");
+                $stmt->execute([$work_type_id]);
+                $existing = $stmt->fetch(PDO::FETCH_ASSOC);
+                if (!$existing) throw new Exception('Work type not found');
+
+                $old_daily = (float)($existing['daily_rate'] ?? 0);
+                $hourly_rate = round($daily_rate / 8, 2);
+
+                // Begin transaction for consistency across tables
+                $db->beginTransaction();
+                try {
+                    // Update work_types
+                    $usql = "UPDATE work_types SET work_type_name = ?, daily_rate = ?, hourly_rate = ?, classification_id = ?, description = ?, is_active = ? WHERE work_type_id = ?";
+                    $ures = executeQuery($db, $usql, [$work_type_name, $daily_rate, $hourly_rate, $classification_id, $description, $is_active, $work_type_id]);
+                    if (!$ures) throw new Exception('Failed to update work type');
+
+                    // If daily rate changed, record history
+                    if (abs($old_daily - $daily_rate) > 0.001) {
+                        $hsql = "INSERT INTO work_type_rate_history (work_type_id, old_daily_rate, new_daily_rate, effective_date, changed_by, created_at) VALUES (?, ?, ?, NOW(), ?, NOW())";
+                        executeQuery($db, $hsql, [$work_type_id, $old_daily > 0 ? $old_daily : null, $daily_rate, $user_id]);
+                    }
+
+                    // Update assigned workers: set daily_rate to new rate and update worker_type name
+                    // Only overwrite hourly_rate if NULL or zero (preserve individual overrides)
+                    $wsql = "UPDATE workers SET daily_rate = ?, worker_type = ?, hourly_rate = CASE WHEN (hourly_rate IS NULL OR hourly_rate = 0) THEN ? ELSE hourly_rate END WHERE work_type_id = ?";
+                    executeQuery($db, $wsql, [$daily_rate, $work_type_name, $hourly_rate, $work_type_id]);
+
+                    logActivity($db, $user_id, 'update', 'work_types', $work_type_id, "Updated work type: $work_type_name (ID: $work_type_id)");
+
+                    $db->commit();
+                    setFlashMessage('Worker type updated successfully', 'success');
+                } catch (Exception $e) {
+                    $db->rollBack();
+                    throw $e;
+                }
                 break;
             case 'delete_work_type':
                 // ...existing code...

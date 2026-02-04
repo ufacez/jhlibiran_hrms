@@ -61,6 +61,14 @@ if ($action === 'view' && isset($_GET['id'])) {
                 $worker['effective_daily_rate'] = $worker['daily_rate'];
                 $worker['effective_hourly_rate'] = $worker['daily_rate'] / 8;
             }
+            // Fetch employment history entries
+            try {
+                $hstmt = $db->prepare("SELECT id, from_date, to_date, company, position, salary_per_day, reason_for_leaving, created_at FROM worker_employment_history WHERE worker_id = ? ORDER BY COALESCE(from_date, created_at) DESC");
+                $hstmt->execute([$worker_id]);
+                $worker['employment_history'] = $hstmt->fetchAll(PDO::FETCH_ASSOC);
+            } catch (PDOException $he) {
+                $worker['employment_history'] = [];
+            }
             
             echo json_encode([
                 'success' => true,

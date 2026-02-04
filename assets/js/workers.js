@@ -53,26 +53,27 @@ function displayWorkerDetails(worker) {
     const statusClass = 'status-' + worker.employment_status.replace('_', '-');
     const statusText = worker.employment_status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
     
+    // Build improved modal HTML using existing CSS classes
     modalBody.innerHTML = `
         <div class="worker-details-grid">
             <div class="worker-profile-card">
                 <div class="worker-profile-avatar">${initials}</div>
-                <div class="worker-profile-name">${worker.first_name} ${worker.last_name}</div>
+                <div class="worker-profile-name">${worker.first_name}${worker.middle_name ? ' ' + worker.middle_name : ''} ${worker.last_name}</div>
                 <div class="worker-profile-code">${worker.worker_code}</div>
-                <span class="status-badge ${statusClass}">${statusText}</span>
+                <div style="margin-top:10px;"><span class="status-badge ${statusClass}">${statusText}</span></div>
             </div>
-            
+
             <div>
                 <div class="worker-info-section">
                     <h3><i class="fas fa-user"></i> Personal Information</h3>
                     <div class="info-row">
                         <div class="info-item">
                             <span class="info-label">Full Name</span>
-                            <span class="info-value">${worker.first_name} ${worker.last_name}</span>
+                            <span class="info-value">${worker.first_name}${worker.middle_name ? ' ' + worker.middle_name : ''} ${worker.last_name}</span>
                         </div>
                         <div class="info-item">
                             <span class="info-label">Date of Birth</span>
-                            <span class="info-value">${worker.date_of_birth || 'N/A'}</span>
+                            <span class="info-value">${formatDate(worker.date_of_birth)}</span>
                         </div>
                     </div>
                     <div class="info-row">
@@ -82,7 +83,7 @@ function displayWorkerDetails(worker) {
                         </div>
                         <div class="info-item">
                             <span class="info-label">Phone</span>
-                            <span class="info-value">${worker.phone || 'N/A'}</span>
+                            <span class="info-value">${formatPhone(worker.phone)}</span>
                         </div>
                     </div>
                     <div class="info-row">
@@ -96,31 +97,31 @@ function displayWorkerDetails(worker) {
                         </div>
                     </div>
                 </div>
-                
+
                 <div class="worker-info-section">
                     <h3><i class="fas fa-briefcase"></i> Employment Details</h3>
                     <div class="info-row">
                         <div class="info-item">
                             <span class="info-label">Position</span>
-                            <span class="info-value">${worker.position}</span>
+                            <span class="info-value">${worker.position || 'N/A'}</span>
                         </div>
                         <div class="info-item">
                             <span class="info-label">Experience</span>
-                            <span class="info-value">${worker.experience_years} years</span>
+                            <span class="info-value">${worker.experience_years || 0} years</span>
                         </div>
                     </div>
                     <div class="info-row">
                         <div class="info-item">
                             <span class="info-label">Daily Rate</span>
-                            <span class="info-value">₱${parseFloat(worker.daily_rate).toFixed(2)}</span>
+                            <span class="info-value">${formatCurrency(worker.daily_rate)}</span>
                         </div>
                         <div class="info-item">
                             <span class="info-label">Date Hired</span>
-                            <span class="info-value">${worker.date_hired}</span>
+                            <span class="info-value">${formatDate(worker.date_hired)}</span>
                         </div>
                     </div>
                 </div>
-                
+
                 <div class="worker-info-section">
                     <h3><i class="fas fa-id-card"></i> Government IDs</h3>
                     <div class="info-row">
@@ -144,7 +145,7 @@ function displayWorkerDetails(worker) {
                         </div>
                     </div>
                 </div>
-                
+
                 <div class="worker-info-section">
                     <h3><i class="fas fa-phone-alt"></i> Emergency Contact</h3>
                     <div class="info-row">
@@ -158,9 +159,56 @@ function displayWorkerDetails(worker) {
                         </div>
                     </div>
                 </div>
+
+                ${renderEmploymentHistory(worker.employment_history || [])}
             </div>
         </div>
     `;
+
+}
+
+// Helpers for modal formatting
+function formatDate(d) {
+    if (!d) return 'N/A';
+    const dt = new Date(d);
+    if (isNaN(dt)) return d;
+    return dt.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+}
+
+function formatCurrency(amount) {
+    if (amount === null || amount === undefined || amount === '') return 'N/A';
+    return new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(parseFloat(amount));
+}
+
+function renderEmploymentHistory(history) {
+    if (!history || history.length === 0) {
+        return `<div class="worker-info-section"><h3><i class="fas fa-history"></i> Employment History</h3><div class="info-row"><div class="info-item"><span class="info-value">No previous employment records.</span></div></div></div>`;
+    }
+
+    const rows = history.map(h => {
+        const from = h.from_date ? formatDate(h.from_date) : '—';
+        const to = h.to_date ? formatDate(h.to_date) : '—';
+        const salary = h.salary_per_day ? formatCurrency(h.salary_per_day) : 'N/A';
+        const reason = h.reason_for_leaving ? h.reason_for_leaving : '';
+        return `<tr><td style="padding:8px;border-bottom:1px solid #eee">${from}</td><td style="padding:8px;border-bottom:1px solid #eee">${to}</td><td style="padding:8px;border-bottom:1px solid #eee">${h.company || 'N/A'}</td><td style="padding:8px;border-bottom:1px solid #eee">${h.position || 'N/A'}</td><td style="padding:8px;border-bottom:1px solid #eee;text-align:right">${salary}</td><td style="padding:8px;border-bottom:1px solid #eee">${reason}</td></tr>`;
+    }).join('');
+
+    return `
+        <div class="worker-info-section">
+            <h3><i class="fas fa-history"></i> Employment History</h3>
+            <div style="overflow:auto;margin-top:10px;">
+                <table style="width:100%;border-collapse:collapse;font-size:13px;min-width:700px;">
+                    <thead>
+                        <tr style="background:#f5f5f5;text-transform:uppercase;font-size:12px;color:#444;"><th style="padding:10px;text-align:left">From</th><th style="padding:10px;text-align:left">To</th><th style="padding:10px;text-align:left">Company</th><th style="padding:10px;text-align:left">Position</th><th style="padding:10px;text-align:right">Salary/Day</th><th style="padding:10px;text-align:left">Reason</th></tr>
+                    </thead>
+                    <tbody>
+                        ${rows}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    `;
+}
 }
 
 /**
