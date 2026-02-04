@@ -1,3 +1,12 @@
+/* Match filter label font size to attendance filter */
+.filter-group label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #666;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+}
 /**
  * Worker Management Styles
  * TrackSite Construction Management System

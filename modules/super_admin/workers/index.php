@@ -293,7 +293,7 @@ try {
                     <form method="GET" action="" id="filterForm">
                         <div class="filter-row">
                             <div class="filter-group">
-                                <label>Position</label>
+                                <label style="font-size:11px;font-weight:600;color:#666;letter-spacing:0.5px;text-transform:uppercase;margin-bottom:6px;">Position</label>
                                 <select name="position" id="positionFilter" onchange="submitFilter()">
                                     <option value="">All Positions</option>
                                     <?php foreach ($positions as $pos): ?>
@@ -306,7 +306,7 @@ try {
                             </div>
                             
                             <div class="filter-group">
-                                <label>Employment Status</label>
+                                <label style="font-size:11px;font-weight:600;color:#666;letter-spacing:0.5px;text-transform:uppercase;margin-bottom:6px;">Employment Status</label>
                                 <select name="status" id="statusFilter" onchange="submitFilter()">
                                     <option value="">All Status</option>
                                     <option value="active" <?php echo $status_filter === 'active' ? 'selected' : ''; ?>>Active</option>
@@ -317,7 +317,7 @@ try {
                             </div>
                             
                             <div class="filter-group">
-                                <label>Experience</label>
+                                <label style="font-size:11px;font-weight:600;color:#666;letter-spacing:0.5px;text-transform:uppercase;margin-bottom:6px;">Experience</label>
                                 <select name="experience" id="experienceFilter" onchange="submitFilter()">
                                     <option value="">All Tenure</option>
                                     <option value="0-1" <?php echo $experience_filter === '0-1' ? 'selected' : ''; ?>>0-1 years</option>
@@ -327,9 +327,11 @@ try {
                                 </select>
                             </div>
                             
-                            <button type="button" class="btn btn-filter" onclick="submitFilter()">
-                                <i class="fas fa-filter"></i> Apply
-                            </button>
+                            <div style="align-self:end;">
+                                <button type="button" class="btn btn-filter" style="width:100%;" onclick="submitFilter()">
+                                    <i class="fas fa-filter"></i> Apply
+                                </button>
+                            </div>
                         </div>
                     </form>
                 </div>
