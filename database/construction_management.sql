@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Feb 02, 2026 at 07:15 PM
+-- Generation Time: Feb 04, 2026 at 03:33 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -44,73 +44,42 @@ CREATE TABLE `activity_logs` (
 --
 
 INSERT INTO `activity_logs` (`log_id`, `user_id`, `action`, `table_name`, `record_id`, `description`, `ip_address`, `user_agent`, `created_at`) VALUES
-(1, 1, 'system_setup', 'system', NULL, 'Database cleaned and initialized with fresh data', 'system', 'System Setup Script', '2026-02-02 15:02:34'),
-(2, 1, 'create_workers', 'workers', NULL, 'Added 5 new workers to the system', 'system', 'System Setup Script', '2026-02-02 15:02:34'),
-(3, 1, 'bulk_attendance', 'attendance', NULL, 'Imported attendance records for all workers (7 days)', 'system', 'System Setup Script', '2026-02-02 15:02:34'),
-(4, 1, 'login', 'users', 1, 'User logged in', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.108.2 Chrome/142.0.7444.235 Electron/39.2.7 Safari/537.36', '2026-02-02 15:10:17'),
-(5, 1, 'login', 'users', 1, 'User logged in', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-02 15:10:26'),
-(6, 1, 'login', 'users', 1, 'User logged in', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-02 15:10:38'),
-(7, 1, 'logout', 'users', 1, 'User logged out', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-02 15:30:20'),
-(8, 1, 'login', 'users', 1, 'User logged in', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-02 15:30:30'),
-(9, 1, 'add_schedule', 'schedules', NULL, 'Added/Updated schedule for Ana Morales (WKR-0004): 1 created, 0 updated', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-02 16:26:28'),
-(10, 1, 'mark_attendance', 'attendance', 37, 'Marked attendance for worker ID: 4', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-02 16:26:52'),
-(11, 1, 'login', 'users', 1, 'User logged in', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-02 16:32:44'),
-(12, 1, 'mark_attendance', 'attendance', 50, 'Marked attendance for worker ID: 5', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-02 16:38:38'),
-(13, 1, 'logout', 'users', 1, 'User logged out', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-02 16:54:37'),
-(14, 1, 'login', 'users', 1, 'User logged in', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-02 16:57:11'),
-(15, 1, 'add_admin', 'users', 7, 'Created new admin account: Mzhayt Power (@mzhayt)', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-02 17:00:43'),
-(16, 1, 'logout', 'users', 1, 'User logged out', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-02 17:00:47'),
-(17, 7, 'login', 'users', 7, 'User logged in', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-02 17:00:52'),
-(18, 7, 'logout', 'users', 7, 'User logged out', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-02 17:01:38'),
-(19, 1, 'login', 'users', 1, 'User logged in', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-02 17:02:16'),
-(20, 1, 'update_admin_permissions', 'admin_permissions', 1, 'Updated permissions for Mzhayt Power - 14/24 granted', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-02 17:02:31'),
-(21, 1, 'logout', 'users', 1, 'User logged out', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-02 17:02:33'),
-(22, 7, 'login', 'users', 7, 'User logged in', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-02 17:02:38'),
-(23, 7, 'logout', 'users', 7, 'User logged out', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-02 17:06:03'),
-(24, 1, 'login', 'users', 1, 'User logged in', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-02 17:18:40'),
-(25, 1, 'logout', 'users', 1, 'User logged out', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-02 17:19:11'),
-(26, 7, 'login', 'users', 7, 'User logged in', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-02 17:19:15'),
-(27, 7, 'logout', 'users', 7, 'User logged out', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-02 17:19:30'),
-(28, 1, 'login', 'users', 1, 'User logged in', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-02 17:19:34'),
-(29, 1, 'update_admin_permissions', 'admin_permissions', 1, 'Updated permissions for Mzhayt Power - 23/26 granted', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-02 17:20:03'),
-(30, 1, 'logout', 'users', 1, 'User logged out', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-02 17:20:06'),
-(31, 7, 'login', 'users', 7, 'User logged in', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-02 17:20:14'),
-(32, 7, 'logout', 'users', 7, 'User logged out', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-02 17:21:51'),
-(33, 1, 'login', 'users', 1, 'User logged in', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-02 17:21:56'),
-(34, 1, 'logout', 'users', 1, 'User logged out', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-02 17:24:04'),
-(35, 1, 'login', 'users', 1, 'User logged in', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-02 17:27:38'),
-(36, 1, 'logout', 'users', 1, 'User logged out', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-02 17:35:45'),
-(37, 7, 'login', 'users', 7, 'User logged in', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-02 17:35:50'),
-(38, 7, 'logout', 'users', 7, 'User logged out', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-02 17:36:46'),
-(39, 1, 'login', 'users', 1, 'User logged in', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-02 17:36:59'),
-(40, 1, 'logout', 'users', 1, 'User logged out', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-02 17:45:10'),
-(41, 7, 'login', 'users', 7, 'User logged in', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-02 17:45:18'),
-(42, 7, 'logout', 'users', 7, 'User logged out', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-02 17:45:24'),
-(43, 1, 'login', 'users', 1, 'User logged in', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-02 17:45:31'),
-(44, 1, 'add_worker', 'workers', 6, 'Added new worker: Ej Juancho (WKR-0006)', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-02 17:57:36'),
-(45, 1, 'add_schedule', 'schedules', NULL, 'Added/Updated schedule for Ej Juancho (WKR-0006): 6 created, 0 updated', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-02 17:57:57'),
-(46, 1, 'logout', 'users', 1, 'User logged out', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-02 18:02:52'),
-(47, 7, 'login', 'users', 7, 'User logged in', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-02 18:03:06'),
-(48, 7, 'logout', 'users', 7, 'User logged out', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-02 18:03:24'),
-(49, 1, 'login', 'users', 1, 'User logged in', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-02 18:03:29'),
-(50, 1, 'logout', 'users', 1, 'User logged out', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-02 18:07:44'),
-(51, 1, 'login', 'users', 1, 'User logged in', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-02 18:07:52'),
-(52, 1, 'mark_attendance', 'attendance', 51, 'Marked attendance for worker ID: 6', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-02 18:08:04'),
-(53, 1, 'update_admin_permissions', 'admin_permissions', 1, 'Updated permissions for Mzhayt Power - 3/26 granted', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-02 18:09:02'),
-(54, 1, 'update_admin_permissions', 'admin_permissions', 1, 'Updated permissions for Mzhayt Power - 0/26 granted', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-02 18:09:14'),
-(55, 1, 'logout', 'users', 1, 'User logged out', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-02 18:09:16'),
-(56, 7, 'login', 'users', 7, 'User logged in', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-02 18:09:27'),
-(57, 7, 'logout', 'users', 7, 'User logged out', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-02 18:10:08'),
-(58, 1, 'login', 'users', 1, 'User logged in', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-02 18:10:12'),
-(59, 1, 'update_admin_permissions', 'admin_permissions', 1, 'Updated permissions for Mzhayt Power - 13/26 granted', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-02 18:10:39'),
-(60, 1, 'logout', 'users', 1, 'User logged out', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-02 18:10:41'),
-(61, 7, 'login', 'users', 7, 'User logged in', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-02 18:10:50'),
-(62, 7, 'logout', 'users', 7, 'User logged out', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-02 18:11:08'),
-(63, 1, 'login', 'users', 1, 'User logged in', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-02 18:11:12'),
-(64, 1, 'update_admin_permissions', 'admin_permissions', 1, 'Updated permissions for Mzhayt Power - 15/26 granted', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-02 18:13:15'),
-(65, 1, 'logout', 'users', 1, 'User logged out', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-02 18:13:16'),
-(66, 7, 'login', 'users', 7, 'User logged in', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-02 18:13:22'),
-(67, 7, 'logout', 'users', 7, 'User logged out', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-02 18:13:29');
+(1, 1, 'login', 'users', 1, 'User logged in', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-04 01:48:57'),
+(2, 1, 'logout', 'users', 1, 'User logged out', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-04 01:50:23'),
+(3, 1, 'login', 'users', 1, 'User logged in', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-04 01:52:06'),
+(4, 1, 'delete', 'work_types', 1, 'Deleted work type: Helper/Laborer', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-04 01:54:59'),
+(5, 1, 'delete', 'work_types', 2, 'Deleted work type: Site Cleaner', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-04 01:55:01'),
+(6, 1, 'delete', 'work_types', 4, 'Deleted work type: Carpenter', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-04 01:55:03'),
+(7, 1, 'delete', 'work_types', 3, 'Deleted work type: Mason', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-04 01:55:05'),
+(8, 1, 'delete', 'work_types', 5, 'Deleted work type: Electrician', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-04 01:55:06'),
+(9, 1, 'delete', 'work_types', 7, 'Deleted work type: Welder', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-04 01:55:08'),
+(10, 1, 'delete', 'work_types', 6, 'Deleted work type: Plumber', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-04 01:55:10'),
+(11, 1, 'delete', 'work_types', 9, 'Deleted work type: Tile Setter', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-04 01:55:11'),
+(12, 1, 'delete', 'work_types', 8, 'Deleted work type: Painter', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-04 01:55:13'),
+(13, 1, 'delete', 'work_types', 11, 'Deleted work type: Scaffolder', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-04 01:55:14'),
+(14, 1, 'delete', 'work_types', 10, 'Deleted work type: Steel Fixer/Rebar', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-04 01:55:16'),
+(15, 1, 'delete', 'work_types', 13, 'Deleted work type: Senior Carpenter', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-04 01:55:17'),
+(16, 1, 'delete', 'work_types', 12, 'Deleted work type: Senior Mason', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-04 01:55:19'),
+(17, 1, 'delete', 'work_types', 15, 'Deleted work type: Site Foreman', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-04 01:55:21'),
+(18, 1, 'delete', 'work_types', 14, 'Deleted work type: Senior Electrician', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-04 01:55:22'),
+(19, 1, 'delete', 'work_types', 16, 'Deleted work type: General Foreman', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-04 01:55:24'),
+(20, 1, 'create', 'work_types', 34, 'Added work type: Mason (₱700.00/day)', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-04 01:56:25'),
+(21, 1, 'add_worker', 'workers', 3, 'Added new worker: Ean Paolo Espiritu (WKR-0003)', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-04 01:58:50'),
+(22, 1, 'add_schedule', 'schedules', NULL, 'Added/Updated schedule for Ean Paolo Espiritu (WKR-0003): 6 created, 0 updated', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-04 01:59:19'),
+(23, 1, 'mark_attendance', 'attendance', 18, 'Marked attendance for worker ID: 3', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-04 01:59:39'),
+(24, 1, 'mark_attendance', 'attendance', 19, 'Marked attendance for worker ID: 3', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-04 02:02:02'),
+(25, 1, 'login', 'users', 1, 'User logged in', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-05-05 02:03:26'),
+(26, 1, 'login', 'users', 1, 'User logged in', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-05-05 02:04:14'),
+(27, 1, 'mark_attendance', 'attendance', 20, 'Marked attendance for worker ID: 3', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-05-05 02:04:42'),
+(28, 1, 'mark_attendance', 'attendance', 21, 'Marked attendance for worker ID: 3', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-05 02:10:49'),
+(29, 1, 'login', 'users', 1, 'User logged in', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-08-06 02:15:00'),
+(30, 1, 'mark_attendance', 'attendance', 22, 'Marked attendance for worker ID: 3', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-08-06 02:15:16'),
+(31, 1, 'login', 'users', 1, 'User logged in', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-08-06 02:17:40'),
+(32, 1, 'mark_attendance', 'attendance', 23, 'Marked attendance for worker ID: 3', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-07-05 02:20:41'),
+(33, 1, 'login', 'users', 1, 'User logged in', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-07-05 02:20:58'),
+(34, 1, 'login', 'users', 1, 'User logged in', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-11-05 02:23:33'),
+(35, 1, 'login', 'users', 1, 'User logged in', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-11-05 02:24:15'),
+(36, 1, 'mark_attendance', 'attendance', 24, 'Marked attendance for worker ID: 3', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-11-05 02:25:03');
 
 -- --------------------------------------------------------
 
@@ -125,6 +94,7 @@ CREATE TABLE `admin_permissions` (
   `can_add_workers` tinyint(1) DEFAULT 1,
   `can_edit_workers` tinyint(1) DEFAULT 1,
   `can_delete_workers` tinyint(1) DEFAULT 0,
+  `can_manage_work_types` tinyint(1) DEFAULT 0,
   `can_view_attendance` tinyint(1) DEFAULT 1,
   `can_mark_attendance` tinyint(1) DEFAULT 1,
   `can_edit_attendance` tinyint(1) DEFAULT 1,
@@ -155,8 +125,8 @@ CREATE TABLE `admin_permissions` (
 -- Dumping data for table `admin_permissions`
 --
 
-INSERT INTO `admin_permissions` (`permission_id`, `admin_id`, `can_view_workers`, `can_add_workers`, `can_edit_workers`, `can_delete_workers`, `can_view_attendance`, `can_mark_attendance`, `can_edit_attendance`, `can_delete_attendance`, `can_view_schedule`, `can_manage_schedule`, `can_view_payroll`, `can_generate_payroll`, `can_approve_payroll`, `can_mark_paid`, `can_edit_payroll`, `can_delete_payroll`, `can_view_payroll_settings`, `can_edit_payroll_settings`, `can_view_deductions`, `can_manage_deductions`, `can_view_cashadvance`, `can_approve_cashadvance`, `can_access_settings`, `can_access_audit`, `can_access_archive`, `can_manage_admins`, `created_at`, `updated_at`) VALUES
-(1, 1, 1, 1, 0, 0, 1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, '2026-02-02 17:00:43', '2026-02-02 18:13:15');
+INSERT INTO `admin_permissions` (`permission_id`, `admin_id`, `can_view_workers`, `can_add_workers`, `can_edit_workers`, `can_delete_workers`, `can_manage_work_types`, `can_view_attendance`, `can_mark_attendance`, `can_edit_attendance`, `can_delete_attendance`, `can_view_schedule`, `can_manage_schedule`, `can_view_payroll`, `can_generate_payroll`, `can_approve_payroll`, `can_mark_paid`, `can_edit_payroll`, `can_delete_payroll`, `can_view_payroll_settings`, `can_edit_payroll_settings`, `can_view_deductions`, `can_manage_deductions`, `can_view_cashadvance`, `can_approve_cashadvance`, `can_access_settings`, `can_access_audit`, `can_access_archive`, `can_manage_admins`, `created_at`, `updated_at`) VALUES
+(1, 1, 1, 1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, '2026-02-02 17:00:43', '2026-02-02 18:13:15');
 
 -- --------------------------------------------------------
 
@@ -212,6 +182,10 @@ CREATE TABLE `attendance` (
   `time_out` time DEFAULT NULL,
   `status` enum('present','late','absent','overtime','half_day') NOT NULL DEFAULT 'present',
   `hours_worked` decimal(5,2) DEFAULT 0.00,
+  `raw_hours_worked` decimal(5,2) DEFAULT 0.00 COMMENT 'Raw calculated hours before adjustments',
+  `break_hours` decimal(5,2) DEFAULT 0.00 COMMENT 'Break time deducted',
+  `late_minutes` int(11) DEFAULT 0 COMMENT 'Minutes late (for grace period calculation)',
+  `calculated_at` timestamp NULL DEFAULT NULL COMMENT 'When hours were last calculated',
   `overtime_hours` decimal(5,2) DEFAULT 0.00,
   `notes` text DEFAULT NULL,
   `verified_by` int(11) DEFAULT NULL,
@@ -226,19 +200,54 @@ CREATE TABLE `attendance` (
 -- Dumping data for table `attendance`
 --
 
-INSERT INTO `attendance` (`attendance_id`, `worker_id`, `attendance_date`, `time_in`, `time_out`, `status`, `hours_worked`, `overtime_hours`, `notes`, `verified_by`, `created_at`, `updated_at`, `is_archived`, `archived_at`, `archived_by`) VALUES
-(38, 1, '2026-02-02', '08:00:00', '17:00:00', 'present', 8.00, 0.00, 'Regular work day', NULL, '2026-02-02 16:32:53', '2026-02-02 16:32:53', 0, NULL, NULL),
-(39, 1, '2026-02-03', '08:00:00', '18:00:00', 'present', 8.00, 1.00, 'With 1 hour overtime', NULL, '2026-02-02 16:32:53', '2026-02-02 16:32:53', 0, NULL, NULL),
-(40, 2, '2026-02-02', '08:00:00', '17:00:00', 'present', 8.00, 0.00, 'Regular work day', NULL, '2026-02-02 16:32:53', '2026-02-02 16:32:53', 0, NULL, NULL),
-(41, 2, '2026-02-03', '08:00:00', '17:00:00', 'present', 8.00, 0.00, 'Regular work day', NULL, '2026-02-02 16:32:53', '2026-02-02 16:32:53', 0, NULL, NULL),
-(42, 3, '2026-02-02', '08:00:00', '17:00:00', 'present', 8.00, 0.00, 'Regular work day', NULL, '2026-02-02 16:32:53', '2026-02-02 16:32:53', 0, NULL, NULL),
-(45, 4, '2026-02-02', '08:00:00', '19:00:00', 'present', 8.00, 2.00, 'Monday - 2 hrs OT', NULL, '2026-02-02 16:34:16', '2026-02-02 16:34:16', 0, NULL, NULL),
-(46, 4, '2026-02-03', '08:00:00', '18:00:00', 'present', 8.00, 1.00, 'Tuesday - 1 hr OT', NULL, '2026-02-02 16:34:16', '2026-02-02 16:34:16', 0, NULL, NULL),
-(47, 4, '2026-02-04', '08:00:00', '17:00:00', 'present', 8.00, 0.00, 'Wednesday - Regular', NULL, '2026-02-02 16:34:16', '2026-02-02 16:34:16', 0, NULL, NULL),
-(48, 4, '2026-02-05', '08:00:00', '17:00:00', 'present', 8.00, 0.00, 'Thursday - Regular', NULL, '2026-02-02 16:34:16', '2026-02-02 16:34:16', 0, NULL, NULL),
-(49, 4, '2026-02-06', '08:00:00', '18:00:00', 'present', 8.00, 1.00, 'Friday - 1 hr OT', NULL, '2026-02-02 16:34:16', '2026-02-02 16:34:16', 0, NULL, NULL),
-(50, 5, '2026-02-03', '00:38:00', '00:41:00', 'present', 0.05, 0.00, NULL, NULL, '2026-02-02 16:38:38', '2026-02-02 16:38:38', 0, NULL, NULL),
-(51, 6, '2026-02-03', '02:07:00', '14:08:00', 'present', 12.02, 0.00, NULL, NULL, '2026-02-02 18:08:04', '2026-02-02 18:08:04', 0, NULL, NULL);
+INSERT INTO `attendance` (`attendance_id`, `worker_id`, `attendance_date`, `time_in`, `time_out`, `status`, `hours_worked`, `raw_hours_worked`, `break_hours`, `late_minutes`, `calculated_at`, `overtime_hours`, `notes`, `verified_by`, `created_at`, `updated_at`, `is_archived`, `archived_at`, `archived_by`) VALUES
+(1, 1, '2026-02-01', '08:00:00', '17:00:00', 'present', 8.00, 9.00, 1.00, 0, NULL, 0.00, NULL, NULL, '2026-02-04 01:53:42', '2026-02-04 01:53:42', 0, NULL, NULL),
+(2, 1, '2026-02-02', '08:00:00', '18:00:00', 'overtime', 9.00, 10.00, 1.00, 0, NULL, 1.00, NULL, NULL, '2026-02-04 01:53:42', '2026-02-04 01:53:42', 0, NULL, NULL),
+(3, 1, '2026-02-03', '08:30:00', '17:00:00', 'late', 7.50, 8.50, 1.00, 30, NULL, 0.00, NULL, NULL, '2026-02-04 01:53:42', '2026-02-04 01:53:42', 0, NULL, NULL),
+(4, 1, '2026-02-04', '08:00:00', '17:00:00', 'present', 8.00, 9.00, 1.00, 0, NULL, 0.00, NULL, NULL, '2026-02-04 01:53:42', '2026-02-04 01:53:42', 0, NULL, NULL),
+(5, 1, '2026-02-05', '08:00:00', '19:00:00', 'overtime', 10.00, 11.00, 1.00, 0, NULL, 2.00, NULL, NULL, '2026-02-04 01:53:42', '2026-02-04 01:53:42', 0, NULL, NULL),
+(6, 1, '2026-02-08', '08:00:00', '17:00:00', 'present', 8.00, 9.00, 1.00, 0, NULL, 0.00, NULL, NULL, '2026-02-04 01:53:42', '2026-02-04 01:53:42', 0, NULL, NULL),
+(7, 1, '2026-02-09', '08:00:00', '17:00:00', 'present', 8.00, 9.00, 1.00, 0, NULL, 0.00, NULL, NULL, '2026-02-04 01:53:42', '2026-02-04 01:53:42', 0, NULL, NULL),
+(8, 1, '2026-02-10', '08:00:00', '18:30:00', 'overtime', 9.50, 10.50, 1.00, 0, NULL, 1.50, NULL, NULL, '2026-02-04 01:53:42', '2026-02-04 01:53:42', 0, NULL, NULL),
+(9, 1, '2026-02-11', '08:00:00', '17:00:00', 'present', 8.00, 9.00, 1.00, 0, NULL, 0.00, NULL, NULL, '2026-02-04 01:53:42', '2026-02-04 01:53:42', 0, NULL, NULL),
+(10, 1, '2026-02-12', '08:00:00', '17:00:00', 'present', 8.00, 9.00, 1.00, 0, NULL, 0.00, NULL, NULL, '2026-02-04 01:53:42', '2026-02-04 01:53:42', 0, NULL, NULL),
+(11, 2, '2026-02-01', '07:30:00', '16:30:00', 'present', 8.00, 9.00, 1.00, 0, NULL, 0.00, NULL, NULL, '2026-02-04 01:53:42', '2026-02-04 01:53:42', 0, NULL, NULL),
+(12, 2, '2026-02-02', '07:30:00', '16:30:00', 'present', 8.00, 9.00, 1.00, 0, NULL, 0.00, NULL, NULL, '2026-02-04 01:53:42', '2026-02-04 01:53:42', 0, NULL, NULL),
+(13, 2, '2026-02-03', '07:30:00', '17:30:00', 'overtime', 9.00, 10.00, 1.00, 0, NULL, 1.00, NULL, NULL, '2026-02-04 01:53:42', '2026-02-04 01:53:42', 0, NULL, NULL),
+(14, 2, '2026-02-04', '07:30:00', '16:30:00', 'present', 8.00, 9.00, 1.00, 0, NULL, 0.00, NULL, NULL, '2026-02-04 01:53:42', '2026-02-04 01:53:42', 0, NULL, NULL),
+(15, 2, '2026-02-05', '07:30:00', '16:30:00', 'present', 8.00, 9.00, 1.00, 0, NULL, 0.00, NULL, NULL, '2026-02-04 01:53:42', '2026-02-04 01:53:42', 0, NULL, NULL),
+(16, 2, '2026-02-08', '07:30:00', '18:00:00', 'overtime', 9.50, 10.50, 1.00, 0, NULL, 1.50, NULL, NULL, '2026-02-04 01:53:42', '2026-02-04 01:53:42', 0, NULL, NULL),
+(17, 2, '2026-02-09', '07:30:00', '16:30:00', 'present', 8.00, 9.00, 1.00, 0, NULL, 0.00, NULL, NULL, '2026-02-04 01:53:42', '2026-02-04 01:53:42', 0, NULL, NULL),
+(19, 3, '2026-02-04', '08:00:00', '17:30:00', 'present', 9.50, 0.00, 0.00, 0, NULL, 0.00, NULL, NULL, '2026-02-04 02:02:01', '2026-02-04 02:02:01', 0, NULL, NULL),
+(20, 3, '2026-05-05', '08:00:00', '19:00:00', 'present', 11.00, 0.00, 0.00, 0, NULL, 0.00, NULL, NULL, '2026-05-05 02:04:42', '2026-05-05 02:04:42', 0, NULL, NULL),
+(21, 3, '2026-02-05', '08:00:00', '19:10:00', 'present', 11.17, 0.00, 0.00, 0, NULL, 0.00, NULL, NULL, '2026-02-05 02:10:48', '2026-02-05 02:10:48', 0, NULL, NULL),
+(22, 3, '2026-08-06', '08:00:00', '19:00:00', 'present', 11.00, 0.00, 0.00, 0, NULL, 0.00, NULL, NULL, '2026-08-06 02:15:16', '2026-08-06 02:15:16', 0, NULL, NULL),
+(23, 3, '2026-07-05', '08:00:00', '19:30:00', 'present', 11.50, 0.00, 0.00, 0, NULL, 0.00, NULL, NULL, '2026-07-05 02:20:41', '2026-07-05 02:20:41', 0, NULL, NULL),
+(24, 3, '2026-11-05', '08:00:00', '19:00:00', 'present', 11.00, 0.00, 0.00, 0, NULL, 0.00, NULL, NULL, '2026-11-05 02:25:03', '2026-11-05 02:25:03', 0, NULL, NULL);
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `attendance_settings`
+--
+
+CREATE TABLE `attendance_settings` (
+  `setting_id` int(11) NOT NULL,
+  `grace_period_minutes` int(11) DEFAULT 15 COMMENT 'Grace period in minutes for late time in/out',
+  `min_work_hours` decimal(5,2) DEFAULT 1.00 COMMENT 'Minimum hours to count as worked',
+  `round_to_nearest_hour` tinyint(1) DEFAULT 1 COMMENT 'Round attendance to nearest hour',
+  `break_deduction_hours` decimal(5,2) DEFAULT 1.00 COMMENT 'Default break time to deduct from total hours',
+  `auto_calculate_overtime` tinyint(1) DEFAULT 1 COMMENT 'Automatically calculate overtime after 8 hours',
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `attendance_settings`
+--
+
+INSERT INTO `attendance_settings` (`setting_id`, `grace_period_minutes`, `min_work_hours`, `round_to_nearest_hour`, `break_deduction_hours`, `auto_calculate_overtime`, `created_at`, `updated_at`) VALUES
+(1, 15, 1.00, 1, 1.00, 1, '2026-02-04 00:09:20', '2026-02-04 00:09:20');
 
 -- --------------------------------------------------------
 
@@ -281,7 +290,56 @@ INSERT INTO `audit_trail` (`audit_id`, `user_id`, `username`, `user_level`, `act
 (3, NULL, NULL, NULL, 'create', 'workers', 'workers', 3, 'Jose Miguel Torres (WKR-0003)', NULL, '{\"worker_code\": \"WKR-0003\", \"first_name\": \"Jose\", \"middle_name\": \"Miguel\", \"last_name\": \"Torres\", \"position\": \"Carpenter\", \"daily_rate\": 700.00, \"employment_status\": \"active\", \"phone\": \"09345678901\", \"addresses\": \"{\\\"current\\\":{\\\"address\\\":\\\"789 Woodwork Lane\\\",\\\"province\\\":\\\"Bulacan\\\",\\\"city\\\":\\\"Malolos\\\",\\\"barangay\\\":\\\"Dakila\\\"}}\", \"emergency_contact_name\": \"Rosa Torres\", \"emergency_contact_relationship\": \"Mother\"}', 'Created worker: Jose Torres (WKR-0003)', NULL, NULL, NULL, NULL, NULL, 'medium', 0, 1, NULL, '2026-02-02 15:01:59'),
 (4, NULL, NULL, NULL, 'create', 'workers', 'workers', 4, 'Ana Luz Morales (WKR-0004)', NULL, '{\"worker_code\": \"WKR-0004\", \"first_name\": \"Ana\", \"middle_name\": \"Luz\", \"last_name\": \"Morales\", \"position\": \"Plumber\", \"daily_rate\": 720.00, \"employment_status\": \"active\", \"phone\": \"09456789012\", \"addresses\": \"{\\\"current\\\":{\\\"address\\\":\\\"321 Pipeline St.\\\",\\\"province\\\":\\\"Rizal\\\",\\\"city\\\":\\\"Antipolo\\\",\\\"barangay\\\":\\\"San Isidro\\\"}}\", \"emergency_contact_name\": \"Pedro Morales\", \"emergency_contact_relationship\": \"Father\"}', 'Created worker: Ana Morales (WKR-0004)', NULL, NULL, NULL, NULL, NULL, 'medium', 0, 1, NULL, '2026-02-02 15:01:59'),
 (5, NULL, NULL, NULL, 'create', 'workers', 'workers', 5, 'Diego Antonio Fernandez (WKR-0005)', NULL, '{\"worker_code\": \"WKR-0005\", \"first_name\": \"Diego\", \"middle_name\": \"Antonio\", \"last_name\": \"Fernandez\", \"position\": \"Mason\", \"daily_rate\": 680.00, \"employment_status\": \"active\", \"phone\": \"09567890123\", \"addresses\": \"{\\\"current\\\":{\\\"address\\\":\\\"654 Stone Ave.\\\",\\\"province\\\":\\\"Laguna\\\",\\\"city\\\":\\\"Calamba\\\",\\\"barangay\\\":\\\"Real\\\"}}\", \"emergency_contact_name\": \"Carmen Fernandez\", \"emergency_contact_relationship\": \"Wife\"}', 'Created worker: Diego Fernandez (WKR-0005)', NULL, NULL, NULL, NULL, NULL, 'medium', 0, 1, NULL, '2026-02-02 15:01:59'),
-(6, NULL, NULL, NULL, 'create', 'workers', 'workers', 6, 'Ej Power Juancho (WKR-0006)', NULL, '{\"worker_code\": \"WKR-0006\", \"first_name\": \"Ej\", \"middle_name\": \"Power\", \"last_name\": \"Juancho\", \"position\": \"Mason\", \"daily_rate\": 1000.00, \"employment_status\": \"active\", \"phone\": \"09123456771\", \"addresses\": \"{\\\"current\\\":{\\\"address\\\":\\\"Block 2 Purok 1\\\",\\\"province\\\":\\\"Ilocos Sur\\\",\\\"city\\\":\\\"Alilem\\\",\\\"barangay\\\":\\\"Anaao\\\"},\\\"permanent\\\":{\\\"address\\\":\\\"Block 2 Purok 1\\\",\\\"province\\\":\\\"Ilocos Sur\\\",\\\"city\\\":\\\"Alilem\\\",\\\"barangay\\\":\\\"Anaao\\\"}}\", \"emergency_contact_name\": \"Vitrum  Aric\", \"emergency_contact_relationship\": \"Sibling\"}', 'Created worker: Ej Juancho (WKR-0006)', NULL, NULL, NULL, NULL, NULL, 'medium', 0, 1, NULL, '2026-02-02 17:57:36');
+(6, NULL, NULL, NULL, 'create', 'workers', 'workers', 6, 'Ej Power Juancho (WKR-0006)', NULL, '{\"worker_code\": \"WKR-0006\", \"first_name\": \"Ej\", \"middle_name\": \"Power\", \"last_name\": \"Juancho\", \"position\": \"Mason\", \"daily_rate\": 1000.00, \"employment_status\": \"active\", \"phone\": \"09123456771\", \"addresses\": \"{\\\"current\\\":{\\\"address\\\":\\\"Block 2 Purok 1\\\",\\\"province\\\":\\\"Ilocos Sur\\\",\\\"city\\\":\\\"Alilem\\\",\\\"barangay\\\":\\\"Anaao\\\"},\\\"permanent\\\":{\\\"address\\\":\\\"Block 2 Purok 1\\\",\\\"province\\\":\\\"Ilocos Sur\\\",\\\"city\\\":\\\"Alilem\\\",\\\"barangay\\\":\\\"Anaao\\\"}}\", \"emergency_contact_name\": \"Vitrum  Aric\", \"emergency_contact_relationship\": \"Sibling\"}', 'Created worker: Ej Juancho (WKR-0006)', NULL, NULL, NULL, NULL, NULL, 'medium', 0, 1, NULL, '2026-02-02 17:57:36'),
+(7, NULL, NULL, NULL, 'create', 'workers', 'workers', 7, 'Enzo Espiritu Jimenez (WKR-0007)', NULL, '{\"worker_code\": \"WKR-0007\", \"first_name\": \"Enzo\", \"middle_name\": \"Espiritu\", \"last_name\": \"Jimenez\", \"position\": \"Mason\", \"daily_rate\": 2800.00, \"employment_status\": \"active\", \"phone\": \"09121212121\", \"addresses\": \"{\\\"current\\\":{\\\"address\\\":\\\"Purok 6\\\",\\\"province\\\":\\\"Zambales\\\",\\\"city\\\":\\\"Botolan\\\",\\\"barangay\\\":\\\"San Juan\\\"},\\\"permanent\\\":{\\\"address\\\":\\\"Purok 6\\\",\\\"province\\\":\\\"Zambales\\\",\\\"city\\\":\\\"Botolan\\\",\\\"barangay\\\":\\\"San Juan\\\"}}\", \"emergency_contact_name\": \"Marycris Espiritu\", \"emergency_contact_relationship\": \"Sibling\"}', 'Created worker: Enzo Jimenez (WKR-0007)', NULL, NULL, NULL, NULL, NULL, 'medium', 0, 1, NULL, '2026-02-02 19:35:29'),
+(8, NULL, NULL, NULL, 'update', 'workers', 'workers', 7, 'Enzo Espiritu Jimenez (WKR-0007)', '{\"first_name\": \"Enzo\", \"middle_name\": \"Espiritu\", \"last_name\": \"Jimenez\", \"position\": \"Mason\", \"daily_rate\": 2800.00, \"employment_status\": \"active\", \"phone\": \"09121212121\", \"addresses\": \"{\\\"current\\\":{\\\"address\\\":\\\"Purok 6\\\",\\\"province\\\":\\\"Zambales\\\",\\\"city\\\":\\\"Botolan\\\",\\\"barangay\\\":\\\"San Juan\\\"},\\\"permanent\\\":{\\\"address\\\":\\\"Purok 6\\\",\\\"province\\\":\\\"Zambales\\\",\\\"city\\\":\\\"Botolan\\\",\\\"barangay\\\":\\\"San Juan\\\"}}\", \"emergency_contact_relationship\": \"Sibling\"}', '{\"first_name\": \"Enzo\", \"middle_name\": \"Espiritu\", \"last_name\": \"Jimenez\", \"position\": \"Mason\", \"daily_rate\": 600.00, \"employment_status\": \"active\", \"phone\": \"09121212121\", \"addresses\": \"{\\\"current\\\":{\\\"address\\\":\\\"Purok 6\\\",\\\"province\\\":\\\"Zambales\\\",\\\"city\\\":\\\"Botolan\\\",\\\"barangay\\\":\\\"San Juan\\\"},\\\"permanent\\\":{\\\"address\\\":\\\"Purok 6\\\",\\\"province\\\":\\\"Zambales\\\",\\\"city\\\":\\\"Botolan\\\",\\\"barangay\\\":\\\"San Juan\\\"}}\", \"emergency_contact_relationship\": \"Sibling\"}', 'Updated worker: Enzo Jimenez', NULL, NULL, NULL, NULL, NULL, 'medium', 0, 1, NULL, '2026-02-02 19:43:35'),
+(9, NULL, NULL, NULL, 'update', 'workers', 'workers', 1, 'Carlos Santos Rodriguez (WKR-0001)', '{\"first_name\": \"Carlos\", \"middle_name\": \"Santos\", \"last_name\": \"Rodriguez\", \"position\": \"Site Foreman\", \"daily_rate\": 800.00, \"employment_status\": \"active\", \"phone\": \"09123456789\", \"addresses\": \"{\\\"current\\\":{\\\"address\\\":\\\"123 Builders St.\\\",\\\"province\\\":\\\"Metro Manila\\\",\\\"city\\\":\\\"Quezon City\\\",\\\"barangay\\\":\\\"Project 4\\\"}}\", \"emergency_contact_relationship\": \"Spouse\"}', '{\"first_name\": \"Carlos\", \"middle_name\": \"Santos\", \"last_name\": \"Rodriguez\", \"position\": \"Site Foreman\", \"daily_rate\": 800.00, \"employment_status\": \"active\", \"phone\": \"09123456789\", \"addresses\": \"{\\\"current\\\":{\\\"address\\\":\\\"123 Builders St.\\\",\\\"province\\\":\\\"Metro Manila\\\",\\\"city\\\":\\\"Quezon City\\\",\\\"barangay\\\":\\\"Project 4\\\"}}\", \"emergency_contact_relationship\": \"Spouse\"}', 'Updated worker: Carlos Rodriguez', NULL, NULL, NULL, NULL, NULL, 'medium', 0, 1, NULL, '2026-02-04 00:09:20'),
+(10, NULL, NULL, NULL, 'update', 'workers', 'workers', 2, 'Maria Cruz Santos (WKR-0002)', '{\"first_name\": \"Maria\", \"middle_name\": \"Cruz\", \"last_name\": \"Santos\", \"position\": \"Electrician\", \"daily_rate\": 750.00, \"employment_status\": \"active\", \"phone\": \"09234567890\", \"addresses\": \"{\\\"current\\\":{\\\"address\\\":\\\"456 Electrical Ave.\\\",\\\"province\\\":\\\"Metro Manila\\\",\\\"city\\\":\\\"Manila\\\",\\\"barangay\\\":\\\"Santa Cruz\\\"}}\", \"emergency_contact_relationship\": \"Husband\"}', '{\"first_name\": \"Maria\", \"middle_name\": \"Cruz\", \"last_name\": \"Santos\", \"position\": \"Electrician\", \"daily_rate\": 750.00, \"employment_status\": \"active\", \"phone\": \"09234567890\", \"addresses\": \"{\\\"current\\\":{\\\"address\\\":\\\"456 Electrical Ave.\\\",\\\"province\\\":\\\"Metro Manila\\\",\\\"city\\\":\\\"Manila\\\",\\\"barangay\\\":\\\"Santa Cruz\\\"}}\", \"emergency_contact_relationship\": \"Husband\"}', 'Updated worker: Maria Santos', NULL, NULL, NULL, NULL, NULL, 'medium', 0, 1, NULL, '2026-02-04 00:09:20'),
+(11, NULL, NULL, NULL, 'update', 'workers', 'workers', 3, 'Jose Miguel Torres (WKR-0003)', '{\"first_name\": \"Jose\", \"middle_name\": \"Miguel\", \"last_name\": \"Torres\", \"position\": \"Carpenter\", \"daily_rate\": 700.00, \"employment_status\": \"active\", \"phone\": \"09345678901\", \"addresses\": \"{\\\"current\\\":{\\\"address\\\":\\\"789 Woodwork Lane\\\",\\\"province\\\":\\\"Bulacan\\\",\\\"city\\\":\\\"Malolos\\\",\\\"barangay\\\":\\\"Dakila\\\"}}\", \"emergency_contact_relationship\": \"Mother\"}', '{\"first_name\": \"Jose\", \"middle_name\": \"Miguel\", \"last_name\": \"Torres\", \"position\": \"Carpenter\", \"daily_rate\": 700.00, \"employment_status\": \"active\", \"phone\": \"09345678901\", \"addresses\": \"{\\\"current\\\":{\\\"address\\\":\\\"789 Woodwork Lane\\\",\\\"province\\\":\\\"Bulacan\\\",\\\"city\\\":\\\"Malolos\\\",\\\"barangay\\\":\\\"Dakila\\\"}}\", \"emergency_contact_relationship\": \"Mother\"}', 'Updated worker: Jose Torres', NULL, NULL, NULL, NULL, NULL, 'medium', 0, 1, NULL, '2026-02-04 00:09:20'),
+(12, NULL, NULL, NULL, 'update', 'workers', 'workers', 4, 'Ana Luz Morales (WKR-0004)', '{\"first_name\": \"Ana\", \"middle_name\": \"Luz\", \"last_name\": \"Morales\", \"position\": \"Plumber\", \"daily_rate\": 720.00, \"employment_status\": \"active\", \"phone\": \"09456789012\", \"addresses\": \"{\\\"current\\\":{\\\"address\\\":\\\"321 Pipeline St.\\\",\\\"province\\\":\\\"Rizal\\\",\\\"city\\\":\\\"Antipolo\\\",\\\"barangay\\\":\\\"San Isidro\\\"}}\", \"emergency_contact_relationship\": \"Father\"}', '{\"first_name\": \"Ana\", \"middle_name\": \"Luz\", \"last_name\": \"Morales\", \"position\": \"Plumber\", \"daily_rate\": 720.00, \"employment_status\": \"active\", \"phone\": \"09456789012\", \"addresses\": \"{\\\"current\\\":{\\\"address\\\":\\\"321 Pipeline St.\\\",\\\"province\\\":\\\"Rizal\\\",\\\"city\\\":\\\"Antipolo\\\",\\\"barangay\\\":\\\"San Isidro\\\"}}\", \"emergency_contact_relationship\": \"Father\"}', 'Updated worker: Ana Morales', NULL, NULL, NULL, NULL, NULL, 'medium', 0, 1, NULL, '2026-02-04 00:09:20'),
+(13, NULL, NULL, NULL, 'update', 'workers', 'workers', 5, 'Diego Antonio Fernandez (WKR-0005)', '{\"first_name\": \"Diego\", \"middle_name\": \"Antonio\", \"last_name\": \"Fernandez\", \"position\": \"Mason\", \"daily_rate\": 680.00, \"employment_status\": \"active\", \"phone\": \"09567890123\", \"addresses\": \"{\\\"current\\\":{\\\"address\\\":\\\"654 Stone Ave.\\\",\\\"province\\\":\\\"Laguna\\\",\\\"city\\\":\\\"Calamba\\\",\\\"barangay\\\":\\\"Real\\\"}}\", \"emergency_contact_relationship\": \"Wife\"}', '{\"first_name\": \"Diego\", \"middle_name\": \"Antonio\", \"last_name\": \"Fernandez\", \"position\": \"Mason\", \"daily_rate\": 680.00, \"employment_status\": \"active\", \"phone\": \"09567890123\", \"addresses\": \"{\\\"current\\\":{\\\"address\\\":\\\"654 Stone Ave.\\\",\\\"province\\\":\\\"Laguna\\\",\\\"city\\\":\\\"Calamba\\\",\\\"barangay\\\":\\\"Real\\\"}}\", \"emergency_contact_relationship\": \"Wife\"}', 'Updated worker: Diego Fernandez', NULL, NULL, NULL, NULL, NULL, 'medium', 0, 1, NULL, '2026-02-04 00:09:20'),
+(14, NULL, NULL, NULL, 'update', 'workers', 'workers', 6, 'Ej Power Juancho (WKR-0006)', '{\"first_name\": \"Ej\", \"middle_name\": \"Power\", \"last_name\": \"Juancho\", \"position\": \"Mason\", \"daily_rate\": 1000.00, \"employment_status\": \"active\", \"phone\": \"09123456771\", \"addresses\": \"{\\\"current\\\":{\\\"address\\\":\\\"Block 2 Purok 1\\\",\\\"province\\\":\\\"Ilocos Sur\\\",\\\"city\\\":\\\"Alilem\\\",\\\"barangay\\\":\\\"Anaao\\\"},\\\"permanent\\\":{\\\"address\\\":\\\"Block 2 Purok 1\\\",\\\"province\\\":\\\"Ilocos Sur\\\",\\\"city\\\":\\\"Alilem\\\",\\\"barangay\\\":\\\"Anaao\\\"}}\", \"emergency_contact_relationship\": \"Sibling\"}', '{\"first_name\": \"Ej\", \"middle_name\": \"Power\", \"last_name\": \"Juancho\", \"position\": \"Mason\", \"daily_rate\": 1000.00, \"employment_status\": \"active\", \"phone\": \"09123456771\", \"addresses\": \"{\\\"current\\\":{\\\"address\\\":\\\"Block 2 Purok 1\\\",\\\"province\\\":\\\"Ilocos Sur\\\",\\\"city\\\":\\\"Alilem\\\",\\\"barangay\\\":\\\"Anaao\\\"},\\\"permanent\\\":{\\\"address\\\":\\\"Block 2 Purok 1\\\",\\\"province\\\":\\\"Ilocos Sur\\\",\\\"city\\\":\\\"Alilem\\\",\\\"barangay\\\":\\\"Anaao\\\"}}\", \"emergency_contact_relationship\": \"Sibling\"}', 'Updated worker: Ej Juancho', NULL, NULL, NULL, NULL, NULL, 'medium', 0, 1, NULL, '2026-02-04 00:09:20'),
+(15, NULL, NULL, NULL, 'update', 'workers', 'workers', 7, 'Enzo Espiritu Jimenez (WKR-0007)', '{\"first_name\": \"Enzo\", \"middle_name\": \"Espiritu\", \"last_name\": \"Jimenez\", \"position\": \"Mason\", \"daily_rate\": 600.00, \"employment_status\": \"active\", \"phone\": \"09121212121\", \"addresses\": \"{\\\"current\\\":{\\\"address\\\":\\\"Purok 6\\\",\\\"province\\\":\\\"Zambales\\\",\\\"city\\\":\\\"Botolan\\\",\\\"barangay\\\":\\\"San Juan\\\"},\\\"permanent\\\":{\\\"address\\\":\\\"Purok 6\\\",\\\"province\\\":\\\"Zambales\\\",\\\"city\\\":\\\"Botolan\\\",\\\"barangay\\\":\\\"San Juan\\\"}}\", \"emergency_contact_relationship\": \"Sibling\"}', '{\"first_name\": \"Enzo\", \"middle_name\": \"Espiritu\", \"last_name\": \"Jimenez\", \"position\": \"Mason\", \"daily_rate\": 600.00, \"employment_status\": \"active\", \"phone\": \"09121212121\", \"addresses\": \"{\\\"current\\\":{\\\"address\\\":\\\"Purok 6\\\",\\\"province\\\":\\\"Zambales\\\",\\\"city\\\":\\\"Botolan\\\",\\\"barangay\\\":\\\"San Juan\\\"},\\\"permanent\\\":{\\\"address\\\":\\\"Purok 6\\\",\\\"province\\\":\\\"Zambales\\\",\\\"city\\\":\\\"Botolan\\\",\\\"barangay\\\":\\\"San Juan\\\"}}\", \"emergency_contact_relationship\": \"Sibling\"}', 'Updated worker: Enzo Jimenez', NULL, NULL, NULL, NULL, NULL, 'medium', 0, 1, NULL, '2026-02-04 00:09:20'),
+(16, NULL, NULL, NULL, 'update', 'workers', 'workers', 1, 'Carlos Santos Rodriguez (WKR-0001)', '{\"first_name\": \"Carlos\", \"middle_name\": \"Santos\", \"last_name\": \"Rodriguez\", \"position\": \"Site Foreman\", \"daily_rate\": 800.00, \"employment_status\": \"active\", \"phone\": \"09123456789\", \"addresses\": \"{\\\"current\\\":{\\\"address\\\":\\\"123 Builders St.\\\",\\\"province\\\":\\\"Metro Manila\\\",\\\"city\\\":\\\"Quezon City\\\",\\\"barangay\\\":\\\"Project 4\\\"}}\", \"emergency_contact_relationship\": \"Spouse\"}', '{\"first_name\": \"Carlos\", \"middle_name\": \"Santos\", \"last_name\": \"Rodriguez\", \"position\": \"Site Foreman\", \"daily_rate\": 800.00, \"employment_status\": \"active\", \"phone\": \"09123456789\", \"addresses\": \"{\\\"current\\\":{\\\"address\\\":\\\"123 Builders St.\\\",\\\"province\\\":\\\"Metro Manila\\\",\\\"city\\\":\\\"Quezon City\\\",\\\"barangay\\\":\\\"Project 4\\\"}}\", \"emergency_contact_relationship\": \"Spouse\"}', 'Updated worker: Carlos Rodriguez', NULL, NULL, NULL, NULL, NULL, 'medium', 0, 1, NULL, '2026-02-04 00:34:53'),
+(17, NULL, NULL, NULL, 'update', 'workers', 'workers', 2, 'Maria Cruz Santos (WKR-0002)', '{\"first_name\": \"Maria\", \"middle_name\": \"Cruz\", \"last_name\": \"Santos\", \"position\": \"Electrician\", \"daily_rate\": 750.00, \"employment_status\": \"active\", \"phone\": \"09234567890\", \"addresses\": \"{\\\"current\\\":{\\\"address\\\":\\\"456 Electrical Ave.\\\",\\\"province\\\":\\\"Metro Manila\\\",\\\"city\\\":\\\"Manila\\\",\\\"barangay\\\":\\\"Santa Cruz\\\"}}\", \"emergency_contact_relationship\": \"Husband\"}', '{\"first_name\": \"Maria\", \"middle_name\": \"Cruz\", \"last_name\": \"Santos\", \"position\": \"Electrician\", \"daily_rate\": 750.00, \"employment_status\": \"active\", \"phone\": \"09234567890\", \"addresses\": \"{\\\"current\\\":{\\\"address\\\":\\\"456 Electrical Ave.\\\",\\\"province\\\":\\\"Metro Manila\\\",\\\"city\\\":\\\"Manila\\\",\\\"barangay\\\":\\\"Santa Cruz\\\"}}\", \"emergency_contact_relationship\": \"Husband\"}', 'Updated worker: Maria Santos', NULL, NULL, NULL, NULL, NULL, 'medium', 0, 1, NULL, '2026-02-04 00:34:53'),
+(18, NULL, NULL, NULL, 'update', 'workers', 'workers', 3, 'Jose Miguel Torres (WKR-0003)', '{\"first_name\": \"Jose\", \"middle_name\": \"Miguel\", \"last_name\": \"Torres\", \"position\": \"Carpenter\", \"daily_rate\": 700.00, \"employment_status\": \"active\", \"phone\": \"09345678901\", \"addresses\": \"{\\\"current\\\":{\\\"address\\\":\\\"789 Woodwork Lane\\\",\\\"province\\\":\\\"Bulacan\\\",\\\"city\\\":\\\"Malolos\\\",\\\"barangay\\\":\\\"Dakila\\\"}}\", \"emergency_contact_relationship\": \"Mother\"}', '{\"first_name\": \"Jose\", \"middle_name\": \"Miguel\", \"last_name\": \"Torres\", \"position\": \"Carpenter\", \"daily_rate\": 700.00, \"employment_status\": \"active\", \"phone\": \"09345678901\", \"addresses\": \"{\\\"current\\\":{\\\"address\\\":\\\"789 Woodwork Lane\\\",\\\"province\\\":\\\"Bulacan\\\",\\\"city\\\":\\\"Malolos\\\",\\\"barangay\\\":\\\"Dakila\\\"}}\", \"emergency_contact_relationship\": \"Mother\"}', 'Updated worker: Jose Torres', NULL, NULL, NULL, NULL, NULL, 'medium', 0, 1, NULL, '2026-02-04 00:34:53'),
+(19, NULL, NULL, NULL, 'update', 'workers', 'workers', 4, 'Ana Luz Morales (WKR-0004)', '{\"first_name\": \"Ana\", \"middle_name\": \"Luz\", \"last_name\": \"Morales\", \"position\": \"Plumber\", \"daily_rate\": 720.00, \"employment_status\": \"active\", \"phone\": \"09456789012\", \"addresses\": \"{\\\"current\\\":{\\\"address\\\":\\\"321 Pipeline St.\\\",\\\"province\\\":\\\"Rizal\\\",\\\"city\\\":\\\"Antipolo\\\",\\\"barangay\\\":\\\"San Isidro\\\"}}\", \"emergency_contact_relationship\": \"Father\"}', '{\"first_name\": \"Ana\", \"middle_name\": \"Luz\", \"last_name\": \"Morales\", \"position\": \"Plumber\", \"daily_rate\": 720.00, \"employment_status\": \"active\", \"phone\": \"09456789012\", \"addresses\": \"{\\\"current\\\":{\\\"address\\\":\\\"321 Pipeline St.\\\",\\\"province\\\":\\\"Rizal\\\",\\\"city\\\":\\\"Antipolo\\\",\\\"barangay\\\":\\\"San Isidro\\\"}}\", \"emergency_contact_relationship\": \"Father\"}', 'Updated worker: Ana Morales', NULL, NULL, NULL, NULL, NULL, 'medium', 0, 1, NULL, '2026-02-04 00:34:53'),
+(20, NULL, NULL, NULL, 'update', 'workers', 'workers', 5, 'Diego Antonio Fernandez (WKR-0005)', '{\"first_name\": \"Diego\", \"middle_name\": \"Antonio\", \"last_name\": \"Fernandez\", \"position\": \"Mason\", \"daily_rate\": 680.00, \"employment_status\": \"active\", \"phone\": \"09567890123\", \"addresses\": \"{\\\"current\\\":{\\\"address\\\":\\\"654 Stone Ave.\\\",\\\"province\\\":\\\"Laguna\\\",\\\"city\\\":\\\"Calamba\\\",\\\"barangay\\\":\\\"Real\\\"}}\", \"emergency_contact_relationship\": \"Wife\"}', '{\"first_name\": \"Diego\", \"middle_name\": \"Antonio\", \"last_name\": \"Fernandez\", \"position\": \"Mason\", \"daily_rate\": 680.00, \"employment_status\": \"active\", \"phone\": \"09567890123\", \"addresses\": \"{\\\"current\\\":{\\\"address\\\":\\\"654 Stone Ave.\\\",\\\"province\\\":\\\"Laguna\\\",\\\"city\\\":\\\"Calamba\\\",\\\"barangay\\\":\\\"Real\\\"}}\", \"emergency_contact_relationship\": \"Wife\"}', 'Updated worker: Diego Fernandez', NULL, NULL, NULL, NULL, NULL, 'medium', 0, 1, NULL, '2026-02-04 00:34:53'),
+(21, NULL, NULL, NULL, 'update', 'workers', 'workers', 6, 'Ej Power Juancho (WKR-0006)', '{\"first_name\": \"Ej\", \"middle_name\": \"Power\", \"last_name\": \"Juancho\", \"position\": \"Mason\", \"daily_rate\": 1000.00, \"employment_status\": \"active\", \"phone\": \"09123456771\", \"addresses\": \"{\\\"current\\\":{\\\"address\\\":\\\"Block 2 Purok 1\\\",\\\"province\\\":\\\"Ilocos Sur\\\",\\\"city\\\":\\\"Alilem\\\",\\\"barangay\\\":\\\"Anaao\\\"},\\\"permanent\\\":{\\\"address\\\":\\\"Block 2 Purok 1\\\",\\\"province\\\":\\\"Ilocos Sur\\\",\\\"city\\\":\\\"Alilem\\\",\\\"barangay\\\":\\\"Anaao\\\"}}\", \"emergency_contact_relationship\": \"Sibling\"}', '{\"first_name\": \"Ej\", \"middle_name\": \"Power\", \"last_name\": \"Juancho\", \"position\": \"Mason\", \"daily_rate\": 1000.00, \"employment_status\": \"active\", \"phone\": \"09123456771\", \"addresses\": \"{\\\"current\\\":{\\\"address\\\":\\\"Block 2 Purok 1\\\",\\\"province\\\":\\\"Ilocos Sur\\\",\\\"city\\\":\\\"Alilem\\\",\\\"barangay\\\":\\\"Anaao\\\"},\\\"permanent\\\":{\\\"address\\\":\\\"Block 2 Purok 1\\\",\\\"province\\\":\\\"Ilocos Sur\\\",\\\"city\\\":\\\"Alilem\\\",\\\"barangay\\\":\\\"Anaao\\\"}}\", \"emergency_contact_relationship\": \"Sibling\"}', 'Updated worker: Ej Juancho', NULL, NULL, NULL, NULL, NULL, 'medium', 0, 1, NULL, '2026-02-04 00:34:53'),
+(22, NULL, NULL, NULL, 'update', 'workers', 'workers', 7, 'Enzo Espiritu Jimenez (WKR-0007)', '{\"first_name\": \"Enzo\", \"middle_name\": \"Espiritu\", \"last_name\": \"Jimenez\", \"position\": \"Mason\", \"daily_rate\": 600.00, \"employment_status\": \"active\", \"phone\": \"09121212121\", \"addresses\": \"{\\\"current\\\":{\\\"address\\\":\\\"Purok 6\\\",\\\"province\\\":\\\"Zambales\\\",\\\"city\\\":\\\"Botolan\\\",\\\"barangay\\\":\\\"San Juan\\\"},\\\"permanent\\\":{\\\"address\\\":\\\"Purok 6\\\",\\\"province\\\":\\\"Zambales\\\",\\\"city\\\":\\\"Botolan\\\",\\\"barangay\\\":\\\"San Juan\\\"}}\", \"emergency_contact_relationship\": \"Sibling\"}', '{\"first_name\": \"Enzo\", \"middle_name\": \"Espiritu\", \"last_name\": \"Jimenez\", \"position\": \"Mason\", \"daily_rate\": 600.00, \"employment_status\": \"active\", \"phone\": \"09121212121\", \"addresses\": \"{\\\"current\\\":{\\\"address\\\":\\\"Purok 6\\\",\\\"province\\\":\\\"Zambales\\\",\\\"city\\\":\\\"Botolan\\\",\\\"barangay\\\":\\\"San Juan\\\"},\\\"permanent\\\":{\\\"address\\\":\\\"Purok 6\\\",\\\"province\\\":\\\"Zambales\\\",\\\"city\\\":\\\"Botolan\\\",\\\"barangay\\\":\\\"San Juan\\\"}}\", \"emergency_contact_relationship\": \"Sibling\"}', 'Updated worker: Enzo Jimenez', NULL, NULL, NULL, NULL, NULL, 'medium', 0, 1, NULL, '2026-02-04 00:34:53'),
+(23, NULL, NULL, NULL, 'update', 'workers', 'workers', 1, 'Carlos Santos Rodriguez (WKR-0001)', '{\"first_name\": \"Carlos\", \"middle_name\": \"Santos\", \"last_name\": \"Rodriguez\", \"position\": \"Site Foreman\", \"daily_rate\": 800.00, \"employment_status\": \"active\", \"phone\": \"09123456789\", \"addresses\": \"{\\\"current\\\":{\\\"address\\\":\\\"123 Builders St.\\\",\\\"province\\\":\\\"Metro Manila\\\",\\\"city\\\":\\\"Quezon City\\\",\\\"barangay\\\":\\\"Project 4\\\"}}\", \"emergency_contact_relationship\": \"Spouse\"}', '{\"first_name\": \"Carlos\", \"middle_name\": \"Santos\", \"last_name\": \"Rodriguez\", \"position\": \"Site Foreman\", \"daily_rate\": 1000.00, \"employment_status\": \"active\", \"phone\": \"09123456789\", \"addresses\": \"{\\\"current\\\":{\\\"address\\\":\\\"123 Builders St.\\\",\\\"province\\\":\\\"Metro Manila\\\",\\\"city\\\":\\\"Quezon City\\\",\\\"barangay\\\":\\\"Project 4\\\"}}\", \"emergency_contact_relationship\": \"Spouse\"}', 'Updated worker: Carlos Rodriguez', NULL, NULL, NULL, NULL, NULL, 'medium', 0, 1, NULL, '2026-02-04 00:49:51'),
+(24, NULL, NULL, NULL, 'update', 'workers', 'workers', 2, 'Maria Cruz Santos (WKR-0002)', '{\"first_name\": \"Maria\", \"middle_name\": \"Cruz\", \"last_name\": \"Santos\", \"position\": \"Electrician\", \"daily_rate\": 750.00, \"employment_status\": \"active\", \"phone\": \"09234567890\", \"addresses\": \"{\\\"current\\\":{\\\"address\\\":\\\"456 Electrical Ave.\\\",\\\"province\\\":\\\"Metro Manila\\\",\\\"city\\\":\\\"Manila\\\",\\\"barangay\\\":\\\"Santa Cruz\\\"}}\", \"emergency_contact_relationship\": \"Husband\"}', '{\"first_name\": \"Maria\", \"middle_name\": \"Cruz\", \"last_name\": \"Santos\", \"position\": \"Electrician\", \"daily_rate\": 750.00, \"employment_status\": \"active\", \"phone\": \"09234567890\", \"addresses\": \"{\\\"current\\\":{\\\"address\\\":\\\"456 Electrical Ave.\\\",\\\"province\\\":\\\"Metro Manila\\\",\\\"city\\\":\\\"Manila\\\",\\\"barangay\\\":\\\"Santa Cruz\\\"}}\", \"emergency_contact_relationship\": \"Husband\"}', 'Updated worker: Maria Santos', NULL, NULL, NULL, NULL, NULL, 'medium', 0, 1, NULL, '2026-02-04 00:49:51'),
+(25, NULL, NULL, NULL, 'update', 'workers', 'workers', 3, 'Jose Miguel Torres (WKR-0003)', '{\"first_name\": \"Jose\", \"middle_name\": \"Miguel\", \"last_name\": \"Torres\", \"position\": \"Carpenter\", \"daily_rate\": 700.00, \"employment_status\": \"active\", \"phone\": \"09345678901\", \"addresses\": \"{\\\"current\\\":{\\\"address\\\":\\\"789 Woodwork Lane\\\",\\\"province\\\":\\\"Bulacan\\\",\\\"city\\\":\\\"Malolos\\\",\\\"barangay\\\":\\\"Dakila\\\"}}\", \"emergency_contact_relationship\": \"Mother\"}', '{\"first_name\": \"Jose\", \"middle_name\": \"Miguel\", \"last_name\": \"Torres\", \"position\": \"Carpenter\", \"daily_rate\": 700.00, \"employment_status\": \"active\", \"phone\": \"09345678901\", \"addresses\": \"{\\\"current\\\":{\\\"address\\\":\\\"789 Woodwork Lane\\\",\\\"province\\\":\\\"Bulacan\\\",\\\"city\\\":\\\"Malolos\\\",\\\"barangay\\\":\\\"Dakila\\\"}}\", \"emergency_contact_relationship\": \"Mother\"}', 'Updated worker: Jose Torres', NULL, NULL, NULL, NULL, NULL, 'medium', 0, 1, NULL, '2026-02-04 00:49:51'),
+(26, NULL, NULL, NULL, 'update', 'workers', 'workers', 4, 'Ana Luz Morales (WKR-0004)', '{\"first_name\": \"Ana\", \"middle_name\": \"Luz\", \"last_name\": \"Morales\", \"position\": \"Plumber\", \"daily_rate\": 720.00, \"employment_status\": \"active\", \"phone\": \"09456789012\", \"addresses\": \"{\\\"current\\\":{\\\"address\\\":\\\"321 Pipeline St.\\\",\\\"province\\\":\\\"Rizal\\\",\\\"city\\\":\\\"Antipolo\\\",\\\"barangay\\\":\\\"San Isidro\\\"}}\", \"emergency_contact_relationship\": \"Father\"}', '{\"first_name\": \"Ana\", \"middle_name\": \"Luz\", \"last_name\": \"Morales\", \"position\": \"Plumber\", \"daily_rate\": 720.00, \"employment_status\": \"active\", \"phone\": \"09456789012\", \"addresses\": \"{\\\"current\\\":{\\\"address\\\":\\\"321 Pipeline St.\\\",\\\"province\\\":\\\"Rizal\\\",\\\"city\\\":\\\"Antipolo\\\",\\\"barangay\\\":\\\"San Isidro\\\"}}\", \"emergency_contact_relationship\": \"Father\"}', 'Updated worker: Ana Morales', NULL, NULL, NULL, NULL, NULL, 'medium', 0, 1, NULL, '2026-02-04 00:49:51'),
+(27, NULL, NULL, NULL, 'update', 'workers', 'workers', 5, 'Diego Antonio Fernandez (WKR-0005)', '{\"first_name\": \"Diego\", \"middle_name\": \"Antonio\", \"last_name\": \"Fernandez\", \"position\": \"Mason\", \"daily_rate\": 680.00, \"employment_status\": \"active\", \"phone\": \"09567890123\", \"addresses\": \"{\\\"current\\\":{\\\"address\\\":\\\"654 Stone Ave.\\\",\\\"province\\\":\\\"Laguna\\\",\\\"city\\\":\\\"Calamba\\\",\\\"barangay\\\":\\\"Real\\\"}}\", \"emergency_contact_relationship\": \"Wife\"}', '{\"first_name\": \"Diego\", \"middle_name\": \"Antonio\", \"last_name\": \"Fernandez\", \"position\": \"Mason\", \"daily_rate\": 680.00, \"employment_status\": \"active\", \"phone\": \"09567890123\", \"addresses\": \"{\\\"current\\\":{\\\"address\\\":\\\"654 Stone Ave.\\\",\\\"province\\\":\\\"Laguna\\\",\\\"city\\\":\\\"Calamba\\\",\\\"barangay\\\":\\\"Real\\\"}}\", \"emergency_contact_relationship\": \"Wife\"}', 'Updated worker: Diego Fernandez', NULL, NULL, NULL, NULL, NULL, 'medium', 0, 1, NULL, '2026-02-04 00:49:51'),
+(28, NULL, NULL, NULL, 'update', 'workers', 'workers', 6, 'Ej Power Juancho (WKR-0006)', '{\"first_name\": \"Ej\", \"middle_name\": \"Power\", \"last_name\": \"Juancho\", \"position\": \"Mason\", \"daily_rate\": 1000.00, \"employment_status\": \"active\", \"phone\": \"09123456771\", \"addresses\": \"{\\\"current\\\":{\\\"address\\\":\\\"Block 2 Purok 1\\\",\\\"province\\\":\\\"Ilocos Sur\\\",\\\"city\\\":\\\"Alilem\\\",\\\"barangay\\\":\\\"Anaao\\\"},\\\"permanent\\\":{\\\"address\\\":\\\"Block 2 Purok 1\\\",\\\"province\\\":\\\"Ilocos Sur\\\",\\\"city\\\":\\\"Alilem\\\",\\\"barangay\\\":\\\"Anaao\\\"}}\", \"emergency_contact_relationship\": \"Sibling\"}', '{\"first_name\": \"Ej\", \"middle_name\": \"Power\", \"last_name\": \"Juancho\", \"position\": \"Mason\", \"daily_rate\": 680.00, \"employment_status\": \"active\", \"phone\": \"09123456771\", \"addresses\": \"{\\\"current\\\":{\\\"address\\\":\\\"Block 2 Purok 1\\\",\\\"province\\\":\\\"Ilocos Sur\\\",\\\"city\\\":\\\"Alilem\\\",\\\"barangay\\\":\\\"Anaao\\\"},\\\"permanent\\\":{\\\"address\\\":\\\"Block 2 Purok 1\\\",\\\"province\\\":\\\"Ilocos Sur\\\",\\\"city\\\":\\\"Alilem\\\",\\\"barangay\\\":\\\"Anaao\\\"}}\", \"emergency_contact_relationship\": \"Sibling\"}', 'Updated worker: Ej Juancho', NULL, NULL, NULL, NULL, NULL, 'medium', 0, 1, NULL, '2026-02-04 00:49:51'),
+(29, NULL, NULL, NULL, 'update', 'workers', 'workers', 7, 'Enzo Espiritu Jimenez (WKR-0007)', '{\"first_name\": \"Enzo\", \"middle_name\": \"Espiritu\", \"last_name\": \"Jimenez\", \"position\": \"Mason\", \"daily_rate\": 600.00, \"employment_status\": \"active\", \"phone\": \"09121212121\", \"addresses\": \"{\\\"current\\\":{\\\"address\\\":\\\"Purok 6\\\",\\\"province\\\":\\\"Zambales\\\",\\\"city\\\":\\\"Botolan\\\",\\\"barangay\\\":\\\"San Juan\\\"},\\\"permanent\\\":{\\\"address\\\":\\\"Purok 6\\\",\\\"province\\\":\\\"Zambales\\\",\\\"city\\\":\\\"Botolan\\\",\\\"barangay\\\":\\\"San Juan\\\"}}\", \"emergency_contact_relationship\": \"Sibling\"}', '{\"first_name\": \"Enzo\", \"middle_name\": \"Espiritu\", \"last_name\": \"Jimenez\", \"position\": \"Mason\", \"daily_rate\": 680.00, \"employment_status\": \"active\", \"phone\": \"09121212121\", \"addresses\": \"{\\\"current\\\":{\\\"address\\\":\\\"Purok 6\\\",\\\"province\\\":\\\"Zambales\\\",\\\"city\\\":\\\"Botolan\\\",\\\"barangay\\\":\\\"San Juan\\\"},\\\"permanent\\\":{\\\"address\\\":\\\"Purok 6\\\",\\\"province\\\":\\\"Zambales\\\",\\\"city\\\":\\\"Botolan\\\",\\\"barangay\\\":\\\"San Juan\\\"}}\", \"emergency_contact_relationship\": \"Sibling\"}', 'Updated worker: Enzo Jimenez', NULL, NULL, NULL, NULL, NULL, 'medium', 0, 1, NULL, '2026-02-04 00:49:51'),
+(30, NULL, NULL, NULL, 'update', 'workers', 'workers', 1, 'Carlos Santos Rodriguez (WKR-0001)', '{\"first_name\": \"Carlos\", \"middle_name\": \"Santos\", \"last_name\": \"Rodriguez\", \"position\": \"Site Foreman\", \"daily_rate\": 1000.00, \"employment_status\": \"active\", \"phone\": \"09123456789\", \"addresses\": \"{\\\"current\\\":{\\\"address\\\":\\\"123 Builders St.\\\",\\\"province\\\":\\\"Metro Manila\\\",\\\"city\\\":\\\"Quezon City\\\",\\\"barangay\\\":\\\"Project 4\\\"}}\", \"emergency_contact_relationship\": \"Spouse\"}', '{\"first_name\": \"Carlos\", \"middle_name\": \"Santos\", \"last_name\": \"Rodriguez\", \"position\": \"Site Foreman\", \"daily_rate\": 1000.00, \"employment_status\": \"active\", \"phone\": \"09123456789\", \"addresses\": \"{\\\"current\\\":{\\\"address\\\":\\\"123 Builders St.\\\",\\\"province\\\":\\\"Metro Manila\\\",\\\"city\\\":\\\"Quezon City\\\",\\\"barangay\\\":\\\"Project 4\\\"}}\", \"emergency_contact_relationship\": \"Spouse\"}', 'Updated worker: Carlos Rodriguez', NULL, NULL, NULL, NULL, NULL, 'medium', 0, 1, NULL, '2026-02-04 01:21:49'),
+(31, NULL, NULL, NULL, 'update', 'workers', 'workers', 2, 'Maria Cruz Santos (WKR-0002)', '{\"first_name\": \"Maria\", \"middle_name\": \"Cruz\", \"last_name\": \"Santos\", \"position\": \"Electrician\", \"daily_rate\": 750.00, \"employment_status\": \"active\", \"phone\": \"09234567890\", \"addresses\": \"{\\\"current\\\":{\\\"address\\\":\\\"456 Electrical Ave.\\\",\\\"province\\\":\\\"Metro Manila\\\",\\\"city\\\":\\\"Manila\\\",\\\"barangay\\\":\\\"Santa Cruz\\\"}}\", \"emergency_contact_relationship\": \"Husband\"}', '{\"first_name\": \"Maria\", \"middle_name\": \"Cruz\", \"last_name\": \"Santos\", \"position\": \"Electrician\", \"daily_rate\": 750.00, \"employment_status\": \"active\", \"phone\": \"09234567890\", \"addresses\": \"{\\\"current\\\":{\\\"address\\\":\\\"456 Electrical Ave.\\\",\\\"province\\\":\\\"Metro Manila\\\",\\\"city\\\":\\\"Manila\\\",\\\"barangay\\\":\\\"Santa Cruz\\\"}}\", \"emergency_contact_relationship\": \"Husband\"}', 'Updated worker: Maria Santos', NULL, NULL, NULL, NULL, NULL, 'medium', 0, 1, NULL, '2026-02-04 01:21:49'),
+(32, NULL, NULL, NULL, 'update', 'workers', 'workers', 3, 'Jose Miguel Torres (WKR-0003)', '{\"first_name\": \"Jose\", \"middle_name\": \"Miguel\", \"last_name\": \"Torres\", \"position\": \"Carpenter\", \"daily_rate\": 700.00, \"employment_status\": \"active\", \"phone\": \"09345678901\", \"addresses\": \"{\\\"current\\\":{\\\"address\\\":\\\"789 Woodwork Lane\\\",\\\"province\\\":\\\"Bulacan\\\",\\\"city\\\":\\\"Malolos\\\",\\\"barangay\\\":\\\"Dakila\\\"}}\", \"emergency_contact_relationship\": \"Mother\"}', '{\"first_name\": \"Jose\", \"middle_name\": \"Miguel\", \"last_name\": \"Torres\", \"position\": \"Carpenter\", \"daily_rate\": 700.00, \"employment_status\": \"active\", \"phone\": \"09345678901\", \"addresses\": \"{\\\"current\\\":{\\\"address\\\":\\\"789 Woodwork Lane\\\",\\\"province\\\":\\\"Bulacan\\\",\\\"city\\\":\\\"Malolos\\\",\\\"barangay\\\":\\\"Dakila\\\"}}\", \"emergency_contact_relationship\": \"Mother\"}', 'Updated worker: Jose Torres', NULL, NULL, NULL, NULL, NULL, 'medium', 0, 1, NULL, '2026-02-04 01:21:49'),
+(33, NULL, NULL, NULL, 'update', 'workers', 'workers', 4, 'Ana Luz Morales (WKR-0004)', '{\"first_name\": \"Ana\", \"middle_name\": \"Luz\", \"last_name\": \"Morales\", \"position\": \"Plumber\", \"daily_rate\": 720.00, \"employment_status\": \"active\", \"phone\": \"09456789012\", \"addresses\": \"{\\\"current\\\":{\\\"address\\\":\\\"321 Pipeline St.\\\",\\\"province\\\":\\\"Rizal\\\",\\\"city\\\":\\\"Antipolo\\\",\\\"barangay\\\":\\\"San Isidro\\\"}}\", \"emergency_contact_relationship\": \"Father\"}', '{\"first_name\": \"Ana\", \"middle_name\": \"Luz\", \"last_name\": \"Morales\", \"position\": \"Plumber\", \"daily_rate\": 720.00, \"employment_status\": \"active\", \"phone\": \"09456789012\", \"addresses\": \"{\\\"current\\\":{\\\"address\\\":\\\"321 Pipeline St.\\\",\\\"province\\\":\\\"Rizal\\\",\\\"city\\\":\\\"Antipolo\\\",\\\"barangay\\\":\\\"San Isidro\\\"}}\", \"emergency_contact_relationship\": \"Father\"}', 'Updated worker: Ana Morales', NULL, NULL, NULL, NULL, NULL, 'medium', 0, 1, NULL, '2026-02-04 01:21:49'),
+(34, NULL, NULL, NULL, 'update', 'workers', 'workers', 5, 'Diego Antonio Fernandez (WKR-0005)', '{\"first_name\": \"Diego\", \"middle_name\": \"Antonio\", \"last_name\": \"Fernandez\", \"position\": \"Mason\", \"daily_rate\": 680.00, \"employment_status\": \"active\", \"phone\": \"09567890123\", \"addresses\": \"{\\\"current\\\":{\\\"address\\\":\\\"654 Stone Ave.\\\",\\\"province\\\":\\\"Laguna\\\",\\\"city\\\":\\\"Calamba\\\",\\\"barangay\\\":\\\"Real\\\"}}\", \"emergency_contact_relationship\": \"Wife\"}', '{\"first_name\": \"Diego\", \"middle_name\": \"Antonio\", \"last_name\": \"Fernandez\", \"position\": \"Mason\", \"daily_rate\": 680.00, \"employment_status\": \"active\", \"phone\": \"09567890123\", \"addresses\": \"{\\\"current\\\":{\\\"address\\\":\\\"654 Stone Ave.\\\",\\\"province\\\":\\\"Laguna\\\",\\\"city\\\":\\\"Calamba\\\",\\\"barangay\\\":\\\"Real\\\"}}\", \"emergency_contact_relationship\": \"Wife\"}', 'Updated worker: Diego Fernandez', NULL, NULL, NULL, NULL, NULL, 'medium', 0, 1, NULL, '2026-02-04 01:21:49'),
+(35, NULL, NULL, NULL, 'update', 'workers', 'workers', 6, 'Ej Power Juancho (WKR-0006)', '{\"first_name\": \"Ej\", \"middle_name\": \"Power\", \"last_name\": \"Juancho\", \"position\": \"Mason\", \"daily_rate\": 680.00, \"employment_status\": \"active\", \"phone\": \"09123456771\", \"addresses\": \"{\\\"current\\\":{\\\"address\\\":\\\"Block 2 Purok 1\\\",\\\"province\\\":\\\"Ilocos Sur\\\",\\\"city\\\":\\\"Alilem\\\",\\\"barangay\\\":\\\"Anaao\\\"},\\\"permanent\\\":{\\\"address\\\":\\\"Block 2 Purok 1\\\",\\\"province\\\":\\\"Ilocos Sur\\\",\\\"city\\\":\\\"Alilem\\\",\\\"barangay\\\":\\\"Anaao\\\"}}\", \"emergency_contact_relationship\": \"Sibling\"}', '{\"first_name\": \"Ej\", \"middle_name\": \"Power\", \"last_name\": \"Juancho\", \"position\": \"Mason\", \"daily_rate\": 680.00, \"employment_status\": \"active\", \"phone\": \"09123456771\", \"addresses\": \"{\\\"current\\\":{\\\"address\\\":\\\"Block 2 Purok 1\\\",\\\"province\\\":\\\"Ilocos Sur\\\",\\\"city\\\":\\\"Alilem\\\",\\\"barangay\\\":\\\"Anaao\\\"},\\\"permanent\\\":{\\\"address\\\":\\\"Block 2 Purok 1\\\",\\\"province\\\":\\\"Ilocos Sur\\\",\\\"city\\\":\\\"Alilem\\\",\\\"barangay\\\":\\\"Anaao\\\"}}\", \"emergency_contact_relationship\": \"Sibling\"}', 'Updated worker: Ej Juancho', NULL, NULL, NULL, NULL, NULL, 'medium', 0, 1, NULL, '2026-02-04 01:21:49'),
+(36, NULL, NULL, NULL, 'update', 'workers', 'workers', 7, 'Enzo Espiritu Jimenez (WKR-0007)', '{\"first_name\": \"Enzo\", \"middle_name\": \"Espiritu\", \"last_name\": \"Jimenez\", \"position\": \"Mason\", \"daily_rate\": 680.00, \"employment_status\": \"active\", \"phone\": \"09121212121\", \"addresses\": \"{\\\"current\\\":{\\\"address\\\":\\\"Purok 6\\\",\\\"province\\\":\\\"Zambales\\\",\\\"city\\\":\\\"Botolan\\\",\\\"barangay\\\":\\\"San Juan\\\"},\\\"permanent\\\":{\\\"address\\\":\\\"Purok 6\\\",\\\"province\\\":\\\"Zambales\\\",\\\"city\\\":\\\"Botolan\\\",\\\"barangay\\\":\\\"San Juan\\\"}}\", \"emergency_contact_relationship\": \"Sibling\"}', '{\"first_name\": \"Enzo\", \"middle_name\": \"Espiritu\", \"last_name\": \"Jimenez\", \"position\": \"Mason\", \"daily_rate\": 680.00, \"employment_status\": \"active\", \"phone\": \"09121212121\", \"addresses\": \"{\\\"current\\\":{\\\"address\\\":\\\"Purok 6\\\",\\\"province\\\":\\\"Zambales\\\",\\\"city\\\":\\\"Botolan\\\",\\\"barangay\\\":\\\"San Juan\\\"},\\\"permanent\\\":{\\\"address\\\":\\\"Purok 6\\\",\\\"province\\\":\\\"Zambales\\\",\\\"city\\\":\\\"Botolan\\\",\\\"barangay\\\":\\\"San Juan\\\"}}\", \"emergency_contact_relationship\": \"Sibling\"}', 'Updated worker: Enzo Jimenez', NULL, NULL, NULL, NULL, NULL, 'medium', 0, 1, NULL, '2026-02-04 01:21:49'),
+(37, NULL, NULL, NULL, 'update', 'workers', 'workers', 1, 'Carlos Santos Rodriguez (WKR-0001)', '{\"first_name\": \"Carlos\", \"middle_name\": \"Santos\", \"last_name\": \"Rodriguez\", \"position\": \"Site Foreman\", \"daily_rate\": 1000.00, \"employment_status\": \"active\", \"phone\": \"09123456789\", \"addresses\": \"{\\\"current\\\":{\\\"address\\\":\\\"123 Builders St.\\\",\\\"province\\\":\\\"Metro Manila\\\",\\\"city\\\":\\\"Quezon City\\\",\\\"barangay\\\":\\\"Project 4\\\"}}\", \"emergency_contact_relationship\": \"Spouse\"}', '{\"first_name\": \"Carlos\", \"middle_name\": \"Santos\", \"last_name\": \"Rodriguez\", \"position\": \"Site Foreman\", \"daily_rate\": 1000.00, \"employment_status\": \"active\", \"phone\": \"09123456789\", \"addresses\": \"{\\\"current\\\":{\\\"address\\\":\\\"123 Builders St.\\\",\\\"province\\\":\\\"Metro Manila\\\",\\\"city\\\":\\\"Quezon City\\\",\\\"barangay\\\":\\\"Project 4\\\"}}\", \"emergency_contact_relationship\": \"Spouse\"}', 'Updated worker: Carlos Rodriguez', NULL, NULL, NULL, NULL, NULL, 'medium', 0, 1, NULL, '2026-02-04 01:22:33'),
+(38, NULL, NULL, NULL, 'update', 'workers', 'workers', 2, 'Maria Cruz Santos (WKR-0002)', '{\"first_name\": \"Maria\", \"middle_name\": \"Cruz\", \"last_name\": \"Santos\", \"position\": \"Electrician\", \"daily_rate\": 750.00, \"employment_status\": \"active\", \"phone\": \"09234567890\", \"addresses\": \"{\\\"current\\\":{\\\"address\\\":\\\"456 Electrical Ave.\\\",\\\"province\\\":\\\"Metro Manila\\\",\\\"city\\\":\\\"Manila\\\",\\\"barangay\\\":\\\"Santa Cruz\\\"}}\", \"emergency_contact_relationship\": \"Husband\"}', '{\"first_name\": \"Maria\", \"middle_name\": \"Cruz\", \"last_name\": \"Santos\", \"position\": \"Electrician\", \"daily_rate\": 750.00, \"employment_status\": \"active\", \"phone\": \"09234567890\", \"addresses\": \"{\\\"current\\\":{\\\"address\\\":\\\"456 Electrical Ave.\\\",\\\"province\\\":\\\"Metro Manila\\\",\\\"city\\\":\\\"Manila\\\",\\\"barangay\\\":\\\"Santa Cruz\\\"}}\", \"emergency_contact_relationship\": \"Husband\"}', 'Updated worker: Maria Santos', NULL, NULL, NULL, NULL, NULL, 'medium', 0, 1, NULL, '2026-02-04 01:22:33'),
+(39, NULL, NULL, NULL, 'update', 'workers', 'workers', 3, 'Jose Miguel Torres (WKR-0003)', '{\"first_name\": \"Jose\", \"middle_name\": \"Miguel\", \"last_name\": \"Torres\", \"position\": \"Carpenter\", \"daily_rate\": 700.00, \"employment_status\": \"active\", \"phone\": \"09345678901\", \"addresses\": \"{\\\"current\\\":{\\\"address\\\":\\\"789 Woodwork Lane\\\",\\\"province\\\":\\\"Bulacan\\\",\\\"city\\\":\\\"Malolos\\\",\\\"barangay\\\":\\\"Dakila\\\"}}\", \"emergency_contact_relationship\": \"Mother\"}', '{\"first_name\": \"Jose\", \"middle_name\": \"Miguel\", \"last_name\": \"Torres\", \"position\": \"Carpenter\", \"daily_rate\": 700.00, \"employment_status\": \"active\", \"phone\": \"09345678901\", \"addresses\": \"{\\\"current\\\":{\\\"address\\\":\\\"789 Woodwork Lane\\\",\\\"province\\\":\\\"Bulacan\\\",\\\"city\\\":\\\"Malolos\\\",\\\"barangay\\\":\\\"Dakila\\\"}}\", \"emergency_contact_relationship\": \"Mother\"}', 'Updated worker: Jose Torres', NULL, NULL, NULL, NULL, NULL, 'medium', 0, 1, NULL, '2026-02-04 01:22:33'),
+(40, NULL, NULL, NULL, 'update', 'workers', 'workers', 4, 'Ana Luz Morales (WKR-0004)', '{\"first_name\": \"Ana\", \"middle_name\": \"Luz\", \"last_name\": \"Morales\", \"position\": \"Plumber\", \"daily_rate\": 720.00, \"employment_status\": \"active\", \"phone\": \"09456789012\", \"addresses\": \"{\\\"current\\\":{\\\"address\\\":\\\"321 Pipeline St.\\\",\\\"province\\\":\\\"Rizal\\\",\\\"city\\\":\\\"Antipolo\\\",\\\"barangay\\\":\\\"San Isidro\\\"}}\", \"emergency_contact_relationship\": \"Father\"}', '{\"first_name\": \"Ana\", \"middle_name\": \"Luz\", \"last_name\": \"Morales\", \"position\": \"Plumber\", \"daily_rate\": 720.00, \"employment_status\": \"active\", \"phone\": \"09456789012\", \"addresses\": \"{\\\"current\\\":{\\\"address\\\":\\\"321 Pipeline St.\\\",\\\"province\\\":\\\"Rizal\\\",\\\"city\\\":\\\"Antipolo\\\",\\\"barangay\\\":\\\"San Isidro\\\"}}\", \"emergency_contact_relationship\": \"Father\"}', 'Updated worker: Ana Morales', NULL, NULL, NULL, NULL, NULL, 'medium', 0, 1, NULL, '2026-02-04 01:22:33'),
+(41, NULL, NULL, NULL, 'update', 'workers', 'workers', 5, 'Diego Antonio Fernandez (WKR-0005)', '{\"first_name\": \"Diego\", \"middle_name\": \"Antonio\", \"last_name\": \"Fernandez\", \"position\": \"Mason\", \"daily_rate\": 680.00, \"employment_status\": \"active\", \"phone\": \"09567890123\", \"addresses\": \"{\\\"current\\\":{\\\"address\\\":\\\"654 Stone Ave.\\\",\\\"province\\\":\\\"Laguna\\\",\\\"city\\\":\\\"Calamba\\\",\\\"barangay\\\":\\\"Real\\\"}}\", \"emergency_contact_relationship\": \"Wife\"}', '{\"first_name\": \"Diego\", \"middle_name\": \"Antonio\", \"last_name\": \"Fernandez\", \"position\": \"Mason\", \"daily_rate\": 680.00, \"employment_status\": \"active\", \"phone\": \"09567890123\", \"addresses\": \"{\\\"current\\\":{\\\"address\\\":\\\"654 Stone Ave.\\\",\\\"province\\\":\\\"Laguna\\\",\\\"city\\\":\\\"Calamba\\\",\\\"barangay\\\":\\\"Real\\\"}}\", \"emergency_contact_relationship\": \"Wife\"}', 'Updated worker: Diego Fernandez', NULL, NULL, NULL, NULL, NULL, 'medium', 0, 1, NULL, '2026-02-04 01:22:33'),
+(42, NULL, NULL, NULL, 'update', 'workers', 'workers', 6, 'Ej Power Juancho (WKR-0006)', '{\"first_name\": \"Ej\", \"middle_name\": \"Power\", \"last_name\": \"Juancho\", \"position\": \"Mason\", \"daily_rate\": 680.00, \"employment_status\": \"active\", \"phone\": \"09123456771\", \"addresses\": \"{\\\"current\\\":{\\\"address\\\":\\\"Block 2 Purok 1\\\",\\\"province\\\":\\\"Ilocos Sur\\\",\\\"city\\\":\\\"Alilem\\\",\\\"barangay\\\":\\\"Anaao\\\"},\\\"permanent\\\":{\\\"address\\\":\\\"Block 2 Purok 1\\\",\\\"province\\\":\\\"Ilocos Sur\\\",\\\"city\\\":\\\"Alilem\\\",\\\"barangay\\\":\\\"Anaao\\\"}}\", \"emergency_contact_relationship\": \"Sibling\"}', '{\"first_name\": \"Ej\", \"middle_name\": \"Power\", \"last_name\": \"Juancho\", \"position\": \"Mason\", \"daily_rate\": 680.00, \"employment_status\": \"active\", \"phone\": \"09123456771\", \"addresses\": \"{\\\"current\\\":{\\\"address\\\":\\\"Block 2 Purok 1\\\",\\\"province\\\":\\\"Ilocos Sur\\\",\\\"city\\\":\\\"Alilem\\\",\\\"barangay\\\":\\\"Anaao\\\"},\\\"permanent\\\":{\\\"address\\\":\\\"Block 2 Purok 1\\\",\\\"province\\\":\\\"Ilocos Sur\\\",\\\"city\\\":\\\"Alilem\\\",\\\"barangay\\\":\\\"Anaao\\\"}}\", \"emergency_contact_relationship\": \"Sibling\"}', 'Updated worker: Ej Juancho', NULL, NULL, NULL, NULL, NULL, 'medium', 0, 1, NULL, '2026-02-04 01:22:33'),
+(43, NULL, NULL, NULL, 'update', 'workers', 'workers', 7, 'Enzo Espiritu Jimenez (WKR-0007)', '{\"first_name\": \"Enzo\", \"middle_name\": \"Espiritu\", \"last_name\": \"Jimenez\", \"position\": \"Mason\", \"daily_rate\": 680.00, \"employment_status\": \"active\", \"phone\": \"09121212121\", \"addresses\": \"{\\\"current\\\":{\\\"address\\\":\\\"Purok 6\\\",\\\"province\\\":\\\"Zambales\\\",\\\"city\\\":\\\"Botolan\\\",\\\"barangay\\\":\\\"San Juan\\\"},\\\"permanent\\\":{\\\"address\\\":\\\"Purok 6\\\",\\\"province\\\":\\\"Zambales\\\",\\\"city\\\":\\\"Botolan\\\",\\\"barangay\\\":\\\"San Juan\\\"}}\", \"emergency_contact_relationship\": \"Sibling\"}', '{\"first_name\": \"Enzo\", \"middle_name\": \"Espiritu\", \"last_name\": \"Jimenez\", \"position\": \"Mason\", \"daily_rate\": 680.00, \"employment_status\": \"active\", \"phone\": \"09121212121\", \"addresses\": \"{\\\"current\\\":{\\\"address\\\":\\\"Purok 6\\\",\\\"province\\\":\\\"Zambales\\\",\\\"city\\\":\\\"Botolan\\\",\\\"barangay\\\":\\\"San Juan\\\"},\\\"permanent\\\":{\\\"address\\\":\\\"Purok 6\\\",\\\"province\\\":\\\"Zambales\\\",\\\"city\\\":\\\"Botolan\\\",\\\"barangay\\\":\\\"San Juan\\\"}}\", \"emergency_contact_relationship\": \"Sibling\"}', 'Updated worker: Enzo Jimenez', NULL, NULL, NULL, NULL, NULL, 'medium', 0, 1, NULL, '2026-02-04 01:22:33'),
+(44, NULL, NULL, NULL, 'update', 'workers', 'workers', 1, 'Carlos Santos Rodriguez (WKR-0001)', '{\"first_name\": \"Carlos\", \"middle_name\": \"Santos\", \"last_name\": \"Rodriguez\", \"position\": \"Site Foreman\", \"daily_rate\": 1000.00, \"employment_status\": \"active\", \"phone\": \"09123456789\", \"addresses\": \"{\\\"current\\\":{\\\"address\\\":\\\"123 Builders St.\\\",\\\"province\\\":\\\"Metro Manila\\\",\\\"city\\\":\\\"Quezon City\\\",\\\"barangay\\\":\\\"Project 4\\\"}}\", \"emergency_contact_relationship\": \"Spouse\"}', '{\"first_name\": \"Carlos\", \"middle_name\": \"Santos\", \"last_name\": \"Rodriguez\", \"position\": \"Site Foreman\", \"daily_rate\": 1000.00, \"employment_status\": \"active\", \"phone\": \"09123456789\", \"addresses\": \"{\\\"current\\\":{\\\"address\\\":\\\"123 Builders St.\\\",\\\"province\\\":\\\"Metro Manila\\\",\\\"city\\\":\\\"Quezon City\\\",\\\"barangay\\\":\\\"Project 4\\\"}}\", \"emergency_contact_relationship\": \"Spouse\"}', 'Updated worker: Carlos Rodriguez', NULL, NULL, NULL, NULL, NULL, 'medium', 0, 1, NULL, '2026-02-04 01:22:33'),
+(45, NULL, NULL, NULL, 'delete', 'workers', 'workers', 1, 'Carlos Santos Rodriguez (WKR-0001)', '{\"worker_code\": \"WKR-0001\", \"first_name\": \"Carlos\", \"middle_name\": \"Santos\", \"last_name\": \"Rodriguez\", \"position\": \"Site Foreman\", \"daily_rate\": 1000.00, \"employment_status\": \"active\", \"addresses\": \"{\\\"current\\\":{\\\"address\\\":\\\"123 Builders St.\\\",\\\"province\\\":\\\"Metro Manila\\\",\\\"city\\\":\\\"Quezon City\\\",\\\"barangay\\\":\\\"Project 4\\\"}}\"}', NULL, 'Deleted worker: Carlos Rodriguez', NULL, NULL, NULL, NULL, NULL, 'critical', 0, 1, NULL, '2026-02-04 01:46:24'),
+(46, NULL, NULL, NULL, 'delete', 'workers', 'workers', 2, 'Maria Cruz Santos (WKR-0002)', '{\"worker_code\": \"WKR-0002\", \"first_name\": \"Maria\", \"middle_name\": \"Cruz\", \"last_name\": \"Santos\", \"position\": \"Electrician\", \"daily_rate\": 750.00, \"employment_status\": \"active\", \"addresses\": \"{\\\"current\\\":{\\\"address\\\":\\\"456 Electrical Ave.\\\",\\\"province\\\":\\\"Metro Manila\\\",\\\"city\\\":\\\"Manila\\\",\\\"barangay\\\":\\\"Santa Cruz\\\"}}\"}', NULL, 'Deleted worker: Maria Santos', NULL, NULL, NULL, NULL, NULL, 'critical', 0, 1, NULL, '2026-02-04 01:46:24'),
+(47, NULL, NULL, NULL, 'delete', 'workers', 'workers', 3, 'Jose Miguel Torres (WKR-0003)', '{\"worker_code\": \"WKR-0003\", \"first_name\": \"Jose\", \"middle_name\": \"Miguel\", \"last_name\": \"Torres\", \"position\": \"Carpenter\", \"daily_rate\": 700.00, \"employment_status\": \"active\", \"addresses\": \"{\\\"current\\\":{\\\"address\\\":\\\"789 Woodwork Lane\\\",\\\"province\\\":\\\"Bulacan\\\",\\\"city\\\":\\\"Malolos\\\",\\\"barangay\\\":\\\"Dakila\\\"}}\"}', NULL, 'Deleted worker: Jose Torres', NULL, NULL, NULL, NULL, NULL, 'critical', 0, 1, NULL, '2026-02-04 01:46:24');
+INSERT INTO `audit_trail` (`audit_id`, `user_id`, `username`, `user_level`, `action_type`, `module`, `table_name`, `record_id`, `record_identifier`, `old_values`, `new_values`, `changes_summary`, `ip_address`, `user_agent`, `session_id`, `request_method`, `request_url`, `severity`, `is_sensitive`, `success`, `error_message`, `created_at`) VALUES
+(48, NULL, NULL, NULL, 'delete', 'workers', 'workers', 4, 'Ana Luz Morales (WKR-0004)', '{\"worker_code\": \"WKR-0004\", \"first_name\": \"Ana\", \"middle_name\": \"Luz\", \"last_name\": \"Morales\", \"position\": \"Plumber\", \"daily_rate\": 720.00, \"employment_status\": \"active\", \"addresses\": \"{\\\"current\\\":{\\\"address\\\":\\\"321 Pipeline St.\\\",\\\"province\\\":\\\"Rizal\\\",\\\"city\\\":\\\"Antipolo\\\",\\\"barangay\\\":\\\"San Isidro\\\"}}\"}', NULL, 'Deleted worker: Ana Morales', NULL, NULL, NULL, NULL, NULL, 'critical', 0, 1, NULL, '2026-02-04 01:46:24'),
+(49, NULL, NULL, NULL, 'delete', 'workers', 'workers', 5, 'Diego Antonio Fernandez (WKR-0005)', '{\"worker_code\": \"WKR-0005\", \"first_name\": \"Diego\", \"middle_name\": \"Antonio\", \"last_name\": \"Fernandez\", \"position\": \"Mason\", \"daily_rate\": 680.00, \"employment_status\": \"active\", \"addresses\": \"{\\\"current\\\":{\\\"address\\\":\\\"654 Stone Ave.\\\",\\\"province\\\":\\\"Laguna\\\",\\\"city\\\":\\\"Calamba\\\",\\\"barangay\\\":\\\"Real\\\"}}\"}', NULL, 'Deleted worker: Diego Fernandez', NULL, NULL, NULL, NULL, NULL, 'critical', 0, 1, NULL, '2026-02-04 01:46:24'),
+(50, NULL, NULL, NULL, 'delete', 'workers', 'workers', 6, 'Ej Power Juancho (WKR-0006)', '{\"worker_code\": \"WKR-0006\", \"first_name\": \"Ej\", \"middle_name\": \"Power\", \"last_name\": \"Juancho\", \"position\": \"Mason\", \"daily_rate\": 680.00, \"employment_status\": \"active\", \"addresses\": \"{\\\"current\\\":{\\\"address\\\":\\\"Block 2 Purok 1\\\",\\\"province\\\":\\\"Ilocos Sur\\\",\\\"city\\\":\\\"Alilem\\\",\\\"barangay\\\":\\\"Anaao\\\"},\\\"permanent\\\":{\\\"address\\\":\\\"Block 2 Purok 1\\\",\\\"province\\\":\\\"Ilocos Sur\\\",\\\"city\\\":\\\"Alilem\\\",\\\"barangay\\\":\\\"Anaao\\\"}}\"}', NULL, 'Deleted worker: Ej Juancho', NULL, NULL, NULL, NULL, NULL, 'critical', 0, 1, NULL, '2026-02-04 01:46:24'),
+(51, NULL, NULL, NULL, 'delete', 'workers', 'workers', 7, 'Enzo Espiritu Jimenez (WKR-0007)', '{\"worker_code\": \"WKR-0007\", \"first_name\": \"Enzo\", \"middle_name\": \"Espiritu\", \"last_name\": \"Jimenez\", \"position\": \"Mason\", \"daily_rate\": 680.00, \"employment_status\": \"active\", \"addresses\": \"{\\\"current\\\":{\\\"address\\\":\\\"Purok 6\\\",\\\"province\\\":\\\"Zambales\\\",\\\"city\\\":\\\"Botolan\\\",\\\"barangay\\\":\\\"San Juan\\\"},\\\"permanent\\\":{\\\"address\\\":\\\"Purok 6\\\",\\\"province\\\":\\\"Zambales\\\",\\\"city\\\":\\\"Botolan\\\",\\\"barangay\\\":\\\"San Juan\\\"}}\"}', NULL, 'Deleted worker: Enzo Jimenez', NULL, NULL, NULL, NULL, NULL, 'critical', 0, 1, NULL, '2026-02-04 01:46:24'),
+(52, NULL, NULL, NULL, 'create', 'workers', 'workers', 1, 'Juan  Dela Cruz (WRK-001)', NULL, '{\"worker_code\": \"WRK-001\", \"first_name\": \"Juan\", \"middle_name\": null, \"last_name\": \"Dela Cruz\", \"position\": \"Mason\", \"daily_rate\": 600.00, \"employment_status\": \"active\", \"phone\": null, \"addresses\": null, \"emergency_contact_name\": null, \"emergency_contact_relationship\": null}', 'Created worker: Juan Dela Cruz (WRK-001)', NULL, NULL, NULL, NULL, NULL, 'medium', 0, 1, NULL, '2026-02-04 01:53:42'),
+(53, NULL, NULL, NULL, 'create', 'workers', 'workers', 2, 'Maria  Santos (WRK-002)', NULL, '{\"worker_code\": \"WRK-002\", \"first_name\": \"Maria\", \"middle_name\": null, \"last_name\": \"Santos\", \"position\": \"Electrician\", \"daily_rate\": 650.00, \"employment_status\": \"active\", \"phone\": null, \"addresses\": null, \"emergency_contact_name\": null, \"emergency_contact_relationship\": null}', 'Created worker: Maria Santos (WRK-002)', NULL, NULL, NULL, NULL, NULL, 'medium', 0, 1, NULL, '2026-02-04 01:53:42'),
+(54, NULL, NULL, NULL, 'create', 'workers', 'workers', 3, 'Ean Paolo Jimenez Espiritu (WKR-0003)', NULL, '{\"worker_code\": \"WKR-0003\", \"first_name\": \"Ean Paolo\", \"middle_name\": \"Jimenez\", \"last_name\": \"Espiritu\", \"position\": \"Senior\", \"daily_rate\": 700.00, \"employment_status\": \"active\", \"phone\": \"09123456789\", \"addresses\": \"{\\\"current\\\":{\\\"address\\\":\\\"Purok 5 456\\\",\\\"province\\\":\\\"Pampanga\\\",\\\"city\\\":\\\"City of San Fernando\\\",\\\"barangay\\\":\\\"Dela Paz Norte\\\"},\\\"permanent\\\":{\\\"address\\\":\\\"Purok 5 456\\\",\\\"province\\\":\\\"Pampanga\\\",\\\"city\\\":\\\"City of San Fernando\\\",\\\"barangay\\\":\\\"Dela Paz Norte\\\"}}\", \"emergency_contact_name\": \"Marycris Espiritu\", \"emergency_contact_relationship\": \"Parent\"}', 'Created worker: Ean Paolo Espiritu (WKR-0003)', NULL, NULL, NULL, NULL, NULL, 'medium', 0, 1, NULL, '2026-02-04 01:58:50');
 
 -- --------------------------------------------------------
 
@@ -480,7 +538,8 @@ CREATE TABLE `face_encodings` (
 --
 
 INSERT INTO `face_encodings` (`encoding_id`, `worker_id`, `encoding_data`, `image_path`, `is_active`, `created_at`, `updated_at`) VALUES
-(1, 1, '[-0.08151735216379166, 0.04506222009658813, 0.037160612642765045, -0.05819113850593567, -0.04931181594729424, -0.045322895795106885, -0.011671389453113079, -0.1548847109079361, 0.17114098072052003, -0.11380989998579025, 0.298864072561264, -0.07288628816604614, -0.18080515265464783, -0.1200166791677475, -0.0282498924061656, 0.17727234959602356, -0.2064359188079834, -0.1221665769815445, -0.03367595486342907, 0.010913022607564927, 0.09920443892478943, -0.03088272474706173, 0.044442429393529895, 0.07132665291428567, -0.13064368069171906, -0.3166303515434265, -0.0918951690196991, -0.1286933794617653, 0.05779618695378304, -0.045846379548311236, -0.024142447300255297, -0.008951175678521394, -0.20118076205253602, -0.03265673443675041, 0.0027345660142600535, -0.012367910332977771, -0.010010303556919098, -0.07296058908104897, 0.2551290899515152, -0.030233867466449738, -0.2903189122676849, -0.003126367647200823, 0.022731349058449268, 0.19267868101596833, 0.16970996260643006, 0.01624160595238209, 0.024124164320528507, -0.13899942338466645, 0.16901492178440095, -0.1229518860578537, 0.056068898737430574, 0.1329704686999321, 0.1299898236989975, 0.033547578006982805, -0.03968469798564911, -0.1345265105366707, -0.02128698993474245, 0.14248715043067933, -0.14241102039813996, 0.03446826711297035, 0.10309447199106217, -0.05541550293564797, 0.004356116242706776, -0.07654367387294769, 0.18899766802787782, 0.033251908025704324, -0.17198749780654907, -0.14681337773799896, 0.11222891062498093, -0.13066327422857285, -0.043613724783062933, 0.0818424865603447, -0.1920359581708908, -0.2215388000011444, -0.34009721875190735, 0.0014687199145555496, 0.3719763994216919, 0.07639704793691635, -0.1966843605041504, -0.023752102442085744, -0.053679284453392026, 0.02646139618009329, 0.11962037533521652, 0.2154940903186798, 0.010520086437463761, 0.033048609644174574, -0.059826580435037614, -0.018349522538483144, 0.1992025464773178, -0.07624111473560333, -0.04899210035800934, 0.24206989109516144, -0.03838779404759407, 0.0893834412097931, -0.05531914383172989, 0.04415107294917107, -0.05799380913376808, 0.03814018070697785, -0.07346278205513954, 0.0541340596973896, -0.0261787848547101, 0.05170819312334061, 0.010569685325026511, 0.1175260677933693, -0.13327633142471312, 0.13856652081012727, 0.010801645228639245, 0.05887542888522148, -0.005150584317743778, 0.00931828049942851, -0.06257276833057404, -0.09964174181222915, 0.0799273356795311, -0.18929681181907654, 0.18326506316661834, 0.16854915916919708, 0.10021159648895264, 0.10807647109031678, 0.09482092410326004, 0.058831870555877686, -0.001918497495353222, 0.006078600883483887, -0.23730241358280182, 0.01695534773170948, 0.10738281458616257, -0.048096907883882524, 0.12191560566425323, -0.024366034567356108]', NULL, 1, '2026-01-28 11:24:59', '2026-01-28 11:24:59');
+(1, 1, '[-0.08151735216379166, 0.04506222009658813, 0.037160612642765045, -0.05819113850593567, -0.04931181594729424, -0.045322895795106885, -0.011671389453113079, -0.1548847109079361, 0.17114098072052003, -0.11380989998579025, 0.298864072561264, -0.07288628816604614, -0.18080515265464783, -0.1200166791677475, -0.0282498924061656, 0.17727234959602356, -0.2064359188079834, -0.1221665769815445, -0.03367595486342907, 0.010913022607564927, 0.09920443892478943, -0.03088272474706173, 0.044442429393529895, 0.07132665291428567, -0.13064368069171906, -0.3166303515434265, -0.0918951690196991, -0.1286933794617653, 0.05779618695378304, -0.045846379548311236, -0.024142447300255297, -0.008951175678521394, -0.20118076205253602, -0.03265673443675041, 0.0027345660142600535, -0.012367910332977771, -0.010010303556919098, -0.07296058908104897, 0.2551290899515152, -0.030233867466449738, -0.2903189122676849, -0.003126367647200823, 0.022731349058449268, 0.19267868101596833, 0.16970996260643006, 0.01624160595238209, 0.024124164320528507, -0.13899942338466645, 0.16901492178440095, -0.1229518860578537, 0.056068898737430574, 0.1329704686999321, 0.1299898236989975, 0.033547578006982805, -0.03968469798564911, -0.1345265105366707, -0.02128698993474245, 0.14248715043067933, -0.14241102039813996, 0.03446826711297035, 0.10309447199106217, -0.05541550293564797, 0.004356116242706776, -0.07654367387294769, 0.18899766802787782, 0.033251908025704324, -0.17198749780654907, -0.14681337773799896, 0.11222891062498093, -0.13066327422857285, -0.043613724783062933, 0.0818424865603447, -0.1920359581708908, -0.2215388000011444, -0.34009721875190735, 0.0014687199145555496, 0.3719763994216919, 0.07639704793691635, -0.1966843605041504, -0.023752102442085744, -0.053679284453392026, 0.02646139618009329, 0.11962037533521652, 0.2154940903186798, 0.010520086437463761, 0.033048609644174574, -0.059826580435037614, -0.018349522538483144, 0.1992025464773178, -0.07624111473560333, -0.04899210035800934, 0.24206989109516144, -0.03838779404759407, 0.0893834412097931, -0.05531914383172989, 0.04415107294917107, -0.05799380913376808, 0.03814018070697785, -0.07346278205513954, 0.0541340596973896, -0.0261787848547101, 0.05170819312334061, 0.010569685325026511, 0.1175260677933693, -0.13327633142471312, 0.13856652081012727, 0.010801645228639245, 0.05887542888522148, -0.005150584317743778, 0.00931828049942851, -0.06257276833057404, -0.09964174181222915, 0.0799273356795311, -0.18929681181907654, 0.18326506316661834, 0.16854915916919708, 0.10021159648895264, 0.10807647109031678, 0.09482092410326004, 0.058831870555877686, -0.001918497495353222, 0.006078600883483887, -0.23730241358280182, 0.01695534773170948, 0.10738281458616257, -0.048096907883882524, 0.12191560566425323, -0.024366034567356108]', NULL, 1, '2026-01-28 11:24:59', '2026-01-28 11:24:59'),
+(2, 6, '[-0.09750438779592514, 0.10834449082612992, 0.06830773279070854, -0.07201903238892556, -0.04425826314836741, -0.08112301677465439, -0.03183804154396057, -0.15476197004318237, 0.15625699162483214, -0.10685645192861556, 0.2978206515312195, -0.09795417487621308, -0.21260752081871032, -0.12531937509775162, -0.006626072991639376, 0.2003511518239975, -0.18285510838031768, -0.12853579819202424, -0.09074258208274841, 0.0026703739538788797, 0.08687287643551826, -0.04540700949728489, -0.0013079598546028137, 0.05386522775515914, -0.09285043701529502, -0.3544125914573669, -0.07957007437944412, -0.06243004649877548, 0.018051980435848235, -0.0494287833571434, -0.04785900115966797, 0.017795953212771564, -0.21207571923732757, -0.10023199617862702, -0.009644479304552079, 0.01665029488503933, -0.013044509012252093, -0.07210256606340408, 0.22259583175182343, -0.033452550694346425, -0.2492402583360672, 0.015436247363686562, 0.036874026991426945, 0.1863820880651474, 0.16986563205718994, 0.03591358121484518, 0.036163402162492274, -0.1278449758887291, 0.1388440266251564, -0.16239039599895477, 0.032868728041648865, 0.1309796541929245, 0.13866498768329621, -0.0017368911765515804, 0.011755087785422802, -0.15863288193941116, -0.024784279242157935, 0.11242707073688507, -0.18715257942676544, 0.007034911960363388, 0.09088323116302491, -0.09677456617355347, -0.05340797603130341, -0.1028747320175171, 0.199672931432724, 0.07938628494739533, -0.11722283810377121, -0.14755520075559617, 0.15762866735458375, -0.07002779021859169, -0.0030389766208827494, 0.05239876769483089, -0.15604597181081772, -0.20156578123569488, -0.3231255292892456, 0.019887527264654637, 0.35589039921760557, 0.06790463924407959, -0.21655745506286622, 0.013123336434364318, -0.08212020769715309, 0.000725668016821146, 0.09002204090356827, 0.10128089487552643, -0.010581601783633232, 0.022240430861711503, -0.10476643443107606, 0.01054206993430853, 0.1752395212650299, -0.06676690801978111, -0.025678953528404234, 0.21776876747608184, -0.03183189108967781, 0.047563350200653075, -0.018178081419318915, 0.014489089464768767, -0.10976773649454116, 0.029699240811169147, -0.12089988142251969, 0.0008199525997042656, 0.05338473990559578, 0.013731275498867036, 0.0057424796279519795, 0.1019494354724884, -0.1267725259065628, 0.0967535838484764, -0.00023237988352775574, 0.04200830440968275, -0.007847822457551955, -0.013218343257904053, -0.08568992465734482, -0.10180827081203461, 0.10411324799060821, -0.16463152766227723, 0.1631053626537323, 0.1410750553011894, 0.03285690359771252, 0.10796090513467789, 0.11049423068761825, 0.06569235026836395, -0.0060737024992704395, -0.0011128604412078858, -0.2219040125608444, -0.013880610163323582, 0.12819674909114837, -0.013895697798579932, 0.1384146988391876, 0.006921228859573603]', NULL, 1, '2026-02-02 18:17:11', '2026-02-02 18:17:11');
 
 -- --------------------------------------------------------
 
@@ -518,9 +577,9 @@ INSERT INTO `holiday_calendar` (`holiday_id`, `holiday_date`, `holiday_name`, `h
 (8, '2026-11-30', 'Bonifacio Day', 'regular', 1, 11, 30, NULL, 1, NULL, '2026-02-02 09:15:48', '2026-02-02 09:15:48'),
 (9, '2026-12-25', 'Christmas Day', 'regular', 1, 12, 25, NULL, 1, NULL, '2026-02-02 09:15:48', '2026-02-02 09:15:48'),
 (10, '2026-12-30', 'Rizal Day', 'regular', 1, 12, 30, NULL, 1, NULL, '2026-02-02 09:15:48', '2026-02-02 09:15:48'),
-(11, '2026-01-02', 'Special Non-Working Day (After New Year)', 'special_non_working', 0, NULL, NULL, NULL, 1, NULL, '2026-02-02 09:15:48', '2026-02-02 09:15:48'),
+(11, '2026-01-02', 'Special Non-Working Day (After New Year)', 'special_non_working', 0, NULL, NULL, NULL, 0, NULL, '2026-02-02 09:15:48', '2026-02-02 19:06:03'),
 (12, '2026-02-01', 'Chinese New Year', 'special_non_working', 0, NULL, NULL, NULL, 1, NULL, '2026-02-02 09:15:48', '2026-02-02 09:15:48'),
-(13, '2026-02-25', 'EDSA People Power Revolution Anniversary', 'special_non_working', 1, 2, 25, NULL, 1, NULL, '2026-02-02 09:15:48', '2026-02-02 09:15:48'),
+(13, '2026-02-25', 'EDSA People Power Revolution Anniversary', 'special_non_working', 1, 2, 25, NULL, 0, NULL, '2026-02-02 09:15:48', '2026-02-02 19:05:37'),
 (14, '2026-04-04', 'Black Saturday', 'special_non_working', 0, NULL, NULL, NULL, 1, NULL, '2026-02-02 09:15:48', '2026-02-02 09:15:48'),
 (15, '2026-08-21', 'Ninoy Aquino Day', 'special_non_working', 1, 8, 21, NULL, 1, NULL, '2026-02-02 09:15:48', '2026-02-02 09:15:48'),
 (16, '2026-11-01', 'All Saints\' Day', 'special_non_working', 1, 11, 1, NULL, 1, NULL, '2026-02-02 09:15:48', '2026-02-02 09:15:48'),
@@ -528,6 +587,45 @@ INSERT INTO `holiday_calendar` (`holiday_id`, `holiday_date`, `holiday_name`, `h
 (18, '2026-12-08', 'Feast of the Immaculate Conception', 'special_non_working', 1, 12, 8, NULL, 1, NULL, '2026-02-02 09:15:48', '2026-02-02 09:15:48'),
 (19, '2026-12-24', 'Christmas Eve', 'special_non_working', 1, 12, 24, NULL, 1, NULL, '2026-02-02 09:15:48', '2026-02-02 09:15:48'),
 (20, '2026-12-31', 'Last Day of the Year', 'special_non_working', 1, 12, 31, NULL, 1, NULL, '2026-02-02 09:15:48', '2026-02-02 09:15:48');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `labor_code_multipliers`
+--
+
+CREATE TABLE `labor_code_multipliers` (
+  `multiplier_id` int(11) NOT NULL,
+  `multiplier_code` varchar(50) NOT NULL,
+  `multiplier_name` varchar(100) NOT NULL,
+  `base_multiplier` decimal(5,4) NOT NULL DEFAULT 1.0000,
+  `description` text DEFAULT NULL,
+  `legal_reference` varchar(255) DEFAULT NULL,
+  `calculation_order` int(11) NOT NULL DEFAULT 0,
+  `is_stackable` tinyint(1) NOT NULL DEFAULT 0,
+  `category` enum('regular','overtime','night_differential','rest_day','regular_holiday','special_holiday','combined') NOT NULL DEFAULT 'regular',
+  `is_active` tinyint(1) NOT NULL DEFAULT 1,
+  `effective_date` date NOT NULL DEFAULT '2025-01-01',
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `labor_code_multipliers`
+--
+
+INSERT INTO `labor_code_multipliers` (`multiplier_id`, `multiplier_code`, `multiplier_name`, `base_multiplier`, `description`, `legal_reference`, `calculation_order`, `is_stackable`, `category`, `is_active`, `effective_date`, `created_at`, `updated_at`) VALUES
+(1, 'REGULAR_DAY', 'Regular Day Pay', 1.0000, 'Basic daily wage', 'Labor Code Art. 83', 1, 0, 'regular', 1, '2025-01-01', '2026-02-04 00:34:53', '2026-02-04 00:34:53'),
+(2, 'OT_REGULAR', 'Overtime - Regular Day', 1.2500, '25% premium for OT on regular day', 'Labor Code Art. 87(a)', 10, 0, 'overtime', 1, '2025-01-01', '2026-02-04 00:34:53', '2026-02-04 00:34:53'),
+(3, 'OT_REST_DAY', 'Overtime - Rest Day', 1.6900, '30% premium on rest day rate', 'Labor Code Art. 87(b), Art. 93', 11, 0, 'overtime', 1, '2025-01-01', '2026-02-04 00:34:53', '2026-02-04 00:34:53'),
+(4, 'OT_SPECIAL_HOLIDAY', 'Overtime - Special Holiday', 1.6900, '30% premium on special holiday rate', 'Labor Code Art. 87, Art. 94', 12, 0, 'overtime', 1, '2025-01-01', '2026-02-04 00:34:53', '2026-02-04 00:34:53'),
+(5, 'OT_REGULAR_HOLIDAY', 'Overtime - Regular Holiday', 2.6000, '30% premium on regular holiday rate', 'Labor Code Art. 87, Art. 94', 14, 0, 'overtime', 1, '2025-01-01', '2026-02-04 00:34:53', '2026-02-04 00:34:53'),
+(6, 'NIGHT_DIFF', 'Night Differential', 0.1000, '10% additional for 10PM-6AM work', 'Labor Code Art. 86', 20, 1, 'night_differential', 1, '2025-01-01', '2026-02-04 00:34:53', '2026-02-04 00:34:53'),
+(7, 'REST_DAY', 'Rest Day Premium', 1.3000, '30% premium for rest day work', 'Labor Code Art. 93(a)', 30, 0, 'rest_day', 1, '2025-01-01', '2026-02-04 00:34:53', '2026-02-04 00:34:53'),
+(8, 'REGULAR_HOLIDAY', 'Regular Holiday', 2.0000, '200% for regular holiday work', 'Labor Code Art. 94(a)', 40, 0, 'regular_holiday', 1, '2025-01-01', '2026-02-04 00:34:53', '2026-02-04 00:34:53'),
+(9, 'SPECIAL_HOLIDAY', 'Special Non-Working Day', 1.3000, '130% for special holiday work', 'Labor Code Art. 94, RA 9492', 50, 0, 'special_holiday', 1, '2025-01-01', '2026-02-04 00:34:53', '2026-02-04 00:34:53'),
+(10, 'REGULAR_HOLIDAY_REST', 'Regular Holiday + Rest Day', 2.6000, '260% for regular holiday on rest day', 'Labor Code Art. 93-94', 41, 0, 'combined', 1, '2025-01-01', '2026-02-04 00:34:53', '2026-02-04 00:34:53'),
+(11, 'SPECIAL_HOLIDAY_REST', 'Special Holiday + Rest Day', 1.5000, '150% for special holiday on rest day', 'Labor Code Art. 93-94', 51, 0, 'combined', 1, '2025-01-01', '2026-02-04 00:34:53', '2026-02-04 00:34:53');
 
 -- --------------------------------------------------------
 
@@ -686,10 +784,6 @@ INSERT INTO `payroll_earnings` (`earning_id`, `record_id`, `earning_date`, `earn
 (164, 21, '2026-02-05', 'overtime', NULL, 1.00, 75.0000, 1.2500, 93.75, '1.00 hrs × ₱75.00 × 1.25 = ₱93.75', 48, '2026-02-02 16:38:25'),
 (165, 21, '2026-02-06', 'regular', NULL, 8.00, 75.0000, 1.0000, 600.00, '8.00 hrs × ₱75.00 = ₱600.00', 49, '2026-02-02 16:38:25'),
 (166, 21, '2026-02-06', 'overtime', NULL, 2.00, 75.0000, 1.2500, 187.50, '2.00 hrs × ₱75.00 × 1.25 = ₱187.50', 49, '2026-02-02 16:38:25'),
-(167, 22, '2026-02-02', 'regular', NULL, 8.00, 75.0000, 1.0000, 600.00, '8.00 hrs × ₱75.00 = ₱600.00', 38, '2026-02-02 16:38:25'),
-(168, 22, '2026-02-02', 'overtime', NULL, 1.00, 75.0000, 1.2500, 93.75, '1.00 hrs × ₱75.00 × 1.25 = ₱93.75', 38, '2026-02-02 16:38:25'),
-(169, 22, '2026-02-03', 'regular', NULL, 8.00, 75.0000, 1.0000, 600.00, '8.00 hrs × ₱75.00 = ₱600.00', 39, '2026-02-02 16:38:25'),
-(170, 22, '2026-02-03', 'overtime', NULL, 2.00, 75.0000, 1.2500, 187.50, '2.00 hrs × ₱75.00 × 1.25 = ₱187.50', 39, '2026-02-02 16:38:25'),
 (171, 24, '2026-02-02', 'regular', NULL, 8.00, 75.0000, 1.0000, 600.00, '8.00 hrs × ₱75.00 = ₱600.00', 42, '2026-02-02 16:38:25'),
 (172, 24, '2026-02-02', 'overtime', NULL, 1.00, 75.0000, 1.2500, 93.75, '1.00 hrs × ₱75.00 × 1.25 = ₱93.75', 42, '2026-02-02 16:38:25'),
 (173, 25, '2026-02-02', 'regular', NULL, 8.00, 75.0000, 1.0000, 600.00, '8.00 hrs × ₱75.00 = ₱600.00', 40, '2026-02-02 16:38:25'),
@@ -697,7 +791,31 @@ INSERT INTO `payroll_earnings` (`earning_id`, `record_id`, `earning_date`, `earn
 (175, 25, '2026-02-03', 'regular', NULL, 8.00, 75.0000, 1.0000, 600.00, '8.00 hrs × ₱75.00 = ₱600.00', 41, '2026-02-02 16:38:25'),
 (176, 25, '2026-02-03', 'overtime', NULL, 1.00, 75.0000, 1.2500, 93.75, '1.00 hrs × ₱75.00 × 1.25 = ₱93.75', 41, '2026-02-02 16:38:25'),
 (179, 23, '2026-02-03', 'regular', NULL, 0.05, 75.0000, 1.0000, 3.75, '0.05 hrs × ₱75.00 = ₱3.75', 50, '2026-02-02 16:39:01'),
-(180, 23, '2026-02-03', '', NULL, 0.05, 75.0000, 0.1000, 0.38, '0.05 hrs × ₱75.00 × 10% = ₱0.38', 50, '2026-02-02 16:39:01');
+(180, 23, '2026-02-03', '', NULL, 0.05, 75.0000, 0.1000, 0.38, '0.05 hrs × ₱75.00 × 10% = ₱0.38', 50, '2026-02-02 16:39:01'),
+(201, 32, '2026-02-03', 'regular', NULL, 8.00, 75.0000, 1.0000, 600.00, '8.00 hrs × ₱75.00 = ₱600.00', 54, '2026-02-02 19:43:45'),
+(202, 32, '2026-02-03', 'overtime', NULL, 4.00, 75.0000, 1.2500, 375.00, '4.00 hrs × ₱75.00 × 1.25 = ₱375.00', 54, '2026-02-02 19:43:45'),
+(203, 33, '2026-06-12', 'regular_holiday', NULL, 8.00, 75.0000, 2.0000, 1200.00, '8.00 hrs × ₱75.00 × 2.00 = ₱1200.00', 56, '2026-06-12 00:54:31'),
+(204, 33, '2026-06-12', '', NULL, 8.00, 75.0000, 1.1000, 660.00, '8.00 hrs × ₱75.00 × 110% = ₱660.00', 56, '2026-06-12 00:54:31'),
+(205, 31, '2026-02-03', 'regular', NULL, 12.02, 85.0000, 1.0000, 1021.70, '12.02 hrs × ₱85.00 = ₱1021.70', 51, '2026-02-04 00:52:47'),
+(211, 22, '2026-02-03', 'regular', NULL, 7.00, 125.0000, 1.0000, 875.00, '7.00 hrs × ₱125.00 = ₱875.00', 39, '2026-02-04 01:26:25'),
+(212, 22, '2026-02-03', 'overtime', NULL, 1.00, 125.0000, 1.2500, 156.25, '1.00 hrs × ₱125.00 × 1.25 = ₱156.25', 39, '2026-02-04 01:26:25'),
+(213, 22, '2026-02-04', 'regular', NULL, 9.00, 125.0000, 1.0000, 1125.00, '9.00 hrs × ₱125.00 = ₱1125.00', 59, '2026-02-04 01:26:25'),
+(214, 22, '2026-02-05', 'regular', NULL, 10.00, 125.0000, 1.0000, 1250.00, '10.00 hrs × ₱125.00 = ₱1250.00', 60, '2026-02-04 01:26:25'),
+(215, 22, '2026-02-06', 'regular', NULL, 8.50, 125.0000, 1.0000, 1062.50, '8.50 hrs × ₱125.00 = ₱1062.50', 53, '2026-02-04 01:26:25'),
+(216, 1, '2026-02-02', 'regular', NULL, 8.00, 125.0000, 1.0000, 1000.00, '8.00 hrs × ₱125.00 = ₱1000.00', 1, '2026-02-04 01:40:55'),
+(217, 1, '2026-02-03', 'regular', NULL, 9.00, 125.0000, 1.0000, 1125.00, '9.00 hrs × ₱125.00 = ₱1125.00', 2, '2026-02-04 01:40:55'),
+(218, 1, '2026-02-04', 'regular', NULL, 8.50, 125.0000, 1.0000, 1062.50, '8.50 hrs × ₱125.00 = ₱1062.50', 3, '2026-02-04 01:40:55'),
+(219, 1, '2026-02-02', 'regular', NULL, 8.00, 75.0000, 1.0000, 600.00, '8.00 hrs × ₱75.00 = ₱600.00', 2, '2026-02-04 01:54:10'),
+(220, 1, '2026-02-02', 'overtime', NULL, 1.00, 75.0000, 1.2500, 93.75, '1.00 hrs × ₱75.00 × 1.25 = ₱93.75', 2, '2026-02-04 01:54:10'),
+(221, 1, '2026-02-03', 'regular', NULL, 7.50, 75.0000, 1.0000, 562.50, '7.50 hrs × ₱75.00 = ₱562.50', 3, '2026-02-04 01:54:10'),
+(222, 1, '2026-02-04', 'regular', NULL, 8.00, 75.0000, 1.0000, 600.00, '8.00 hrs × ₱75.00 = ₱600.00', 4, '2026-02-04 01:54:10'),
+(223, 1, '2026-02-05', 'regular', NULL, 8.00, 75.0000, 1.0000, 600.00, '8.00 hrs × ₱75.00 = ₱600.00', 5, '2026-02-04 01:54:11'),
+(224, 1, '2026-02-05', 'overtime', NULL, 2.00, 75.0000, 1.2500, 187.50, '2.00 hrs × ₱75.00 × 1.25 = ₱187.50', 5, '2026-02-04 01:54:11'),
+(225, 1, '2026-02-08', 'regular', NULL, 8.00, 75.0000, 1.0000, 600.00, '8.00 hrs × ₱75.00 = ₱600.00', 6, '2026-02-04 01:54:11'),
+(226, 2, '2026-11-05', 'regular', NULL, 8.00, 87.5000, 1.0000, 700.00, '8.00 hrs × ₱87.50 = ₱700.00', 24, '2026-02-04 02:27:45'),
+(227, 2, '2026-11-05', 'overtime', NULL, 2.00, 87.5000, 1.2500, 218.75, '2.00 hrs × ₱87.50 × 1.25 = ₱218.75', 24, '2026-02-04 02:27:45'),
+(228, 3, '2026-11-05', 'regular', NULL, 8.00, 87.5000, 1.0000, 700.00, '8.00 hrs × ₱87.50 = ₱700.00', 24, '2026-02-04 02:31:50'),
+(229, 3, '2026-11-05', 'overtime', NULL, 2.00, 87.5000, 1.2500, 218.75, '2.00 hrs × ₱87.50 × 1.25 = ₱218.75', 24, '2026-02-04 02:31:50');
 
 -- --------------------------------------------------------
 
@@ -729,8 +847,9 @@ CREATE TABLE `payroll_periods` (
 --
 
 INSERT INTO `payroll_periods` (`period_id`, `period_start`, `period_end`, `period_type`, `period_label`, `status`, `total_workers`, `total_gross`, `total_deductions`, `total_net`, `processed_by`, `finalized_by`, `finalized_at`, `notes`, `created_at`, `updated_at`) VALUES
-(5, '2026-02-02', '2026-02-08', 'weekly', 'Week of Feb 02 - Feb 08, 2026', 'open', 5, 7410.38, 931.66, 6478.72, NULL, NULL, NULL, NULL, '2026-02-02 16:34:36', '2026-02-02 16:38:45'),
-(6, '2026-01-26', '2026-02-01', 'weekly', 'Week of Jan 26 - Feb 01, 2026', 'open', 5, 0.00, 0.00, 0.00, NULL, NULL, NULL, NULL, '2026-02-02 16:38:20', '2026-02-02 16:38:21');
+(1, '2026-02-02', '2026-02-08', 'weekly', 'Week of Feb 02 - Feb 08, 2026', 'open', 1, 3243.75, 287.84, 2955.91, NULL, NULL, NULL, NULL, '2026-02-04 01:54:10', '2026-02-04 01:54:10'),
+(2, '2026-11-01', '2026-11-14', 'weekly', 'Week of Nov 01 - Nov 14, 2026', 'open', 1, 918.75, 144.90, 773.85, NULL, NULL, NULL, NULL, '2026-02-04 02:27:45', '2026-02-04 02:27:45'),
+(3, '2026-11-01', '2026-11-30', 'weekly', 'Week of Nov 01 - Nov 30, 2026', 'open', 1, 918.75, 144.90, 773.85, NULL, NULL, NULL, NULL, '2026-02-04 02:31:50', '2026-02-04 02:31:50');
 
 -- --------------------------------------------------------
 
@@ -787,16 +906,9 @@ CREATE TABLE `payroll_records` (
 --
 
 INSERT INTO `payroll_records` (`record_id`, `period_id`, `worker_id`, `hourly_rate_used`, `ot_multiplier_used`, `night_diff_pct_used`, `regular_hours`, `overtime_hours`, `night_diff_hours`, `rest_day_hours`, `regular_holiday_hours`, `special_holiday_hours`, `regular_pay`, `overtime_pay`, `night_diff_pay`, `rest_day_pay`, `regular_holiday_pay`, `special_holiday_pay`, `other_earnings`, `gross_pay`, `sss_contribution`, `philhealth_contribution`, `pagibig_contribution`, `tax_withholding`, `other_deductions`, `total_deductions`, `net_pay`, `status`, `payment_method`, `payment_date`, `paid_by`, `payment_reference`, `notes`, `generated_by`, `approved_by`, `approved_at`, `is_archived`, `archived_at`, `archived_by`, `created_at`, `updated_at`) VALUES
-(21, 5, 4, 75.0000, 1.2500, 0.1000, 40.00, 9.00, 0.00, 0.00, 0.00, 0.00, 3000.00, 843.75, 0.00, 0.00, 0.00, 0.00, 0.00, 3843.75, 206.25, 104.09, 25.00, 0.00, 0.00, 335.34, 3508.41, 'paid', NULL, '2026-02-03', NULL, NULL, NULL, 1, NULL, NULL, 0, NULL, NULL, '2026-02-02 16:34:36', '2026-02-02 17:36:07'),
-(22, 5, 1, 75.0000, 1.2500, 0.1000, 16.00, 3.00, 0.00, 0.00, 0.00, 0.00, 1200.00, 281.25, 0.00, 0.00, 0.00, 0.00, 0.00, 1481.25, 81.25, 62.50, 25.00, 0.00, 0.00, 168.75, 1312.50, 'draft', NULL, NULL, NULL, NULL, NULL, 1, NULL, NULL, 0, NULL, NULL, '2026-02-02 16:34:37', '2026-02-02 16:34:37'),
-(23, 5, 5, 75.0000, 1.2500, 0.1000, 0.05, 0.00, 0.05, 0.00, 0.00, 0.00, 3.75, 0.00, 0.38, 0.00, 0.00, 0.00, 0.00, 4.13, 62.50, 62.50, 0.04, 0.00, 0.00, 125.04, -120.91, 'draft', NULL, NULL, NULL, NULL, NULL, 1, NULL, NULL, 0, NULL, NULL, '2026-02-02 16:34:37', '2026-02-02 16:38:45'),
-(24, 5, 3, 75.0000, 1.2500, 0.1000, 8.00, 1.00, 0.00, 0.00, 0.00, 0.00, 600.00, 93.75, 0.00, 0.00, 0.00, 0.00, 0.00, 693.75, 62.50, 62.50, 15.03, 0.00, 0.00, 140.03, 553.72, 'draft', NULL, NULL, NULL, NULL, NULL, 1, NULL, NULL, 0, NULL, NULL, '2026-02-02 16:34:37', '2026-02-02 16:34:37'),
-(25, 5, 2, 75.0000, 1.2500, 0.1000, 16.00, 2.00, 0.00, 0.00, 0.00, 0.00, 1200.00, 187.50, 0.00, 0.00, 0.00, 0.00, 0.00, 1387.50, 75.00, 62.50, 25.00, 0.00, 0.00, 162.50, 1225.00, 'draft', NULL, NULL, NULL, NULL, NULL, 1, NULL, NULL, 0, NULL, NULL, '2026-02-02 16:34:37', '2026-02-02 16:34:37'),
-(26, 6, 4, 75.0000, 1.2500, 0.1000, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 'draft', NULL, NULL, NULL, NULL, NULL, 1, NULL, NULL, 0, NULL, NULL, '2026-02-02 16:38:20', '2026-02-02 16:38:20'),
-(27, 6, 1, 75.0000, 1.2500, 0.1000, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 'draft', NULL, NULL, NULL, NULL, NULL, 1, NULL, NULL, 0, NULL, NULL, '2026-02-02 16:38:20', '2026-02-02 16:38:20'),
-(28, 6, 5, 75.0000, 1.2500, 0.1000, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 'draft', NULL, NULL, NULL, NULL, NULL, 1, NULL, NULL, 0, NULL, NULL, '2026-02-02 16:38:21', '2026-02-02 16:38:21'),
-(29, 6, 3, 75.0000, 1.2500, 0.1000, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 'draft', NULL, NULL, NULL, NULL, NULL, 1, NULL, NULL, 0, NULL, NULL, '2026-02-02 16:38:21', '2026-02-02 16:38:21'),
-(30, 6, 2, 75.0000, 1.2500, 0.1000, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 'draft', NULL, NULL, NULL, NULL, NULL, 1, NULL, NULL, 0, NULL, NULL, '2026-02-02 16:38:21', '2026-02-02 16:38:21');
+(1, 1, 1, 75.0000, 1.2500, 0.1000, 39.50, 3.00, 0.00, 0.00, 0.00, 0.00, 2962.50, 281.25, 0.00, 0.00, 0.00, 0.00, 0.00, 3243.75, 175.00, 87.84, 25.00, 0.00, 0.00, 287.84, 2955.91, 'draft', NULL, NULL, NULL, NULL, NULL, 1, NULL, NULL, 0, NULL, NULL, '2026-02-04 01:54:10', '2026-02-04 01:54:10'),
+(2, 2, 3, 87.5000, 1.2500, 0.1000, 8.00, 2.00, 0.00, 0.00, 0.00, 0.00, 700.00, 218.75, 0.00, 0.00, 0.00, 0.00, 0.00, 918.75, 62.50, 62.50, 19.90, 0.00, 0.00, 144.90, 773.85, 'draft', NULL, NULL, NULL, NULL, NULL, 1, NULL, NULL, 0, NULL, NULL, '2026-02-04 02:27:45', '2026-02-04 02:27:45'),
+(3, 3, 3, 87.5000, 1.2500, 0.1000, 8.00, 2.00, 0.00, 0.00, 0.00, 0.00, 700.00, 218.75, 0.00, 0.00, 0.00, 0.00, 0.00, 918.75, 62.50, 62.50, 19.90, 0.00, 0.00, 144.90, 773.85, 'draft', NULL, NULL, NULL, NULL, NULL, 1, NULL, NULL, 0, NULL, NULL, '2026-02-04 02:31:50', '2026-02-04 02:31:50');
 
 --
 -- Triggers `payroll_records`
@@ -856,27 +968,31 @@ CREATE TABLE `payroll_settings` (
 --
 
 INSERT INTO `payroll_settings` (`setting_id`, `setting_key`, `setting_value`, `setting_type`, `category`, `label`, `description`, `formula_display`, `min_value`, `max_value`, `is_editable`, `is_active`, `display_order`, `updated_by`, `created_at`, `updated_at`) VALUES
-(1, 'hourly_rate', 75.0000, 'rate', 'base', 'Hourly Rate', 'Base hourly wage for regular work', 'Ôé▒75.00 per hour', NULL, NULL, 1, 1, 1, NULL, '2026-02-02 14:25:18', '2026-02-02 14:25:18'),
+(1, 'hourly_rate', 75.0000, 'rate', 'base', 'Hourly Rate', 'Base hourly wage for regular work', 'Ôé▒75.00 per hour', NULL, NULL, 1, 1, 1, 1, '2026-02-02 14:25:18', '2026-02-04 01:49:24'),
 (2, 'standard_hours_per_day', 8.0000, 'hours', 'base', 'Standard Hours Per Day', 'Regular working hours per day', '8 hours/day', NULL, NULL, 1, 1, 2, NULL, '2026-02-02 14:25:18', '2026-02-02 14:25:18'),
 (3, 'standard_days_per_week', 6.0000, 'hours', 'base', 'Standard Days Per Week', 'Regular working days per week', '6 days/week', NULL, NULL, 1, 1, 3, NULL, '2026-02-02 14:25:18', '2026-02-02 14:25:18'),
-(4, 'daily_rate', 600.0000, 'rate', 'base', 'Daily Rate', 'Computed daily wage (hourly ├ù 8)', 'Hourly Rate × 8 hours = ₱600.00', NULL, NULL, 1, 1, 4, NULL, '2026-02-02 14:25:18', '2026-02-02 15:26:41'),
-(5, 'weekly_rate', 3600.0000, 'rate', 'base', 'Weekly Rate', 'Computed weekly wage (daily ├ù 6)', 'Daily Rate × 6 days = ₱3,600.00', NULL, NULL, 1, 1, 5, NULL, '2026-02-02 14:25:18', '2026-02-02 15:26:41'),
+(4, 'daily_rate', 600.0000, 'rate', 'base', 'Daily Rate', 'Computed daily wage (hourly ├ù 8)', 'Hourly Rate × 8 hours = ₱600.00', NULL, NULL, 1, 1, 4, NULL, '2026-02-02 14:25:18', '2026-02-04 01:49:24'),
+(5, 'weekly_rate', 3600.0000, 'rate', 'base', 'Weekly Rate', 'Computed weekly wage (daily ├ù 6)', 'Daily Rate × 6 days = ₱3,600.00', NULL, NULL, 1, 1, 5, NULL, '2026-02-02 14:25:18', '2026-02-04 01:49:24'),
 (6, 'overtime_multiplier', 1.2500, 'multiplier', 'overtime', 'Overtime Multiplier', 'Premium rate for work beyond 8 hours (125%)', 'Hourly Rate ├ù 1.25 = Ôé▒93.75/hr OT', NULL, NULL, 1, 1, 10, 1, '2026-02-02 14:25:18', '2026-02-02 15:26:56'),
-(7, 'overtime_rate', 93.7500, 'rate', 'overtime', 'Overtime Hourly Rate', 'Computed overtime rate per hour', 'Hourly Rate × 1.25 = ₱93.75/hr OT', NULL, NULL, 1, 1, 11, NULL, '2026-02-02 14:25:18', '2026-02-02 15:26:56'),
+(7, 'overtime_rate', 93.7500, 'rate', 'overtime', 'Overtime Hourly Rate', 'Computed overtime rate per hour', 'Hourly Rate × 1.25 = ₱93.75/hr OT', NULL, NULL, 1, 1, 11, NULL, '2026-02-02 14:25:18', '2026-02-04 01:49:24'),
 (8, 'night_diff_start', 22.0000, 'hours', 'differential', 'Night Diff Start Hour', 'Night differential starts at 10:00 PM (22:00)', '10:00 PM', NULL, NULL, 1, 1, 12, NULL, '2026-02-02 14:25:18', '2026-02-02 14:25:18'),
 (9, 'night_diff_end', 6.0000, 'hours', 'differential', 'Night Diff End Hour', 'Night differential ends at 6:00 AM (06:00)', '6:00 AM', NULL, NULL, 1, 1, 13, NULL, '2026-02-02 14:25:18', '2026-02-02 14:25:18'),
-(10, 'night_diff_percentage', 10.0000, 'percentage', 'differential', 'Night Differential %', 'Additional percentage for night work', '+10% of hourly rate', NULL, NULL, 1, 1, 14, 1, '2026-02-02 14:25:18', '2026-02-02 15:48:48'),
-(11, 'night_diff_rate', 7.5000, 'rate', 'differential', 'Night Diff Additional Rate', 'Additional pay per night hour', 'Hourly Rate × 10% = ₱7.50/hr', NULL, NULL, 1, 1, 15, NULL, '2026-02-02 14:25:18', '2026-02-02 15:48:48'),
-(12, 'regular_holiday_multiplier', 2.0000, 'multiplier', 'holiday', 'Regular Holiday Multiplier', 'Pay rate for work on regular holidays (200%)', 'Hourly Rate ├ù 2.00 = Ôé▒150.00/hr', NULL, NULL, 1, 1, 16, NULL, '2026-02-02 14:25:18', '2026-02-02 14:25:18'),
-(13, 'regular_holiday_rate', 150.0000, 'rate', 'holiday', 'Regular Holiday Hourly Rate', 'Computed hourly rate for regular holidays', 'Hourly Rate × 2.00 = ₱150.00/hr', NULL, NULL, 1, 1, 17, NULL, '2026-02-02 14:25:18', '2026-02-02 15:26:41'),
+(10, 'night_diff_percentage', 110.0000, 'percentage', 'differential', 'Night Differential %', 'Additional percentage for night work (Labor Code Art. 86)', '+10% of hourly rate', NULL, NULL, 1, 1, 14, 1, '2026-02-02 14:25:18', '2026-02-04 00:26:14'),
+(11, 'night_diff_rate', 82.5000, 'rate', 'differential', 'Night Diff Additional Rate', 'Additional pay per night hour', 'Hourly Rate × 110% = ₱82.50/hr', NULL, NULL, 1, 1, 15, NULL, '2026-02-02 14:25:18', '2026-02-04 01:49:24'),
+(12, 'regular_holiday_multiplier', 2.0000, 'multiplier', 'holiday', 'Regular Holiday Multiplier', 'Pay rate for work on regular holidays (200%) (Labor Code Art. 94)', 'Hourly Rate × 2.00', NULL, NULL, 1, 1, 16, NULL, '2026-02-02 14:25:18', '2026-02-04 00:26:14'),
+(13, 'regular_holiday_rate', 150.0000, 'rate', 'holiday', 'Regular Holiday Hourly Rate', 'Computed hourly rate for regular holidays', 'Hourly Rate × 2.00 = ₱150.00/hr', NULL, NULL, 1, 1, 17, NULL, '2026-02-02 14:25:18', '2026-02-04 01:49:24'),
 (14, 'regular_holiday_ot_multiplier', 2.6000, 'multiplier', 'holiday', 'Regular Holiday OT Multiplier', 'Overtime on regular holiday (200% ├ù 130%)', 'Regular Holiday Rate ├ù 1.30', NULL, NULL, 1, 1, 18, NULL, '2026-02-02 14:25:18', '2026-02-02 14:25:18'),
-(15, 'special_holiday_multiplier', 1.3000, 'multiplier', 'holiday', 'Special Holiday Multiplier', 'Pay rate for work on special non-working holidays (130%)', 'Hourly Rate ├ù 1.30 = Ôé▒97.50/hr', NULL, NULL, 1, 1, 19, NULL, '2026-02-02 14:25:18', '2026-02-02 14:25:18'),
-(16, 'special_holiday_rate', 97.5000, 'rate', 'holiday', 'Special Holiday Hourly Rate', 'Computed hourly rate for special holidays', 'Hourly Rate × 1.30 = ₱97.50/hr', NULL, NULL, 1, 1, 20, NULL, '2026-02-02 14:25:18', '2026-02-02 15:26:41'),
+(15, 'special_holiday_multiplier', 1.3000, 'multiplier', 'holiday', 'Special Holiday Multiplier', 'Pay rate for work on special non-working holidays (130%) (Labor Code Art. 94, RA 9492)', 'Hourly Rate × 1.30', NULL, NULL, 1, 1, 19, NULL, '2026-02-02 14:25:18', '2026-02-04 00:26:14'),
+(16, 'special_holiday_rate', 97.5000, 'rate', 'holiday', 'Special Holiday Hourly Rate', 'Computed hourly rate for special holidays', 'Hourly Rate × 1.30 = ₱97.50/hr', NULL, NULL, 1, 1, 20, NULL, '2026-02-02 14:25:18', '2026-02-04 01:49:24'),
 (17, 'special_holiday_ot_multiplier', 1.6900, 'multiplier', 'holiday', 'Special Holiday OT Multiplier', 'Overtime on special holiday (130% ├ù 130%)', 'Special Holiday Rate ├ù 1.30', NULL, NULL, 1, 1, 21, NULL, '2026-02-02 14:25:18', '2026-02-02 14:25:18'),
 (18, 'sss_enabled', 0.0000, 'boolean', 'contribution', 'SSS Deduction Enabled', 'Enable/disable SSS contribution deduction', 'Configurable via contribution tables', NULL, NULL, 1, 1, 22, NULL, '2026-02-02 14:25:18', '2026-02-02 14:25:18'),
 (19, 'philhealth_enabled', 0.0000, 'boolean', 'contribution', 'PhilHealth Deduction Enabled', 'Enable/disable PhilHealth contribution deduction', 'Configurable via contribution tables', NULL, NULL, 1, 1, 23, NULL, '2026-02-02 14:25:18', '2026-02-02 14:25:18'),
 (20, 'pagibig_enabled', 0.0000, 'boolean', 'contribution', 'Pag-IBIG Deduction Enabled', 'Enable/disable Pag-IBIG contribution deduction', 'Configurable via contribution tables', NULL, NULL, 1, 1, 24, NULL, '2026-02-02 14:25:18', '2026-02-02 14:25:18'),
-(21, 'bir_tax_enabled', 0.0000, 'boolean', 'contribution', 'BIR Tax Deduction Enabled', 'Enable/disable withholding tax deduction', 'Configurable via tax tables', NULL, NULL, 1, 1, 25, NULL, '2026-02-02 14:25:18', '2026-02-02 14:25:18');
+(21, 'bir_tax_enabled', 0.0000, 'boolean', 'contribution', 'BIR Tax Deduction Enabled', 'Enable/disable withholding tax deduction', 'Configurable via tax tables', NULL, NULL, 1, 1, 25, NULL, '2026-02-02 14:25:18', '2026-02-02 14:25:18'),
+(22, 'face_recognition_grace_period', 15.0000, 'hours', '', 'Face Recognition Grace Period', 'Grace period in minutes for face recognition timing', NULL, NULL, NULL, 1, 1, 0, NULL, '2026-02-04 00:09:21', '2026-02-04 00:09:21'),
+(23, 'hourly_calculation_enabled', 1.0000, 'boolean', '', 'Hourly Calculation', 'Calculate attendance per hour instead of per minute', NULL, NULL, NULL, 1, 1, 0, NULL, '2026-02-04 00:09:21', '2026-02-04 00:09:21'),
+(24, 'minimum_work_hours', 1.0000, 'hours', '', 'Minimum Work Hours', 'Minimum hours to register as worked time', NULL, NULL, NULL, 1, 1, 0, NULL, '2026-02-04 00:09:21', '2026-02-04 00:09:21'),
+(25, 'auto_break_deduction', 1.0000, 'hours', '', 'Auto Break Deduction', 'Automatically deduct 1 hour for break on 8+ hour shifts', NULL, NULL, NULL, 1, 1, 0, NULL, '2026-02-04 00:09:21', '2026-02-04 00:09:21');
 
 -- --------------------------------------------------------
 
@@ -964,37 +1080,12 @@ CREATE TABLE `schedules` (
 --
 
 INSERT INTO `schedules` (`schedule_id`, `worker_id`, `day_of_week`, `start_time`, `end_time`, `is_active`, `created_by`, `created_at`, `updated_at`) VALUES
-(8, 1, 'monday', '08:00:00', '17:00:00', 1, 1, '2026-02-02 16:32:38', '2026-02-02 16:32:38'),
-(9, 1, 'tuesday', '08:00:00', '17:00:00', 1, 1, '2026-02-02 16:32:38', '2026-02-02 16:32:38'),
-(10, 1, 'wednesday', '08:00:00', '17:00:00', 1, 1, '2026-02-02 16:32:38', '2026-02-02 16:32:38'),
-(11, 1, 'thursday', '08:00:00', '17:00:00', 1, 1, '2026-02-02 16:32:38', '2026-02-02 16:32:38'),
-(12, 1, 'friday', '08:00:00', '17:00:00', 1, 1, '2026-02-02 16:32:38', '2026-02-02 16:32:38'),
-(13, 2, 'monday', '08:00:00', '17:00:00', 1, 1, '2026-02-02 16:32:38', '2026-02-02 16:32:38'),
-(14, 2, 'tuesday', '08:00:00', '17:00:00', 1, 1, '2026-02-02 16:32:38', '2026-02-02 16:32:38'),
-(15, 2, 'wednesday', '08:00:00', '17:00:00', 1, 1, '2026-02-02 16:32:38', '2026-02-02 16:32:38'),
-(16, 2, 'thursday', '08:00:00', '17:00:00', 1, 1, '2026-02-02 16:32:38', '2026-02-02 16:32:38'),
-(17, 2, 'friday', '08:00:00', '17:00:00', 1, 1, '2026-02-02 16:32:38', '2026-02-02 16:32:38'),
-(18, 3, 'monday', '08:00:00', '17:00:00', 1, 1, '2026-02-02 16:32:38', '2026-02-02 16:32:38'),
-(19, 3, 'tuesday', '08:00:00', '17:00:00', 1, 1, '2026-02-02 16:32:38', '2026-02-02 16:32:38'),
-(20, 3, 'wednesday', '08:00:00', '17:00:00', 1, 1, '2026-02-02 16:32:38', '2026-02-02 16:32:38'),
-(21, 3, 'thursday', '08:00:00', '17:00:00', 1, 1, '2026-02-02 16:32:38', '2026-02-02 16:32:38'),
-(22, 3, 'friday', '08:00:00', '17:00:00', 1, 1, '2026-02-02 16:32:38', '2026-02-02 16:32:38'),
-(23, 4, 'monday', '08:00:00', '17:00:00', 1, 1, '2026-02-02 16:32:38', '2026-02-02 16:32:38'),
-(24, 4, 'tuesday', '08:00:00', '17:00:00', 1, 1, '2026-02-02 16:32:38', '2026-02-02 16:32:38'),
-(25, 4, 'wednesday', '08:00:00', '17:00:00', 1, 1, '2026-02-02 16:32:38', '2026-02-02 16:32:38'),
-(26, 4, 'thursday', '08:00:00', '17:00:00', 1, 1, '2026-02-02 16:32:38', '2026-02-02 16:32:38'),
-(27, 4, 'friday', '08:00:00', '17:00:00', 1, 1, '2026-02-02 16:32:38', '2026-02-02 16:32:38'),
-(28, 5, 'monday', '08:00:00', '17:00:00', 1, 1, '2026-02-02 16:32:38', '2026-02-02 16:32:38'),
-(29, 5, 'tuesday', '08:00:00', '17:00:00', 1, 1, '2026-02-02 16:32:38', '2026-02-02 16:32:38'),
-(30, 5, 'wednesday', '08:00:00', '17:00:00', 1, 1, '2026-02-02 16:32:38', '2026-02-02 16:32:38'),
-(31, 5, 'thursday', '08:00:00', '17:00:00', 1, 1, '2026-02-02 16:32:38', '2026-02-02 16:32:38'),
-(32, 5, 'friday', '08:00:00', '17:00:00', 1, 1, '2026-02-02 16:32:38', '2026-02-02 16:32:38'),
-(33, 6, 'monday', '08:00:00', '17:00:00', 1, 1, '2026-02-02 17:57:56', '2026-02-02 17:57:56'),
-(34, 6, 'tuesday', '08:00:00', '17:00:00', 1, 1, '2026-02-02 17:57:57', '2026-02-02 17:57:57'),
-(35, 6, 'wednesday', '08:00:00', '17:00:00', 1, 1, '2026-02-02 17:57:57', '2026-02-02 17:57:57'),
-(36, 6, 'thursday', '08:00:00', '17:00:00', 1, 1, '2026-02-02 17:57:57', '2026-02-02 17:57:57'),
-(37, 6, 'friday', '08:00:00', '17:00:00', 1, 1, '2026-02-02 17:57:57', '2026-02-02 17:57:57'),
-(38, 6, 'saturday', '08:00:00', '17:00:00', 1, 1, '2026-02-02 17:57:57', '2026-02-02 17:57:57');
+(1, 3, 'monday', '08:00:00', '17:00:00', 1, 1, '2026-02-04 01:59:19', '2026-02-04 01:59:19'),
+(2, 3, 'tuesday', '08:00:00', '17:00:00', 1, 1, '2026-02-04 01:59:19', '2026-02-04 01:59:19'),
+(3, 3, 'wednesday', '08:00:00', '17:00:00', 1, 1, '2026-02-04 01:59:19', '2026-02-04 01:59:19'),
+(4, 3, 'thursday', '08:00:00', '17:00:00', 1, 1, '2026-02-04 01:59:19', '2026-02-04 01:59:19'),
+(5, 3, 'friday', '08:00:00', '17:00:00', 1, 1, '2026-02-04 01:59:19', '2026-02-04 01:59:19'),
+(6, 3, 'saturday', '08:00:00', '17:00:00', 1, 1, '2026-02-04 01:59:19', '2026-02-04 01:59:19');
 
 -- --------------------------------------------------------
 
@@ -1143,7 +1234,7 @@ CREATE TABLE `super_admin_profile` (
 --
 
 INSERT INTO `super_admin_profile` (`admin_id`, `user_id`, `first_name`, `last_name`, `phone`, `profile_image`, `is_active`, `created_at`, `updated_at`) VALUES
-(1, 1, 'System', 'Administrator', '+639171234567', NULL, 1, '2026-01-28 11:17:53', '2026-01-28 11:17:53');
+(1, 1, 'Jeffrey', 'Libiran', '+639171234567', NULL, 1, '2026-01-28 11:17:53', '2026-02-04 01:51:55');
 
 -- --------------------------------------------------------
 
@@ -1186,14 +1277,10 @@ CREATE TABLE `users` (
 --
 
 INSERT INTO `users` (`user_id`, `username`, `password`, `email`, `user_level`, `status`, `is_active`, `created_at`, `updated_at`, `last_login`) VALUES
-(1, 'admin@construction.com', '$2y$10$Yz/cYyQM7gJXayhlgAjDi.uXLbexy4FqGvRomUGhwppJzCVf9ceJu', 'admin@construction.com', 'super_admin', 'active', 1, '2026-02-02 15:01:24', '2026-02-02 18:11:12', '2026-02-02 18:11:12'),
-(2, 'carlos0001@tracksite.com', '$2y$10$mSNPQb2T8um1GNqlDwDswOYoboGSWgdyubRqByxQzkPP8CYIclSw6', 'carlos0001@tracksite.com', 'worker', 'active', 1, '2026-02-02 15:01:34', '2026-02-02 15:07:46', NULL),
-(3, 'maria0002@tracksite.com', '$2y$10$mSNPQb2T8um1GNqlDwDswOYoboGSWgdyubRqByxQzkPP8CYIclSw6', 'maria0002@tracksite.com', 'worker', 'active', 1, '2026-02-02 15:01:34', '2026-02-02 15:07:46', NULL),
-(4, 'jose0003@tracksite.com', '$2y$10$mSNPQb2T8um1GNqlDwDswOYoboGSWgdyubRqByxQzkPP8CYIclSw6', 'jose0003@tracksite.com', 'worker', 'active', 1, '2026-02-02 15:01:34', '2026-02-02 15:07:46', NULL),
-(5, 'ana0004@tracksite.com', '$2y$10$mSNPQb2T8um1GNqlDwDswOYoboGSWgdyubRqByxQzkPP8CYIclSw6', 'ana0004@tracksite.com', 'worker', 'active', 1, '2026-02-02 15:01:34', '2026-02-02 15:07:46', NULL),
-(6, 'diego0005@tracksite.com', '$2y$10$mSNPQb2T8um1GNqlDwDswOYoboGSWgdyubRqByxQzkPP8CYIclSw6', 'diego0005@tracksite.com', 'worker', 'active', 1, '2026-02-02 15:01:34', '2026-02-02 15:07:46', NULL),
-(7, 'mzhayt', '$2y$10$C/uCW06kKy2jz1K2dGWc7OOjot6cHc4cVh7BPLejyWMLB3rMxIzAK', 'testadmin@construction.com', 'admin', 'active', 1, '2026-02-02 17:00:43', '2026-02-02 18:13:22', '2026-02-02 18:13:22'),
-(8, 'ej0006@tracksite.com', '$2y$10$ohA61U9vF9J9wIPDtiMB1eOvszgIQcpd7UmGW4tCy95NuXPijN9wC', 'ej0006@tracksite.com', 'worker', 'active', 1, '2026-02-02 17:57:36', '2026-02-02 17:57:36', NULL);
+(1, 'Jeff', '$2y$10$Yz/cYyQM7gJXayhlgAjDi.uXLbexy4FqGvRomUGhwppJzCVf9ceJu', 'superadmin@tracksite.com', 'super_admin', 'active', 1, '2026-02-02 15:01:24', '2026-11-05 02:24:15', '2026-11-05 02:24:15'),
+(10, 'juan.delacruz', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'juan@test.com', 'worker', 'active', 1, '2026-02-04 01:53:42', '2026-02-04 01:53:42', NULL),
+(11, 'maria.santos', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'maria@test.com', 'worker', 'active', 1, '2026-02-04 01:53:42', '2026-02-04 01:53:42', NULL),
+(12, 'ean paolo0003@tracksite.com', '$2y$10$YIKiVEISsm9FkgAMLLWXO.nVxyyYfmAPTqlF8JMAgFQnRjAhWKKdC', 'ean paolo0003@tracksite.com', 'worker', 'active', 1, '2026-02-04 01:58:50', '2026-02-04 01:58:50', NULL);
 
 -- --------------------------------------------------------
 
@@ -1349,6 +1436,31 @@ CREATE TABLE `vw_payroll_summary` (
 -- --------------------------------------------------------
 
 --
+-- Stand-in structure for view `vw_workers_with_rates`
+-- (See below for the actual view)
+--
+CREATE TABLE `vw_workers_with_rates` (
+`worker_id` int(11)
+,`worker_code` varchar(20)
+,`first_name` varchar(50)
+,`last_name` varchar(50)
+,`worker_name` varchar(101)
+,`position` varchar(50)
+,`work_type_id` int(11)
+,`work_type_code` varchar(20)
+,`work_type_name` varchar(100)
+,`classification_name` varchar(100)
+,`skill_level` enum('entry','skilled','senior','master')
+,`effective_daily_rate` decimal(10,2)
+,`effective_hourly_rate` decimal(11,2)
+,`rate_source` varchar(13)
+,`employment_status` enum('active','on_leave','terminated','blocklisted')
+,`is_archived` tinyint(1)
+);
+
+-- --------------------------------------------------------
+
+--
 -- Stand-in structure for view `vw_worker_attendance_summary`
 -- (See below for the actual view)
 --
@@ -1367,6 +1479,29 @@ CREATE TABLE `vw_worker_attendance_summary` (
 -- --------------------------------------------------------
 
 --
+-- Stand-in structure for view `vw_worker_rates`
+-- (See below for the actual view)
+--
+CREATE TABLE `vw_worker_rates` (
+`worker_id` int(11)
+,`worker_code` varchar(20)
+,`first_name` varchar(50)
+,`last_name` varchar(50)
+,`position` varchar(50)
+,`worker_type` enum('skilled_worker','laborer','foreman','electrician','carpenter','plumber','mason','other')
+,`individual_daily_rate` decimal(10,2)
+,`individual_hourly_rate` decimal(10,2)
+,`type_hourly_rate` decimal(10,2)
+,`type_daily_rate` decimal(10,2)
+,`overtime_multiplier` decimal(5,2)
+,`night_diff_percentage` decimal(5,2)
+,`effective_hourly_rate` decimal(10,2)
+,`effective_daily_rate` decimal(10,2)
+);
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `workers`
 --
 
@@ -1378,6 +1513,9 @@ CREATE TABLE `workers` (
   `middle_name` varchar(50) DEFAULT NULL,
   `last_name` varchar(50) NOT NULL,
   `position` varchar(50) NOT NULL,
+  `work_type_id` int(11) DEFAULT NULL,
+  `classification_id` int(11) DEFAULT NULL,
+  `worker_type` enum('skilled_worker','laborer','foreman','electrician','carpenter','plumber','mason','other') DEFAULT 'laborer',
   `phone` varchar(20) DEFAULT NULL,
   `addresses` text DEFAULT NULL COMMENT 'JSON: {current: {address, province, city, barangay}, permanent: {address, province, city, barangay}}',
   `address` text DEFAULT NULL,
@@ -1389,6 +1527,7 @@ CREATE TABLE `workers` (
   `date_hired` date NOT NULL,
   `employment_status` enum('active','on_leave','terminated','blocklisted') NOT NULL DEFAULT 'active',
   `daily_rate` decimal(10,2) NOT NULL,
+  `hourly_rate` decimal(10,2) DEFAULT NULL COMMENT 'Override hourly rate for this worker (optional)',
   `experience_years` int(11) DEFAULT 0,
   `profile_image` varchar(255) DEFAULT NULL,
   `sss_number` varchar(50) DEFAULT NULL,
@@ -1408,13 +1547,10 @@ CREATE TABLE `workers` (
 -- Dumping data for table `workers`
 --
 
-INSERT INTO `workers` (`worker_id`, `user_id`, `worker_code`, `first_name`, `middle_name`, `last_name`, `position`, `phone`, `addresses`, `address`, `date_of_birth`, `gender`, `emergency_contact_name`, `emergency_contact_phone`, `emergency_contact_relationship`, `date_hired`, `employment_status`, `daily_rate`, `experience_years`, `profile_image`, `sss_number`, `philhealth_number`, `pagibig_number`, `tin_number`, `identification_data`, `is_archived`, `archived_at`, `archived_by`, `archive_reason`, `created_at`, `updated_at`) VALUES
-(1, 2, 'WKR-0001', 'Carlos', 'Santos', 'Rodriguez', 'Site Foreman', '09123456789', '{\"current\":{\"address\":\"123 Builders St.\",\"province\":\"Metro Manila\",\"city\":\"Quezon City\",\"barangay\":\"Project 4\"}}', NULL, '1985-03-15', 'male', 'Elena Rodriguez', '09987654321', 'Spouse', '2026-01-15', 'active', 800.00, 8, NULL, '1234567890', '0123456789', '1111222233', '123456789', '{\"primary\":{\"type\":\"Driver License\",\"number\":\"N01-12-345678\"}}', 0, NULL, NULL, NULL, '2026-02-02 15:01:59', '2026-02-02 15:01:59'),
-(2, 3, 'WKR-0002', 'Maria', 'Cruz', 'Santos', 'Electrician', '09234567890', '{\"current\":{\"address\":\"456 Electrical Ave.\",\"province\":\"Metro Manila\",\"city\":\"Manila\",\"barangay\":\"Santa Cruz\"}}', NULL, '1990-07-22', 'female', 'Juan Santos', '09876543210', 'Husband', '2026-01-20', 'active', 750.00, 5, NULL, '2345678901', '1234567890', '2222333344', '234567890', '{\"primary\":{\"type\":\"SSS ID\",\"number\":\"02-1234567-8\"}}', 0, NULL, NULL, NULL, '2026-02-02 15:01:59', '2026-02-02 15:01:59'),
-(3, 4, 'WKR-0003', 'Jose', 'Miguel', 'Torres', 'Carpenter', '09345678901', '{\"current\":{\"address\":\"789 Woodwork Lane\",\"province\":\"Bulacan\",\"city\":\"Malolos\",\"barangay\":\"Dakila\"}}', NULL, '1988-12-10', 'male', 'Rosa Torres', '09765432109', 'Mother', '2026-01-25', 'active', 700.00, 6, NULL, '3456789012', '2345678901', '3333444455', '345678901', '{\"primary\":{\"type\":\"Passport\",\"number\":\"P1234567\"}}', 0, NULL, NULL, NULL, '2026-02-02 15:01:59', '2026-02-02 15:01:59'),
-(4, 5, 'WKR-0004', 'Ana', 'Luz', 'Morales', 'Plumber', '09456789012', '{\"current\":{\"address\":\"321 Pipeline St.\",\"province\":\"Rizal\",\"city\":\"Antipolo\",\"barangay\":\"San Isidro\"}}', NULL, '1992-05-18', 'female', 'Pedro Morales', '09654321098', 'Father', '2026-01-30', 'active', 720.00, 3, NULL, '4567890123', '3456789012', '4444555566', '456789012', '{\"primary\":{\"type\":\"UMID\",\"number\":\"0001-2345678-9\"}}', 0, NULL, NULL, NULL, '2026-02-02 15:01:59', '2026-02-02 15:01:59'),
-(5, 6, 'WKR-0005', 'Diego', 'Antonio', 'Fernandez', 'Mason', '09567890123', '{\"current\":{\"address\":\"654 Stone Ave.\",\"province\":\"Laguna\",\"city\":\"Calamba\",\"barangay\":\"Real\"}}', NULL, '1987-09-08', 'male', 'Carmen Fernandez', '09543210987', 'Wife', '2026-02-01', 'active', 680.00, 7, NULL, '5678901234', '4567890123', '5555666677', '567890123', '{\"primary\":{\"type\":\"Driver License\",\"number\":\"N02-98-765432\"}}', 0, NULL, NULL, NULL, '2026-02-02 15:01:59', '2026-02-02 15:01:59'),
-(6, 8, 'WKR-0006', 'Ej', 'Power', 'Juancho', 'Mason', '09123456771', '{\"current\":{\"address\":\"Block 2 Purok 1\",\"province\":\"Ilocos Sur\",\"city\":\"Alilem\",\"barangay\":\"Anaao\"},\"permanent\":{\"address\":\"Block 2 Purok 1\",\"province\":\"Ilocos Sur\",\"city\":\"Alilem\",\"barangay\":\"Anaao\"}}', NULL, '2005-12-01', 'male', 'Vitrum  Aric', '09121213243', 'Sibling', '2026-02-03', 'active', 1000.00, 0, NULL, '', '', '', '', '{\"primary\":{\"type\":\"PhilHealth ID\",\"number\":\"1212112121212\"},\"additional\":[]}', 0, NULL, NULL, NULL, '2026-02-02 17:57:36', '2026-02-02 17:57:36');
+INSERT INTO `workers` (`worker_id`, `user_id`, `worker_code`, `first_name`, `middle_name`, `last_name`, `position`, `work_type_id`, `classification_id`, `worker_type`, `phone`, `addresses`, `address`, `date_of_birth`, `gender`, `emergency_contact_name`, `emergency_contact_phone`, `emergency_contact_relationship`, `date_hired`, `employment_status`, `daily_rate`, `hourly_rate`, `experience_years`, `profile_image`, `sss_number`, `philhealth_number`, `pagibig_number`, `tin_number`, `identification_data`, `is_archived`, `archived_at`, `archived_by`, `archive_reason`, `created_at`, `updated_at`) VALUES
+(1, 10, 'WRK-001', 'Juan', NULL, 'Dela Cruz', 'Mason', 33, NULL, 'skilled_worker', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2025-08-04', 'active', 600.00, 75.00, 0, NULL, '33-1234567-8', '12-123456789-0', '1234-5678-9012', '123-456-789-000', NULL, 0, NULL, NULL, NULL, '2026-02-04 01:53:42', '2026-02-04 01:53:42'),
+(2, 11, 'WRK-002', 'Maria', NULL, 'Santos', 'Electrician', 33, NULL, 'electrician', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2025-11-04', 'active', 650.00, 81.25, 0, NULL, '33-7654321-0', '12-987654321-0', '9876-5432-1098', '987-654-321-000', NULL, 0, NULL, NULL, NULL, '2026-02-04 01:53:42', '2026-02-04 01:53:42'),
+(3, 12, 'WKR-0003', 'Ean Paolo', 'Jimenez', 'Espiritu', 'Senior', 34, NULL, 'mason', '09123456789', '{\"current\":{\"address\":\"Purok 5 456\",\"province\":\"Pampanga\",\"city\":\"City of San Fernando\",\"barangay\":\"Dela Paz Norte\"},\"permanent\":{\"address\":\"Purok 5 456\",\"province\":\"Pampanga\",\"city\":\"City of San Fernando\",\"barangay\":\"Dela Paz Norte\"}}', NULL, '2004-11-19', 'male', 'Marycris Espiritu', '09123456789', 'Parent', '2026-02-04', 'active', 700.00, 87.50, 0, NULL, '', '', '', '', '{\"primary\":{\"type\":\"UMID\",\"number\":\"123456\"},\"additional\":[]}', 0, NULL, NULL, NULL, '2026-02-04 01:58:50', '2026-02-04 01:58:50');
 
 --
 -- Triggers `workers`
@@ -1525,6 +1661,35 @@ DELIMITER ;
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `worker_classifications`
+--
+
+CREATE TABLE `worker_classifications` (
+  `classification_id` int(11) NOT NULL,
+  `classification_code` varchar(20) NOT NULL,
+  `classification_name` varchar(100) NOT NULL,
+  `description` text DEFAULT NULL,
+  `skill_level` enum('entry','skilled','senior','master') NOT NULL DEFAULT 'entry',
+  `minimum_experience_years` int(11) DEFAULT 0,
+  `is_active` tinyint(1) NOT NULL DEFAULT 1,
+  `display_order` int(11) DEFAULT 0,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `worker_classifications`
+--
+
+INSERT INTO `worker_classifications` (`classification_id`, `classification_code`, `classification_name`, `description`, `skill_level`, `minimum_experience_years`, `is_active`, `display_order`, `created_at`, `updated_at`) VALUES
+(1, 'LABORER', 'Laborer', 'General construction laborer, helper, or unskilled worker', 'entry', 0, 1, 1, '2026-02-04 00:34:52', '2026-02-04 00:34:52'),
+(2, 'SKILLED', 'Skilled Worker', 'Trained worker with specialized skills', 'skilled', 1, 1, 2, '2026-02-04 00:34:52', '2026-02-04 00:34:52'),
+(3, 'SENIOR', 'Senior Skilled Worker', 'Experienced skilled worker with supervisory capability', 'senior', 3, 1, 3, '2026-02-04 00:34:52', '2026-02-04 00:34:52'),
+(4, 'FOREMAN', 'Foreman', 'Team leader or site supervisor', 'master', 5, 1, 4, '2026-02-04 00:34:52', '2026-02-04 00:34:52');
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `worker_rest_days`
 --
 
@@ -1535,6 +1700,85 @@ CREATE TABLE `worker_rest_days` (
   `effective_from` date NOT NULL,
   `effective_to` date DEFAULT NULL,
   `is_active` tinyint(1) DEFAULT 1,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `worker_type_rates`
+--
+
+CREATE TABLE `worker_type_rates` (
+  `rate_id` int(11) NOT NULL,
+  `worker_type` enum('skilled_worker','laborer','foreman','electrician','carpenter','plumber','mason','other') NOT NULL,
+  `hourly_rate` decimal(10,2) NOT NULL DEFAULT 0.00,
+  `daily_rate` decimal(10,2) NOT NULL DEFAULT 0.00,
+  `overtime_multiplier` decimal(5,2) DEFAULT 1.25 COMMENT 'Overtime multiplier for this worker type',
+  `night_diff_percentage` decimal(5,2) DEFAULT 10.00 COMMENT 'Night differential percentage',
+  `is_active` tinyint(1) DEFAULT 1,
+  `effective_date` date NOT NULL DEFAULT curdate(),
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `worker_type_rates`
+--
+
+INSERT INTO `worker_type_rates` (`rate_id`, `worker_type`, `hourly_rate`, `daily_rate`, `overtime_multiplier`, `night_diff_percentage`, `is_active`, `effective_date`, `created_at`, `updated_at`) VALUES
+(1, 'skilled_worker', 120.00, 960.00, 1.25, 10.00, 1, '2026-02-04', '2026-02-04 00:09:20', '2026-02-04 00:09:20'),
+(2, 'laborer', 80.00, 640.00, 1.25, 10.00, 1, '2026-02-04', '2026-02-04 00:09:20', '2026-02-04 00:09:20'),
+(3, 'foreman', 150.00, 1200.00, 1.25, 10.00, 1, '2026-02-04', '2026-02-04 00:09:20', '2026-02-04 00:09:20'),
+(4, 'electrician', 130.00, 1040.00, 1.25, 10.00, 1, '2026-02-04', '2026-02-04 00:09:20', '2026-02-04 00:09:20'),
+(5, 'carpenter', 110.00, 880.00, 1.25, 10.00, 1, '2026-02-04', '2026-02-04 00:09:20', '2026-02-04 00:09:20'),
+(6, 'plumber', 115.00, 920.00, 1.25, 10.00, 1, '2026-02-04', '2026-02-04 00:09:20', '2026-02-04 00:09:20'),
+(7, 'mason', 100.00, 800.00, 1.25, 10.00, 1, '2026-02-04', '2026-02-04 00:09:20', '2026-02-04 00:09:20'),
+(8, 'other', 90.00, 720.00, 1.25, 10.00, 1, '2026-02-04', '2026-02-04 00:09:20', '2026-02-04 00:09:20');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `work_types`
+--
+
+CREATE TABLE `work_types` (
+  `work_type_id` int(11) NOT NULL,
+  `work_type_code` varchar(20) NOT NULL,
+  `work_type_name` varchar(100) NOT NULL,
+  `classification_id` int(11) DEFAULT NULL,
+  `description` text DEFAULT NULL,
+  `daily_rate` decimal(10,2) NOT NULL DEFAULT 0.00 COMMENT 'Base daily rate for this work type',
+  `hourly_rate` decimal(10,2) GENERATED ALWAYS AS (round(`daily_rate` / 8,2)) STORED COMMENT 'Calculated hourly rate',
+  `is_active` tinyint(1) NOT NULL DEFAULT 1,
+  `display_order` int(11) DEFAULT 0,
+  `created_by` int(11) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `work_types`
+--
+
+INSERT INTO `work_types` (`work_type_id`, `work_type_code`, `work_type_name`, `classification_id`, `description`, `daily_rate`, `is_active`, `display_order`, `created_by`, `created_at`, `updated_at`) VALUES
+(33, 'REG', 'Regular Worker', NULL, 'Regular construction worker', 600.00, 1, 1, NULL, '2026-02-04 01:53:42', '2026-02-04 01:53:42'),
+(34, 'MSN', 'Mason', 2, 'Masons build structures with brick, block, and stone', 700.00, 1, 0, 1, '2026-02-04 01:56:25', '2026-02-04 01:56:25');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `work_type_rate_history`
+--
+
+CREATE TABLE `work_type_rate_history` (
+  `history_id` bigint(20) NOT NULL,
+  `work_type_id` int(11) NOT NULL,
+  `old_daily_rate` decimal(10,2) DEFAULT NULL,
+  `new_daily_rate` decimal(10,2) NOT NULL,
+  `change_reason` text DEFAULT NULL,
+  `effective_date` date NOT NULL,
+  `changed_by` int(11) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -1586,11 +1830,29 @@ CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW 
 -- --------------------------------------------------------
 
 --
+-- Structure for view `vw_workers_with_rates`
+--
+DROP TABLE IF EXISTS `vw_workers_with_rates`;
+
+CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `vw_workers_with_rates`  AS SELECT `w`.`worker_id` AS `worker_id`, `w`.`worker_code` AS `worker_code`, `w`.`first_name` AS `first_name`, `w`.`last_name` AS `last_name`, concat(`w`.`first_name`,' ',`w`.`last_name`) AS `worker_name`, `w`.`position` AS `position`, `w`.`work_type_id` AS `work_type_id`, `wt`.`work_type_code` AS `work_type_code`, `wt`.`work_type_name` AS `work_type_name`, `wc`.`classification_name` AS `classification_name`, `wc`.`skill_level` AS `skill_level`, coalesce(`wt`.`daily_rate`,`w`.`daily_rate`,0) AS `effective_daily_rate`, coalesce(`wt`.`hourly_rate`,round(`w`.`daily_rate` / 8,2),0) AS `effective_hourly_rate`, CASE WHEN `wt`.`work_type_id` is not null THEN 'work_type' WHEN `w`.`daily_rate` > 0 THEN 'worker_custom' ELSE 'none' END AS `rate_source`, `w`.`employment_status` AS `employment_status`, `w`.`is_archived` AS `is_archived` FROM ((`workers` `w` left join `work_types` `wt` on(`w`.`work_type_id` = `wt`.`work_type_id`)) left join `worker_classifications` `wc` on(`wt`.`classification_id` = `wc`.`classification_id`)) ;
+
+-- --------------------------------------------------------
+
+--
 -- Structure for view `vw_worker_attendance_summary`
 --
 DROP TABLE IF EXISTS `vw_worker_attendance_summary`;
 
 CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `vw_worker_attendance_summary`  AS SELECT `w`.`worker_id` AS `worker_id`, `w`.`worker_code` AS `worker_code`, concat(`w`.`first_name`,' ',`w`.`last_name`) AS `worker_name`, `w`.`position` AS `position`, count(case when `a`.`status` = 'present' then 1 end) AS `present_count`, count(case when `a`.`status` = 'late' then 1 end) AS `late_count`, count(case when `a`.`status` = 'absent' then 1 end) AS `absent_count`, sum(`a`.`hours_worked`) AS `total_hours_worked`, sum(`a`.`overtime_hours`) AS `total_overtime_hours` FROM (`workers` `w` left join `attendance` `a` on(`w`.`worker_id` = `a`.`worker_id`)) GROUP BY `w`.`worker_id`, `w`.`worker_code`, `w`.`first_name`, `w`.`last_name`, `w`.`position` ;
+
+-- --------------------------------------------------------
+
+--
+-- Structure for view `vw_worker_rates`
+--
+DROP TABLE IF EXISTS `vw_worker_rates`;
+
+CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `vw_worker_rates`  AS SELECT `w`.`worker_id` AS `worker_id`, `w`.`worker_code` AS `worker_code`, `w`.`first_name` AS `first_name`, `w`.`last_name` AS `last_name`, `w`.`position` AS `position`, `w`.`worker_type` AS `worker_type`, `w`.`daily_rate` AS `individual_daily_rate`, `w`.`hourly_rate` AS `individual_hourly_rate`, `wtr`.`hourly_rate` AS `type_hourly_rate`, `wtr`.`daily_rate` AS `type_daily_rate`, `wtr`.`overtime_multiplier` AS `overtime_multiplier`, `wtr`.`night_diff_percentage` AS `night_diff_percentage`, coalesce(`w`.`hourly_rate`,`wtr`.`hourly_rate`,100.00) AS `effective_hourly_rate`, coalesce(`w`.`daily_rate`,`wtr`.`daily_rate`,800.00) AS `effective_daily_rate` FROM (`workers` `w` left join `worker_type_rates` `wtr` on(`w`.`worker_type` = `wtr`.`worker_type` and `wtr`.`is_active` = 1 and `wtr`.`effective_date` <= curdate())) WHERE `w`.`is_archived` = 0 ORDER BY `wtr`.`effective_date` DESC ;
 
 --
 -- Indexes for dumped tables
@@ -1630,7 +1892,15 @@ ALTER TABLE `attendance`
   ADD KEY `idx_worker_date` (`worker_id`,`attendance_date`),
   ADD KEY `idx_status` (`status`),
   ADD KEY `fk_attendance_archived_by` (`archived_by`),
-  ADD KEY `idx_is_archived` (`is_archived`);
+  ADD KEY `idx_is_archived` (`is_archived`),
+  ADD KEY `idx_attendance_date_worker` (`attendance_date`,`worker_id`),
+  ADD KEY `idx_attendance_calculated` (`calculated_at`);
+
+--
+-- Indexes for table `attendance_settings`
+--
+ALTER TABLE `attendance_settings`
+  ADD PRIMARY KEY (`setting_id`);
 
 --
 -- Indexes for table `audit_trail`
@@ -1716,6 +1986,14 @@ ALTER TABLE `holiday_calendar`
   ADD UNIQUE KEY `unique_holiday_date` (`holiday_date`),
   ADD KEY `idx_holiday_date` (`holiday_date`),
   ADD KEY `idx_holiday_type` (`holiday_type`);
+
+--
+-- Indexes for table `labor_code_multipliers`
+--
+ALTER TABLE `labor_code_multipliers`
+  ADD PRIMARY KEY (`multiplier_id`),
+  ADD UNIQUE KEY `uk_multiplier_code` (`multiplier_code`),
+  ADD KEY `idx_multiplier_category` (`category`);
 
 --
 -- Indexes for table `pagibig_settings`
@@ -1858,7 +2136,15 @@ ALTER TABLE `workers`
   ADD KEY `idx_employment_status` (`employment_status`),
   ADD KEY `idx_position` (`position`),
   ADD KEY `idx_is_archived` (`is_archived`),
-  ADD KEY `idx_middle_name` (`middle_name`);
+  ADD KEY `idx_middle_name` (`middle_name`),
+  ADD KEY `idx_worker_type` (`worker_type`);
+
+--
+-- Indexes for table `worker_classifications`
+--
+ALTER TABLE `worker_classifications`
+  ADD PRIMARY KEY (`classification_id`),
+  ADD UNIQUE KEY `uk_classification_code` (`classification_code`);
 
 --
 -- Indexes for table `worker_rest_days`
@@ -1868,6 +2154,29 @@ ALTER TABLE `worker_rest_days`
   ADD KEY `idx_worker_id` (`worker_id`);
 
 --
+-- Indexes for table `worker_type_rates`
+--
+ALTER TABLE `worker_type_rates`
+  ADD PRIMARY KEY (`rate_id`),
+  ADD UNIQUE KEY `unique_active_type_date` (`worker_type`,`effective_date`,`is_active`);
+
+--
+-- Indexes for table `work_types`
+--
+ALTER TABLE `work_types`
+  ADD PRIMARY KEY (`work_type_id`),
+  ADD UNIQUE KEY `uk_work_type_code` (`work_type_code`),
+  ADD KEY `idx_work_type_classification` (`classification_id`),
+  ADD KEY `idx_work_type_active` (`is_active`);
+
+--
+-- Indexes for table `work_type_rate_history`
+--
+ALTER TABLE `work_type_rate_history`
+  ADD PRIMARY KEY (`history_id`),
+  ADD KEY `idx_work_type_rate_history` (`work_type_id`,`effective_date`);
+
+--
 -- AUTO_INCREMENT for dumped tables
 --
 
@@ -1875,7 +2184,7 @@ ALTER TABLE `worker_rest_days`
 -- AUTO_INCREMENT for table `activity_logs`
 --
 ALTER TABLE `activity_logs`
-  MODIFY `log_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=68;
+  MODIFY `log_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=37;
 
 --
 -- AUTO_INCREMENT for table `admin_permissions`
@@ -1893,13 +2202,19 @@ ALTER TABLE `admin_profile`
 -- AUTO_INCREMENT for table `attendance`
 --
 ALTER TABLE `attendance`
-  MODIFY `attendance_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=52;
+  MODIFY `attendance_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=25;
+
+--
+-- AUTO_INCREMENT for table `attendance_settings`
+--
+ALTER TABLE `attendance_settings`
+  MODIFY `setting_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `audit_trail`
 --
 ALTER TABLE `audit_trail`
-  MODIFY `audit_id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+  MODIFY `audit_id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=55;
 
 --
 -- AUTO_INCREMENT for table `bir_tax_brackets`
@@ -1935,13 +2250,19 @@ ALTER TABLE `deductions`
 -- AUTO_INCREMENT for table `face_encodings`
 --
 ALTER TABLE `face_encodings`
-  MODIFY `encoding_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `encoding_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT for table `holiday_calendar`
 --
 ALTER TABLE `holiday_calendar`
   MODIFY `holiday_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=21;
+
+--
+-- AUTO_INCREMENT for table `labor_code_multipliers`
+--
+ALTER TABLE `labor_code_multipliers`
+  MODIFY `multiplier_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=23;
 
 --
 -- AUTO_INCREMENT for table `pagibig_settings`
@@ -1959,25 +2280,25 @@ ALTER TABLE `payroll`
 -- AUTO_INCREMENT for table `payroll_earnings`
 --
 ALTER TABLE `payroll_earnings`
-  MODIFY `earning_id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=181;
+  MODIFY `earning_id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=230;
 
 --
 -- AUTO_INCREMENT for table `payroll_periods`
 --
 ALTER TABLE `payroll_periods`
-  MODIFY `period_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+  MODIFY `period_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT for table `payroll_records`
 --
 ALTER TABLE `payroll_records`
-  MODIFY `record_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=31;
+  MODIFY `record_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT for table `payroll_settings`
 --
 ALTER TABLE `payroll_settings`
-  MODIFY `setting_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=22;
+  MODIFY `setting_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=26;
 
 --
 -- AUTO_INCREMENT for table `payroll_settings_history`
@@ -2001,7 +2322,7 @@ ALTER TABLE `positions`
 -- AUTO_INCREMENT for table `schedules`
 --
 ALTER TABLE `schedules`
-  MODIFY `schedule_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=39;
+  MODIFY `schedule_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 
 --
 -- AUTO_INCREMENT for table `sss_contribution_matrix`
@@ -2031,19 +2352,43 @@ ALTER TABLE `system_settings`
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `user_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+  MODIFY `user_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
 
 --
 -- AUTO_INCREMENT for table `workers`
 --
 ALTER TABLE `workers`
-  MODIFY `worker_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+  MODIFY `worker_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+
+--
+-- AUTO_INCREMENT for table `worker_classifications`
+--
+ALTER TABLE `worker_classifications`
+  MODIFY `classification_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
 
 --
 -- AUTO_INCREMENT for table `worker_rest_days`
 --
 ALTER TABLE `worker_rest_days`
   MODIFY `rest_day_id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `worker_type_rates`
+--
+ALTER TABLE `worker_type_rates`
+  MODIFY `rate_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+
+--
+-- AUTO_INCREMENT for table `work_types`
+--
+ALTER TABLE `work_types`
+  MODIFY `work_type_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=35;
+
+--
+-- AUTO_INCREMENT for table `work_type_rate_history`
+--
+ALTER TABLE `work_type_rate_history`
+  MODIFY `history_id` bigint(20) NOT NULL AUTO_INCREMENT;
 
 --
 -- Constraints for dumped tables

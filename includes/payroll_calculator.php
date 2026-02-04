@@ -1444,11 +1444,25 @@ class PayrollCalculator {
                 ]
             ];
         }
-        
-        // Use enhanced hours if available, fallback to basic calculation
-        $totalHours = $attendance['hours_worked'] ?? $this->calculateBasicHours($timeIn, $timeOut);
-        $overtimeHours = $attendance['overtime_hours'] ?? max(0, $totalHours - 8);
-        $regularHours = $totalHours - $overtimeHours;
+
+        // Calculate total hours: (time_out - time_in) - break_hours (default 1)
+        $rawHours = $this->calculateBasicHours($timeIn, $timeOut);
+        $breakHours = isset($attendance['break_hours']) ? floatval($attendance['break_hours']) : 1.0;
+        // If break_hours is set, always use (rawHours - breakHours). If not, fallback to hours_worked if available.
+        // Always use (time_out - time_in) for raw hours
+        $rawHours = $this->calculateBasicHours($timeIn, $timeOut);
+        // Subtract 1 hour break only if shift is 8 hours or more
+        $breakHours = 1.0;
+        if ($rawHours >= 8) {
+            $totalHours = $rawHours - $breakHours;
+        } else {
+            $totalHours = $rawHours;
+        }
+        if ($totalHours < 0) $totalHours = 0;
+
+        $standardHours = $this->getRate('standard_hours_per_day', 8);
+        $regularHours = min($totalHours, $standardHours);
+        $overtimeHours = max($totalHours - $standardHours, 0);
         
         $earnings = [];
         

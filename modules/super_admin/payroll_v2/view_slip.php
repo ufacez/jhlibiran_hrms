@@ -50,16 +50,16 @@ try {
 // Get detailed attendance for this period
 try {
     $stmt = $pdo->prepare("
-        SELECT a.*, 
+        SELECT a.*,
                a.attendance_date as work_date,
                DAYNAME(a.attendance_date) as day_name,
                a.time_in as in_time,
                a.time_out as out_time,
-               a.hours_worked as total_hours,
-               GREATEST(0, a.hours_worked - 8) as overtime_hours,
-               LEAST(a.hours_worked, 8) as regular_hours
+               CASE WHEN a.hours_worked >= 8 THEN a.hours_worked - 1 ELSE a.hours_worked END as total_hours,
+               GREATEST(0, CASE WHEN a.hours_worked >= 8 THEN a.hours_worked - 1 ELSE a.hours_worked END - 8) as overtime_hours,
+               LEAST(CASE WHEN a.hours_worked >= 8 THEN a.hours_worked - 1 ELSE a.hours_worked END, 8) as regular_hours
         FROM attendance a
-        WHERE a.worker_id = ? 
+        WHERE a.worker_id = ?
         AND a.attendance_date BETWEEN ? AND ?
         AND a.status = 'present'
         AND a.is_archived = 0
