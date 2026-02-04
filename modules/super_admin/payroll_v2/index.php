@@ -13,14 +13,32 @@
 define('TRACKSITE_INCLUDED', true);
 
 // Include required files
-require_once __DIR__ . '/../../../config/database.php';
 require_once __DIR__ . '/../../../config/settings.php';
 require_once __DIR__ . '/../../../config/session.php';
+require_once __DIR__ . '/../../../config/database.php';
 require_once __DIR__ . '/../../../includes/functions.php';
 require_once __DIR__ . '/../../../includes/auth.php';
 require_once __DIR__ . '/../../../includes/admin_functions.php';
 require_once __DIR__ . '/../../../includes/payroll_calculator.php';
 require_once __DIR__ . '/../../../includes/payroll_settings.php';
+
+// Handle close period POST action (must be before any output)
+if (
+    $_SERVER['REQUEST_METHOD'] === 'POST' &&
+    (($_GET['action'] ?? $_POST['action'] ?? '') === 'close_period')
+) {
+    $pdo = getDBConnection();
+    $periodId = intval($_POST['period_id'] ?? 0);
+    if ($periodId > 0) {
+        $update = $pdo->prepare("UPDATE payroll_periods SET status = 'closed' WHERE period_id = ?");
+        $update->execute([$periodId]);
+        echo 'OK';
+        exit;
+    } else {
+        echo 'Invalid period ID';
+        exit;
+    }
+}
 
 // Require admin access with payroll view permission
 // This allows both super_admin and admin users with can_view_payroll permission
@@ -34,12 +52,22 @@ $settingsManager = new PayrollSettingsManager($pdo);
 $currentPeriod = $calculator->getCurrentWeekPeriod();
 $previousPeriod = $calculator->getPreviousWeekPeriod();
 
+// Get all classifications
+$classStmt = $pdo->query("SELECT classification_id, classification_name FROM worker_classifications ORDER BY classification_name");
+$classifications = $classStmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Get all work types
+$typeStmt = $pdo->query("SELECT work_type_id, work_type_name FROM work_types ORDER BY work_type_name");
+$workTypes = $typeStmt->fetchAll(PDO::FETCH_ASSOC);
+
 // Get active workers
 $stmt = $pdo->query("
-    SELECT worker_id, worker_code, first_name, last_name, position 
-    FROM workers 
-    WHERE is_archived = 0 AND employment_status = 'active'
-    ORDER BY first_name, last_name
+    SELECT w.worker_id, w.worker_code, w.first_name, w.last_name, w.position, wt.work_type_name, wc.classification_name
+    FROM workers w
+    LEFT JOIN work_types wt ON w.work_type_id = wt.work_type_id
+    LEFT JOIN worker_classifications wc ON wt.classification_id = wc.classification_id
+    WHERE w.is_archived = 0 AND w.employment_status = 'active'
+    ORDER BY w.first_name, w.last_name
 ");
 $workers = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -57,7 +85,6 @@ $pageTitle = 'Payroll Management';
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <link rel="stylesheet" href="https://pro.fontawesome.com/releases/v5.10.0/css/all.css" />
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -71,12 +98,14 @@ $pageTitle = 'Payroll Management';
     <!-- System CSS -->
     <link rel="stylesheet" href="<?php echo CSS_URL; ?>/dashboard.css">
     <link rel="stylesheet" href="<?php echo CSS_URL; ?>/buttons.css">
+    
     <style>
-        /* Payroll specific styles that match system theme */
+        /* Layout */
         .payroll-grid {
             display: grid;
-            grid-template-columns: 1fr 420px;
+            grid-template-columns: 1fr 450px;
             gap: 20px;
+            margin-top: 20px;
         }
         
         @media (max-width: 1200px) {
@@ -85,7 +114,7 @@ $pageTitle = 'Payroll Management';
             }
         }
         
-        /* Rates Banner - using system gold color */
+        /* Rates Banner */
         .rates-banner {
             background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
             border-radius: 12px;
@@ -522,11 +551,11 @@ $pageTitle = 'Payroll Management';
         }
         
         .payroll-table th {
-            background: #fafbfc;
+            background: #111 !important;
+            color: #fff !important;
             font-weight: 600;
             font-size: 11px;
             text-transform: uppercase;
-            color: #666;
         }
         
         .payroll-table tr:hover {
@@ -644,7 +673,7 @@ $pageTitle = 'Payroll Management';
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(0,0,0,0.5);
+            background: rgba(0, 0, 0, 0.5);
             display: none;
             justify-content: center;
             align-items: center;
@@ -786,7 +815,7 @@ $pageTitle = 'Payroll Management';
                 <!-- Page Header -->
                 <div class="page-header-flex">
                     <div class="page-title-section">
-                        <h1></i> Payroll Management</h1>
+                        <h1><i class="fas fa-money-check-alt"></i> Payroll Management</h1>
                         <p>Generate weekly payroll with transparent calculations. All rates are configurable.</p>
                     </div>
                     <div class="header-actions">
@@ -801,6 +830,7 @@ $pageTitle = 'Payroll Management';
                         </button>
                     </div>
                 </div>
+            
                 
                 <!-- Period Selector -->
                 <div class="period-selector">
@@ -829,6 +859,7 @@ $pageTitle = 'Payroll Management';
                         </div>
                     </div>
                 </div>
+                
                 <!-- Main Layout -->
                 <div class="payroll-grid">
                     <!-- Left Panel: Worker Selection & Payroll List -->
@@ -841,19 +872,49 @@ $pageTitle = 'Payroll Management';
                                        oninput="filterWorkers()">
                             </div>
                             <div class="payroll-card-body">
+                                <div style="display:flex; gap:16px; margin-bottom:18px;">
+                                    <div style="flex:1; display:flex; flex-direction:column;">
+                                        <span style="font-size:11px; color:#888; letter-spacing:1px; margin-bottom:2px;">CLASSIFICATION</span>
+                                        <select id="filterClassification" style="width:100%;padding:8px 12px; border:1.5px solid #e0e0e0; border-radius:7px; font-size:15px; background:#fafbfc;">
+                                            <option value="">All Classifications</option>
+                                            <?php foreach ($classifications as $c): ?>
+                                                <option value="<?php echo htmlspecialchars($c['classification_name']); ?>"><?php echo htmlspecialchars($c['classification_name']); ?></option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    </div>
+                                    <div style="flex:1; display:flex; flex-direction:column;">
+                                        <span style="font-size:11px; color:#888; letter-spacing:1px; margin-bottom:2px;">WORK TYPE</span>
+                                        <select id="filterWorkType" style="width:100%;padding:8px 12px; border:1.5px solid #e0e0e0; border-radius:7px; font-size:15px; background:#fafbfc;">
+                                            <option value="">All Work Types</option>
+                                            <?php foreach ($workTypes as $t): ?>
+                                                <option value="<?php echo htmlspecialchars($t['work_type_name']); ?>"><?php echo htmlspecialchars($t['work_type_name']); ?></option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    </div>
+                                </div>
                                 <div class="worker-list" id="workerList">
                                     <?php foreach ($workers as $worker): ?>
                                     <div class="worker-item" data-id="<?php echo $worker['worker_id']; ?>"
                                          data-name="<?php echo strtolower($worker['first_name'] . ' ' . $worker['last_name']); ?>"
+                                         data-classification="<?php echo htmlspecialchars($worker['classification_name']); ?>"
+                                         data-worktype="<?php echo htmlspecialchars($worker['work_type_name']); ?>"
                                          onclick="selectWorker(<?php echo $worker['worker_id']; ?>, this)">
                                         <input type="checkbox" class="worker-checkbox" 
                                                data-id="<?php echo $worker['worker_id']; ?>">
                                         <div class="worker-info">
                                             <div class="worker-name">
                                                 <?php echo htmlspecialchars($worker['first_name'] . ' ' . $worker['last_name']); ?>
-                                            </div>
-                                            <div class="worker-position">
-                                                <?php echo htmlspecialchars($worker['position']); ?>
+                                                <?php if (!empty($worker['work_type_name']) || !empty($worker['classification_name'])): ?>
+                                                    <span class="worker-ref" style="color:#888; font-size:12px; margin-left:6px;">
+                                                        <?php
+                                                            $refs = [];
+                                                            if (!empty($worker['work_type_name']) && strtolower($worker['work_type_name']) !== 'trainee') $refs[] = htmlspecialchars($worker['work_type_name']);
+                                                            if (!empty($worker['classification_name']) && strtolower($worker['classification_name']) !== 'trainee') $refs[] = htmlspecialchars($worker['classification_name']);
+                                                            $refs = array_filter($refs, function($val) { return strtolower(trim($val)) !== 'trainee'; });
+                                                            echo implode(' | ', $refs);
+                                                        ?>
+                                                    </span>
+                                                <?php endif; ?>
                                             </div>
                                         </div>
                                         <div class="worker-code"><?php echo $worker['worker_code']; ?></div>
@@ -895,15 +956,20 @@ $pageTitle = 'Payroll Management';
                                         <?php else: ?>
                                         <?php foreach ($recentPeriods as $period): ?>
                                         <tr>
-                                            <td><?php echo date('M d', strtotime($period['period_start'])); ?> - <?php echo date('M d', strtotime($period['period_end'])); ?></td>
+                                            <td><?php echo date('M d', strtotime($period['period_start'])); ?> - <?php echo date('M d, Y', strtotime($period['period_end'])); ?></td>
                                             <td><?php echo $period['total_workers']; ?></td>
                                             <td class="amount positive">₱<?php echo number_format($period['total_net'], 2); ?></td>
                                             <td><span class="status-badge <?php echo $period['status']; ?>"><?php echo ucfirst($period['status']); ?></span></td>
-                                            <td>
-                                                <button class="action-btn" style="padding: 5px 10px;"
+                                            <td style="display:flex; gap:6px; align-items:center;">
+                                                <button class="action-btn" style="padding: 5px 10px; background:#111; color:#fff; border-radius:8px; border:none; display:flex; align-items:center; justify-content:center;"
                                                         onclick="viewPeriod(<?php echo $period['period_id']; ?>)">
-                                                    <i class="fas fa-eye"></i>
+                                                    <i class="fas fa-eye" style="color:#fff;"></i>
                                                 </button>
+                                                <?php if ($period['status'] === 'open'): ?>
+                                                <button class="action-btn" style="padding: 5px 10px; background:#c0392b; color:#fff; border-radius:8px; border:none; display:flex; align-items:center; justify-content:center; font-size:13px;" onclick="closePayrollPeriod(<?php echo $period['period_id']; ?>, this)">
+                                                    <i class="fas fa-lock"></i> Close
+                                                </button>
+                                                <?php endif; ?>
                                             </td>
                                         </tr>
                                         <?php endforeach; ?>
@@ -1037,6 +1103,10 @@ $pageTitle = 'Payroll Management';
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
             loadRates();
+            
+            // Filter logic for worker list
+            document.getElementById('filterClassification').addEventListener('change', filterWorkers);
+            document.getElementById('filterWorkType').addEventListener('change', filterWorkers);
         });
         
         // Load current rates
@@ -1096,21 +1166,6 @@ $pageTitle = 'Payroll Management';
             }
         }
         
-        function selectCustomPeriod() {
-            const start = document.getElementById('customStart').value;
-            const end = document.getElementById('customEnd').value;
-            
-            if (start && end) {
-                document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
-                selectedPeriod.start = start;
-                selectedPeriod.end = end;
-                
-                if (selectedWorker) {
-                    generatePayroll();
-                }
-            }
-        }
-        
         function applyCustomPeriod() {
             const start = document.getElementById('customStart').value;
             const end = document.getElementById('customEnd').value;
@@ -1161,10 +1216,21 @@ $pageTitle = 'Payroll Management';
         
         // Filter workers
         function filterWorkers() {
-            const search = document.getElementById('workerSearch').value.toLowerCase();
-            document.querySelectorAll('.worker-item').forEach(item => {
-                const name = item.dataset.name;
-                item.style.display = name.includes(search) ? 'flex' : 'none';
+            var classVal = document.getElementById('filterClassification').value.toLowerCase();
+            var typeVal = document.getElementById('filterWorkType').value.toLowerCase();
+            var searchVal = document.getElementById('workerSearch').value.toLowerCase();
+            
+            document.querySelectorAll('.worker-item').forEach(function(item) {
+                var c = (item.getAttribute('data-classification')||'').toLowerCase();
+                var t = (item.getAttribute('data-worktype')||'').toLowerCase();
+                var n = (item.getAttribute('data-name')||'').toLowerCase();
+                var show = true;
+                
+                if (classVal && c !== classVal) show = false;
+                if (typeVal && t !== typeVal) show = false;
+                if (searchVal && n.indexOf(searchVal) === -1) show = false;
+                
+                item.style.display = show ? '' : 'none';
             });
         }
         
@@ -1321,96 +1387,96 @@ $pageTitle = 'Payroll Management';
                 document.getElementById('earningsBreakdown').innerHTML = earningsHtml;
                 document.getElementById('grossPayAmount').textContent = '₱' + formatNum(payroll.totals.gross_pay);
             
-            // Deductions breakdown
-            let deductionsHtml = '';
-            
+                // Deductions breakdown
+                let deductionsHtml = '';
+                
                 // Add SSS breakdown note if applicable
-            if (payroll.deductions && payroll.deductions.sss_details && payroll.deductions.sss_details.monthly_total) {
-                const sssDetails = payroll.deductions.sss_details;
-                deductionsHtml += `
-                    <div class="info-note">
-                        <i class="fas fa-info-circle"></i> <strong>SSS Breakdown:</strong> ₱${formatNum(sssDetails.monthly_total)}/month ÷ 4 weeks = ₱${formatNum(sssDetails.employee_contribution)}/week
-                    </div>`;
-            }
-            
-            if (payroll.deductions && payroll.deductions.items && payroll.deductions.items.length > 0) {
-                payroll.deductions.items.forEach(deduction => {
-                    let deductionLabel = deduction.description || deduction.type.toUpperCase();
-                    if (deduction.formula) {
-                        deductionLabel += `<span class="formula">${deduction.formula}</span>`;
+                if (payroll.deductions && payroll.deductions.sss_details && payroll.deductions.sss_details.monthly_total) {
+                    const sssDetails = payroll.deductions.sss_details;
+                    deductionsHtml += `
+                        <div class="info-note">
+                            <i class="fas fa-info-circle"></i> <strong>SSS Breakdown:</strong> ₱${formatNum(sssDetails.monthly_total)}/month ÷ 4 weeks = ₱${formatNum(sssDetails.employee_contribution)}/week
+                        </div>`;
+                }
+                
+                if (payroll.deductions && payroll.deductions.items && payroll.deductions.items.length > 0) {
+                    payroll.deductions.items.forEach(deduction => {
+                        let deductionLabel = deduction.description || deduction.type.toUpperCase();
+                        if (deduction.formula) {
+                            deductionLabel += `<span class="formula">${deduction.formula}</span>`;
+                        }
+                        deductionsHtml += `
+                            <div class="breakdown-row">
+                                <span class="label">${deductionLabel}</span>
+                                <span class="amount">₱${formatNum(deduction.amount)}</span>
+                            </div>`;
+                    });
+                } else if (payroll.deductions && payroll.deductions.total > 0) {
+                    // Show summary if items not available
+                    if (payroll.deductions.sss > 0) {
+                        deductionsHtml += `
+                            <div class="breakdown-row">
+                                <span class="label">SSS</span>
+                                <span class="amount">₱${formatNum(payroll.deductions.sss)}</span>
+                            </div>`;
                     }
-                    deductionsHtml += `
-                        <div class="breakdown-row">
-                            <span class="label">${deductionLabel}</span>
-                            <span class="amount">₱${formatNum(deduction.amount)}</span>
-                        </div>`;
-                });
-            } else if (payroll.deductions && payroll.deductions.total > 0) {
-                // Show summary if items not available
-                if (payroll.deductions.sss > 0) {
-                    deductionsHtml += `
-                        <div class="breakdown-row">
-                            <span class="label">SSS</span>
-                            <span class="amount">₱${formatNum(payroll.deductions.sss)}</span>
-                        </div>`;
+                    if (payroll.deductions.philhealth > 0) {
+                        deductionsHtml += `
+                            <div class="breakdown-row">
+                                <span class="label">PhilHealth</span>
+                                <span class="amount">₱${formatNum(payroll.deductions.philhealth)}</span>
+                            </div>`;
+                    }
+                    if (payroll.deductions.pagibig > 0) {
+                        deductionsHtml += `
+                            <div class="breakdown-row">
+                                <span class="label">Pag-IBIG</span>
+                                <span class="amount">₱${formatNum(payroll.deductions.pagibig)}</span>
+                            </div>`;
+                    }
+                    if (payroll.deductions.tax > 0) {
+                        deductionsHtml += `
+                            <div class="breakdown-row">
+                                <span class="label">
+                                    Withholding Tax (BIR)
+                                    ${payroll.deductions.tax_details ? `<span class="formula">${payroll.deductions.tax_details.formula}</span>` : ''}
+                                </span>
+                                <span class="amount">₱${formatNum(payroll.deductions.tax)}</span>
+                            </div>`;
+                    }
+                    if (payroll.deductions.cashadvance > 0) {
+                        deductionsHtml += `
+                            <div class="breakdown-row">
+                                <span class="label">Cash Advance</span>
+                                <span class="amount">₱${formatNum(payroll.deductions.cashadvance)}</span>
+                            </div>`;
+                    }
+                    if (payroll.deductions.loan > 0) {
+                        deductionsHtml += `
+                            <div class="breakdown-row">
+                                <span class="label">Loan</span>
+                                <span class="amount">₱${formatNum(payroll.deductions.loan)}</span>
+                            </div>`;
+                    }
+                    if (payroll.deductions.other > 0) {
+                        deductionsHtml += `
+                            <div class="breakdown-row">
+                                <span class="label">Other Deductions</span>
+                                <span class="amount">₱${formatNum(payroll.deductions.other)}</span>
+                            </div>`;
+                    }
                 }
-                if (payroll.deductions.philhealth > 0) {
-                    deductionsHtml += `
-                        <div class="breakdown-row">
-                            <span class="label">PhilHealth</span>
-                            <span class="amount">₱${formatNum(payroll.deductions.philhealth)}</span>
-                        </div>`;
+                
+                if (!deductionsHtml) {
+                    deductionsHtml = '<div class="breakdown-row" style="color: #888;"><span>No deductions</span></div>';
                 }
-                if (payroll.deductions.pagibig > 0) {
+                
+                if (payroll.deductions && payroll.deductions.total > 0) {
                     deductionsHtml += `
-                        <div class="breakdown-row">
-                            <span class="label">Pag-IBIG</span>
-                            <span class="amount">₱${formatNum(payroll.deductions.pagibig)}</span>
+                        <div class="breakdown-row total-deduction">
+                            <span class="label"><strong>Total Deductions</strong></span>
+                            <span class="amount">₱${formatNum(payroll.deductions.total)}</span>
                         </div>`;
-                }
-                if (payroll.deductions.tax > 0) {
-                    deductionsHtml += `
-                        <div class="breakdown-row">
-                            <span class="label">
-                                Withholding Tax (BIR)
-                                ${payroll.deductions.tax_details ? `<span class="formula">${payroll.deductions.tax_details.formula}</span>` : ''}
-                            </span>
-                            <span class="amount">₱${formatNum(payroll.deductions.tax)}</span>
-                        </div>`;
-                }
-                if (payroll.deductions.cashadvance > 0) {
-                    deductionsHtml += `
-                        <div class="breakdown-row">
-                            <span class="label">Cash Advance</span>
-                            <span class="amount">₱${formatNum(payroll.deductions.cashadvance)}</span>
-                        </div>`;
-                }
-                if (payroll.deductions.loan > 0) {
-                    deductionsHtml += `
-                        <div class="breakdown-row">
-                            <span class="label">Loan</span>
-                            <span class="amount">₱${formatNum(payroll.deductions.loan)}</span>
-                        </div>`;
-                }
-                if (payroll.deductions.other > 0) {
-                    deductionsHtml += `
-                        <div class="breakdown-row">
-                            <span class="label">Other Deductions</span>
-                            <span class="amount">₱${formatNum(payroll.deductions.other)}</span>
-                        </div>`;
-                }
-            }
-            
-            if (!deductionsHtml) {
-                deductionsHtml = '<div class="breakdown-row" style="color: #888;"><span>No deductions</span></div>';
-            }
-            
-            if (payroll.deductions && payroll.deductions.total > 0) {
-                deductionsHtml += `
-                    <div class="breakdown-row total-deduction">
-                        <span class="label"><strong>Total Deductions</strong></span>
-                        <span class="amount">₱${formatNum(payroll.deductions.total)}</span>
-                    </div>`;
                 }
                 
                 document.getElementById('deductionsBreakdown').innerHTML = deductionsHtml;
@@ -1567,6 +1633,36 @@ $pageTitle = 'Payroll Management';
             }
         }
         
+        // Close payroll period
+        function closePayrollPeriod(periodId, btn) {
+            if (!confirm('Are you sure you want to close this payroll period? This action cannot be undone.')) return;
+            btn.disabled = true;
+            btn.textContent = 'Closing...';
+            
+            fetch('?action=close_period', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: 'period_id=' + encodeURIComponent(periodId)
+            })
+            .then(res => res.text())
+            .then(resp => {
+                if (resp.trim() === 'OK') {
+                    btn.textContent = 'Closed';
+                    btn.style.background = '#27ae60';
+                    setTimeout(() => location.reload(), 800);
+                } else {
+                    alert('Failed to close payroll: ' + resp);
+                    btn.disabled = false;
+                    btn.textContent = 'Close';
+                }
+            })
+            .catch(() => {
+                alert('Error closing payroll.');
+                btn.disabled = false;
+                btn.textContent = 'Close';
+            });
+        }
+        
         // View period details
         function viewPeriod(periodId) {
             window.location.href = 'payroll_slips.php?period=' + periodId;
@@ -1574,7 +1670,6 @@ $pageTitle = 'Payroll Management';
         
         // Print payslip
         function printPayslip() {
-            // TODO: Implement print functionality
             window.print();
         }
         
