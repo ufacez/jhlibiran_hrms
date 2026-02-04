@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Feb 04, 2026 at 06:58 AM
+-- Generation Time: Feb 04, 2026 at 01:33 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -38,15 +38,6 @@ CREATE TABLE `activity_logs` (
   `user_agent` text DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
--- Dumping data for table `activity_logs`
---
-
-INSERT INTO `activity_logs` (`log_id`, `user_id`, `action`, `table_name`, `record_id`, `description`, `ip_address`, `user_agent`, `created_at`) VALUES
-(1, 1, 'login', 'users', 1, 'User logged in', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-04 05:36:59'),
-(2, 1, 'create', 'work_types', 1, 'Added work type: Mason (₱700.00/day)', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-04 05:40:37'),
-(3, 1, 'add_worker', 'workers', 1, 'Added new worker: Ean Espiritu (WKR-0001)', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-04 05:47:23');
 
 -- --------------------------------------------------------
 
@@ -217,13 +208,6 @@ CREATE TABLE `audit_trail` (
   `error_message` text DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
--- Dumping data for table `audit_trail`
---
-
-INSERT INTO `audit_trail` (`audit_id`, `user_id`, `username`, `user_level`, `action_type`, `module`, `table_name`, `record_id`, `record_identifier`, `old_values`, `new_values`, `changes_summary`, `ip_address`, `user_agent`, `session_id`, `request_method`, `request_url`, `severity`, `is_sensitive`, `success`, `error_message`, `created_at`) VALUES
-(1, NULL, NULL, NULL, 'create', 'workers', 'workers', 1, 'Ean Jimenez Espiritu (WKR-0001)', NULL, '{\"worker_code\": \"WKR-0001\", \"first_name\": \"Ean\", \"middle_name\": \"Jimenez\", \"last_name\": \"Espiritu\", \"position\": \"Trainee\", \"daily_rate\": 700.00, \"employment_status\": \"active\", \"phone\": \"09157910393\", \"addresses\": \"{\\\"current\\\":{\\\"address\\\":\\\"Purok 5 456\\\",\\\"province\\\":\\\"Pampanga\\\",\\\"city\\\":\\\"City of San Fernando\\\",\\\"barangay\\\":\\\"Dela Paz Norte\\\"},\\\"permanent\\\":{\\\"address\\\":\\\"Purok 5 456\\\",\\\"province\\\":\\\"Pampanga\\\",\\\"city\\\":\\\"City of San Fernando\\\",\\\"barangay\\\":\\\"Dela Paz Norte\\\"}}\", \"emergency_contact_name\": \"Marycris Espiritu\", \"emergency_contact_relationship\": \"Parent\"}', 'Created worker: Ean Espiritu (WKR-0001)', NULL, NULL, NULL, NULL, NULL, 'medium', 0, 1, NULL, '2026-02-04 05:47:23');
 
 -- --------------------------------------------------------
 
@@ -688,26 +672,29 @@ INSERT INTO `payroll_earnings` (`earning_id`, `record_id`, `earning_date`, `earn
 (215, 22, '2026-02-06', 'regular', NULL, 8.50, 125.0000, 1.0000, 1062.50, '8.50 hrs × ₱125.00 = ₱1062.50', 53, '2026-02-04 01:26:25'),
 (226, 2, '2026-11-05', 'regular', NULL, 8.00, 87.5000, 1.0000, 700.00, '8.00 hrs × ₱87.50 = ₱700.00', 24, '2026-02-04 02:27:45'),
 (227, 2, '2026-11-05', 'overtime', NULL, 2.00, 87.5000, 1.2500, 218.75, '2.00 hrs × ₱87.50 × 1.25 = ₱218.75', 24, '2026-02-04 02:27:45'),
-(228, 3, '2026-11-05', 'regular', NULL, 8.00, 87.5000, 1.0000, 700.00, '8.00 hrs × ₱87.50 = ₱700.00', 24, '2026-02-04 02:31:50'),
-(229, 3, '2026-11-05', 'overtime', NULL, 2.00, 87.5000, 1.2500, 218.75, '2.00 hrs × ₱87.50 × 1.25 = ₱218.75', 24, '2026-02-04 02:31:50'),
 (245, 4, '2026-02-04', 'regular', NULL, 8.00, 120.0000, 1.0000, 960.00, '8.00 hrs × ₱120.00 = ₱960.00', 19, '2026-02-04 04:44:43'),
 (246, 4, '2026-02-04', 'overtime', NULL, 0.50, 120.0000, 2.0000, 120.00, '0.50 hrs × ₱120.00 × 2.00 = ₱120.00', 19, '2026-02-04 04:44:43'),
 (247, 4, '2026-02-05', 'regular', NULL, 8.00, 120.0000, 1.0000, 960.00, '8.00 hrs × ₱120.00 = ₱960.00', 21, '2026-02-04 04:44:43'),
 (248, 4, '2026-02-05', 'overtime', NULL, 2.17, 120.0000, 2.0000, 520.80, '2.17 hrs × ₱120.00 × 2.00 = ₱520.80', 21, '2026-02-04 04:44:43'),
-(249, 1, '2026-02-02', 'regular', NULL, 8.00, 120.0000, 1.0000, 960.00, '8.00 hrs × ₱120.00 = ₱960.00', 2, '2026-02-04 04:44:43'),
-(250, 1, '2026-02-02', 'overtime', NULL, 1.00, 120.0000, 2.0000, 240.00, '1.00 hrs × ₱120.00 × 2.00 = ₱240.00', 2, '2026-02-04 04:44:43'),
-(251, 1, '2026-02-03', 'regular', NULL, 7.50, 120.0000, 1.0000, 900.00, '7.50 hrs × ₱120.00 = ₱900.00', 3, '2026-02-04 04:44:43'),
-(252, 1, '2026-02-04', 'regular', NULL, 8.00, 120.0000, 1.0000, 960.00, '8.00 hrs × ₱120.00 = ₱960.00', 4, '2026-02-04 04:44:43'),
-(253, 1, '2026-02-05', 'regular', NULL, 8.00, 120.0000, 1.0000, 960.00, '8.00 hrs × ₱120.00 = ₱960.00', 5, '2026-02-04 04:44:43'),
-(254, 1, '2026-02-05', 'overtime', NULL, 2.00, 120.0000, 2.0000, 480.00, '2.00 hrs × ₱120.00 × 2.00 = ₱480.00', 5, '2026-02-04 04:44:43'),
-(255, 1, '2026-02-08', 'regular', NULL, 8.00, 120.0000, 1.0000, 960.00, '8.00 hrs × ₱120.00 = ₱960.00', 6, '2026-02-04 04:44:43'),
 (256, 5, '2026-02-02', 'regular', NULL, 8.00, 120.0000, 1.0000, 960.00, '8.00 hrs × ₱120.00 = ₱960.00', 12, '2026-02-04 04:44:43'),
 (257, 5, '2026-02-03', 'regular', NULL, 8.00, 120.0000, 1.0000, 960.00, '8.00 hrs × ₱120.00 = ₱960.00', 13, '2026-02-04 04:44:43'),
 (258, 5, '2026-02-03', 'overtime', NULL, 1.00, 120.0000, 2.0000, 240.00, '1.00 hrs × ₱120.00 × 2.00 = ₱240.00', 13, '2026-02-04 04:44:43'),
 (259, 5, '2026-02-04', 'regular', NULL, 8.00, 120.0000, 1.0000, 960.00, '8.00 hrs × ₱120.00 = ₱960.00', 14, '2026-02-04 04:44:43'),
 (260, 5, '2026-02-05', 'regular', NULL, 8.00, 120.0000, 1.0000, 960.00, '8.00 hrs × ₱120.00 = ₱960.00', 15, '2026-02-04 04:44:43'),
 (261, 5, '2026-02-08', 'regular', NULL, 8.00, 120.0000, 1.0000, 960.00, '8.00 hrs × ₱120.00 = ₱960.00', 16, '2026-02-04 04:44:43'),
-(262, 5, '2026-02-08', 'overtime', NULL, 1.50, 120.0000, 2.0000, 360.00, '1.50 hrs × ₱120.00 × 2.00 = ₱360.00', 16, '2026-02-04 04:44:43');
+(262, 5, '2026-02-08', 'overtime', NULL, 1.50, 120.0000, 2.0000, 360.00, '1.50 hrs × ₱120.00 × 2.00 = ₱360.00', 16, '2026-02-04 04:44:43'),
+(355, 2, '2026-02-05', 'regular', NULL, 8.00, 75.0000, 1.0000, 600.00, '8.00 hrs × ₱75.00 = ₱600.00', 2, '2026-02-05 09:14:15'),
+(356, 2, '2026-02-05', 'overtime', NULL, 1.00, 75.0000, 1.2500, 93.75, '1.00 hrs × ₱75.00 × 1.25 = ₱93.75', 2, '2026-02-05 09:14:15'),
+(357, 2, '2026-02-05', '', NULL, 7.78, 75.0000, 1.0000, 116.70, '7.78 hrs × ₱75.00 × 20.0% = ₱116.70', 2, '2026-02-05 09:14:15'),
+(370, 1, '2026-02-04', 'regular', NULL, 8.00, 75.0000, 1.0000, 600.00, '8.00 hrs × ₱75.00 = ₱600.00', 1, '2026-02-04 11:29:33'),
+(371, 1, '2026-02-04', 'overtime', NULL, 5.00, 75.0000, 1.2500, 468.75, '5.00 hrs × ₱75.00 × 1.25 = ₱468.75', 1, '2026-02-04 11:29:33'),
+(372, 1, '2026-02-04', '', NULL, 8.00, 75.0000, 1.0000, 150.00, '8.00 hrs × ₱75.00 × 25.0% = ₱150.00', 1, '2026-02-04 11:29:33'),
+(373, 1, '2026-02-05', 'regular', NULL, 8.00, 75.0000, 1.0000, 600.00, '8.00 hrs × ₱75.00 = ₱600.00', 2, '2026-02-04 11:29:33'),
+(374, 1, '2026-02-05', 'overtime', NULL, 1.00, 75.0000, 1.2500, 93.75, '1.00 hrs × ₱75.00 × 1.25 = ₱93.75', 2, '2026-02-04 11:29:33'),
+(375, 1, '2026-02-05', '', NULL, 7.78, 75.0000, 1.0000, 145.88, '7.78 hrs × ₱75.00 × 25.0% = ₱145.88', 2, '2026-02-04 11:29:33'),
+(379, 3, '2026-02-04', 'regular', NULL, 8.00, 75.0000, 1.0000, 600.00, '8.00 hrs × ₱75.00 = ₱600.00', 3, '2026-02-04 12:27:09'),
+(380, 3, '2026-02-04', 'overtime', NULL, 3.00, 75.0000, 1.2500, 281.25, '3.00 hrs × ₱75.00 × 1.25 = ₱281.25', 3, '2026-02-04 12:27:09'),
+(381, 3, '2026-02-04', '', NULL, 8.00, 75.0000, 1.0000, 60.00, '8.00 hrs × ₱75.00 × 10.0% = ₱60.00', 3, '2026-02-04 12:27:09');
 
 -- --------------------------------------------------------
 
@@ -847,12 +834,12 @@ INSERT INTO `payroll_settings` (`setting_id`, `setting_key`, `setting_value`, `s
 (3, 'standard_days_per_week', 6.0000, 'hours', 'base', 'Standard Days Per Week', 'Regular working days per week', '6 days/week', NULL, NULL, 1, 1, 3, NULL, '2026-02-02 14:25:18', '2026-02-02 14:25:18'),
 (4, 'daily_rate', 600.0000, 'rate', 'base', 'Daily Rate', 'Computed daily wage (hourly ├ù 8)', 'Hourly Rate × 8 hours = ₱600.00', NULL, NULL, 1, 1, 4, NULL, '2026-02-02 14:25:18', '2026-02-04 01:49:24'),
 (5, 'weekly_rate', 3600.0000, 'rate', 'base', 'Weekly Rate', 'Computed weekly wage (daily ├ù 6)', 'Daily Rate × 6 days = ₱3,600.00', NULL, NULL, 1, 1, 5, NULL, '2026-02-02 14:25:18', '2026-02-04 01:49:24'),
-(6, 'overtime_multiplier', 1.2500, 'multiplier', 'overtime', 'Overtime Multiplier', 'Premium rate for work beyond 8 hours (125%)', 'Hourly Rate ├ù 1.25 = Ôé▒93.75/hr OT', NULL, NULL, 1, 1, 10, 1, '2026-02-02 14:25:18', '2026-02-04 04:50:42'),
-(7, 'overtime_rate', 93.7500, 'rate', 'overtime', 'Overtime Hourly Rate', 'Computed overtime rate per hour', 'Hourly Rate × 1.25 = ₱93.75/hr OT', NULL, NULL, 1, 1, 11, NULL, '2026-02-02 14:25:18', '2026-02-04 04:50:42'),
+(6, 'overtime_multiplier', 1.2500, 'multiplier', 'overtime', 'Overtime Multiplier', 'Premium rate for work beyond 8 hours (125%)', 'Hourly Rate ├ù 1.25 = Ôé▒93.75/hr OT', NULL, NULL, 1, 1, 10, 1, '2026-02-02 14:25:18', '2026-02-04 06:22:36'),
+(7, 'overtime_rate', 93.7500, 'rate', 'overtime', 'Overtime Hourly Rate', 'Computed overtime rate per hour', 'Hourly Rate × 1.25 = ₱93.75/hr OT', NULL, NULL, 1, 1, 11, NULL, '2026-02-02 14:25:18', '2026-02-04 06:22:36'),
 (8, 'night_diff_start', 22.0000, 'hours', 'differential', 'Night Diff Start Hour', 'Night differential starts at 10:00 PM (22:00)', '10:00 PM', NULL, NULL, 1, 1, 12, NULL, '2026-02-02 14:25:18', '2026-02-02 14:25:18'),
 (9, 'night_diff_end', 6.0000, 'hours', 'differential', 'Night Diff End Hour', 'Night differential ends at 6:00 AM (06:00)', '6:00 AM', NULL, NULL, 1, 1, 13, NULL, '2026-02-02 14:25:18', '2026-02-02 14:25:18'),
-(10, 'night_diff_percentage', 10.0000, 'percentage', 'differential', 'Night Differential %', 'Additional percentage for night work (Labor Code Art. 86)', '+10% of hourly rate', NULL, NULL, 1, 1, 14, 1, '2026-02-02 14:25:18', '2026-02-04 04:20:40'),
-(11, 'night_diff_rate', 7.5000, 'rate', 'differential', 'Night Diff Additional Rate', 'Additional pay per night hour', 'Hourly Rate × 10% = ₱7.50/hr', NULL, NULL, 1, 1, 15, NULL, '2026-02-02 14:25:18', '2026-02-04 04:20:40'),
+(10, 'night_diff_percentage', 10.0000, 'percentage', 'differential', 'Night Differential %', 'Additional percentage for night work (Labor Code Art. 86)', '+10% of hourly rate', NULL, NULL, 1, 1, 14, 1, '2026-02-02 14:25:18', '2026-02-04 11:29:49'),
+(11, 'night_diff_rate', 7.5000, 'rate', 'differential', 'Night Diff Additional Rate', 'Additional pay per night hour', 'Hourly Rate × 10% = ₱7.50/hr', NULL, NULL, 1, 1, 15, NULL, '2026-02-02 14:25:18', '2026-02-04 11:29:49'),
 (12, 'regular_holiday_multiplier', 2.0000, 'multiplier', 'holiday', 'Regular Holiday Multiplier', 'Pay rate for work on regular holidays (200%) (Labor Code Art. 94)', 'Hourly Rate × 2.00', NULL, NULL, 1, 1, 16, NULL, '2026-02-02 14:25:18', '2026-02-04 00:26:14'),
 (13, 'regular_holiday_rate', 150.0000, 'rate', 'holiday', 'Regular Holiday Hourly Rate', 'Computed hourly rate for regular holidays', 'Hourly Rate × 2.00 = ₱150.00/hr', NULL, NULL, 1, 1, 17, NULL, '2026-02-02 14:25:18', '2026-02-04 01:49:24'),
 (14, 'regular_holiday_ot_multiplier', 2.6000, 'multiplier', 'holiday', 'Regular Holiday OT Multiplier', 'Overtime on regular holiday (200% ├ù 130%)', 'Regular Holiday Rate ├ù 1.30', NULL, NULL, 1, 1, 18, NULL, '2026-02-02 14:25:18', '2026-02-02 14:25:18'),
@@ -959,7 +946,19 @@ INSERT INTO `schedules` (`schedule_id`, `worker_id`, `day_of_week`, `start_time`
 (3, 3, 'wednesday', '08:00:00', '17:00:00', 1, 1, '2026-02-04 01:59:19', '2026-02-04 01:59:19'),
 (4, 3, 'thursday', '08:00:00', '17:00:00', 1, 1, '2026-02-04 01:59:19', '2026-02-04 01:59:19'),
 (5, 3, 'friday', '08:00:00', '17:00:00', 1, 1, '2026-02-04 01:59:19', '2026-02-04 01:59:19'),
-(6, 3, 'saturday', '08:00:00', '17:00:00', 1, 1, '2026-02-04 01:59:19', '2026-02-04 01:59:19');
+(6, 3, 'saturday', '08:00:00', '17:00:00', 1, 1, '2026-02-04 01:59:19', '2026-02-04 01:59:19'),
+(7, 1, 'monday', '08:00:00', '17:00:00', 1, 1, '2026-02-04 06:01:26', '2026-02-04 06:01:26'),
+(8, 1, 'tuesday', '08:00:00', '17:00:00', 1, 1, '2026-02-04 06:01:26', '2026-02-04 06:01:26'),
+(9, 1, 'wednesday', '08:00:00', '17:00:00', 1, 1, '2026-02-04 06:01:26', '2026-02-04 06:01:26'),
+(10, 1, 'thursday', '08:00:00', '17:00:00', 1, 1, '2026-02-04 06:01:26', '2026-02-04 06:01:26'),
+(11, 1, 'friday', '08:00:00', '17:00:00', 1, 1, '2026-02-04 06:01:26', '2026-02-04 06:01:26'),
+(12, 1, 'saturday', '08:00:00', '17:00:00', 1, 1, '2026-02-04 06:01:26', '2026-02-04 06:01:26'),
+(13, 2, 'monday', '08:00:00', '17:00:00', 1, 1, '2026-02-04 12:07:36', '2026-02-04 12:07:36'),
+(14, 2, 'tuesday', '08:00:00', '17:00:00', 1, 1, '2026-02-04 12:07:36', '2026-02-04 12:07:36'),
+(15, 2, 'wednesday', '08:00:00', '17:00:00', 1, 1, '2026-02-04 12:07:36', '2026-02-04 12:07:36'),
+(16, 2, 'thursday', '08:00:00', '17:00:00', 1, 1, '2026-02-04 12:07:36', '2026-02-04 12:07:36'),
+(17, 2, 'friday', '08:00:00', '17:00:00', 1, 1, '2026-02-04 12:07:36', '2026-02-04 12:07:36'),
+(18, 2, 'saturday', '08:00:00', '17:00:00', 1, 1, '2026-02-04 12:07:36', '2026-02-04 12:07:36');
 
 -- --------------------------------------------------------
 
@@ -1151,8 +1150,7 @@ CREATE TABLE `users` (
 --
 
 INSERT INTO `users` (`user_id`, `username`, `password`, `email`, `user_level`, `status`, `is_active`, `created_at`, `updated_at`, `last_login`) VALUES
-(1, 'Jeff', '$2y$10$Yz/cYyQM7gJXayhlgAjDi.uXLbexy4FqGvRomUGhwppJzCVf9ceJu', 'superadmin@tracksite.com', 'super_admin', 'active', 1, '2026-02-02 15:01:24', '2026-02-04 05:36:59', '2026-02-04 05:36:59'),
-(14, 'ean0001@tracksite.com', '$2y$10$EtfQHkHInuQDkLe0z7ryouT5CH7tOyIndgltNL6B/vDj5ugATsNxW', 'ean0001@tracksite.com', 'worker', 'active', 1, '2026-02-04 05:47:23', '2026-02-04 05:47:23', NULL);
+(1, 'Jeff', '$2y$10$Yz/cYyQM7gJXayhlgAjDi.uXLbexy4FqGvRomUGhwppJzCVf9ceJu', 'superadmin@tracksite.com', 'super_admin', 'active', 1, '2026-02-02 15:01:24', '2026-02-04 11:53:57', '2026-02-04 11:53:57');
 
 -- --------------------------------------------------------
 
@@ -1416,13 +1414,6 @@ CREATE TABLE `workers` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
--- Dumping data for table `workers`
---
-
-INSERT INTO `workers` (`worker_id`, `user_id`, `worker_code`, `first_name`, `middle_name`, `last_name`, `position`, `work_type_id`, `classification_id`, `worker_type`, `phone`, `addresses`, `address`, `date_of_birth`, `gender`, `emergency_contact_name`, `emergency_contact_phone`, `emergency_contact_relationship`, `date_hired`, `employment_status`, `daily_rate`, `hourly_rate`, `experience_years`, `profile_image`, `sss_number`, `philhealth_number`, `pagibig_number`, `tin_number`, `identification_data`, `is_archived`, `archived_at`, `archived_by`, `archive_reason`, `created_at`, `updated_at`) VALUES
-(1, 14, 'WKR-0001', 'Ean', 'Jimenez', 'Espiritu', 'Trainee', 1, NULL, 'mason', '09157910393', '{\"current\":{\"address\":\"Purok 5 456\",\"province\":\"Pampanga\",\"city\":\"City of San Fernando\",\"barangay\":\"Dela Paz Norte\"},\"permanent\":{\"address\":\"Purok 5 456\",\"province\":\"Pampanga\",\"city\":\"City of San Fernando\",\"barangay\":\"Dela Paz Norte\"}}', NULL, '2004-12-11', 'male', 'Marycris Espiritu', '09888181818', 'Parent', '2026-02-04', 'active', 700.00, 87.50, 0, NULL, '', '', '', '', '{\"primary\":{\"type\":\"PhilHealth ID\",\"number\":\"121212121212\"},\"additional\":[{\"type\":\"Passport\",\"number\":\"12121212121\"}]}', 0, NULL, NULL, NULL, '2026-02-04 05:47:23', '2026-02-04 05:47:23');
-
---
 -- Triggers `workers`
 --
 DELIMITER $$
@@ -1553,9 +1544,7 @@ CREATE TABLE `worker_classifications` (
 
 INSERT INTO `worker_classifications` (`classification_id`, `classification_code`, `classification_name`, `description`, `skill_level`, `minimum_experience_years`, `is_active`, `display_order`, `created_at`, `updated_at`) VALUES
 (1, 'LABORER', 'Laborer', 'General construction laborer, helper, or unskilled worker', 'entry', 0, 1, 1, '2026-02-04 00:34:52', '2026-02-04 00:34:52'),
-(2, 'SKILLED', 'Skilled Worker', 'Trained worker with specialized skills', 'skilled', 1, 1, 2, '2026-02-04 00:34:52', '2026-02-04 00:34:52'),
-(3, 'SENIOR', 'Senior Skilled Worker', 'Experienced skilled worker with supervisory capability', 'senior', 3, 1, 3, '2026-02-04 00:34:52', '2026-02-04 00:34:52'),
-(4, 'FOREMAN', 'Foreman', 'Team leader or site supervisor', 'master', 5, 1, 4, '2026-02-04 00:34:52', '2026-02-04 00:34:52');
+(2, 'SKILLED', 'Skilled Worker', 'Trained worker with specialized skills', 'skilled', 1, 1, 2, '2026-02-04 00:34:52', '2026-02-04 00:34:52');
 
 -- --------------------------------------------------------
 
@@ -1627,13 +1616,6 @@ CREATE TABLE `work_types` (
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
---
--- Dumping data for table `work_types`
---
-
-INSERT INTO `work_types` (`work_type_id`, `work_type_code`, `work_type_name`, `classification_id`, `description`, `daily_rate`, `is_active`, `display_order`, `created_by`, `created_at`, `updated_at`) VALUES
-(1, 'MSN', 'Mason', 1, '', 700.00, 1, 0, 1, '2026-02-04 05:40:37', '2026-02-04 05:40:37');
-
 -- --------------------------------------------------------
 
 --
@@ -1657,7 +1639,8 @@ CREATE TABLE `work_type_rate_history` (
 
 INSERT INTO `work_type_rate_history` (`history_id`, `work_type_id`, `old_daily_rate`, `new_daily_rate`, `change_reason`, `effective_date`, `changed_by`, `created_at`) VALUES
 (1, 34, 700.00, 960.00, NULL, '2026-02-04', 1, '2026-02-04 04:11:10'),
-(2, 33, 600.00, 960.00, NULL, '2026-02-25', 1, '2026-02-25 04:15:26');
+(2, 33, 600.00, 960.00, NULL, '2026-02-25', 1, '2026-02-25 04:15:26'),
+(3, 1, 700.00, 600.00, NULL, '2026-02-04', 1, '2026-02-04 06:43:15');
 
 -- --------------------------------------------------------
 
@@ -2061,19 +2044,19 @@ ALTER TABLE `work_type_rate_history`
 -- AUTO_INCREMENT for table `activity_logs`
 --
 ALTER TABLE `activity_logs`
-  MODIFY `log_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `log_id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `admin_permissions`
 --
 ALTER TABLE `admin_permissions`
-  MODIFY `permission_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `permission_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT for table `admin_profile`
 --
 ALTER TABLE `admin_profile`
-  MODIFY `admin_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `admin_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT for table `attendance`
@@ -2091,7 +2074,7 @@ ALTER TABLE `attendance_settings`
 -- AUTO_INCREMENT for table `audit_trail`
 --
 ALTER TABLE `audit_trail`
-  MODIFY `audit_id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `audit_id` bigint(20) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `bir_tax_brackets`
@@ -2157,7 +2140,7 @@ ALTER TABLE `payroll`
 -- AUTO_INCREMENT for table `payroll_earnings`
 --
 ALTER TABLE `payroll_earnings`
-  MODIFY `earning_id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=263;
+  MODIFY `earning_id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=382;
 
 --
 -- AUTO_INCREMENT for table `payroll_periods`
@@ -2199,7 +2182,7 @@ ALTER TABLE `positions`
 -- AUTO_INCREMENT for table `schedules`
 --
 ALTER TABLE `schedules`
-  MODIFY `schedule_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+  MODIFY `schedule_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=19;
 
 --
 -- AUTO_INCREMENT for table `sss_contribution_matrix`
@@ -2229,13 +2212,13 @@ ALTER TABLE `system_settings`
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `user_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=15;
+  MODIFY `user_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=17;
 
 --
 -- AUTO_INCREMENT for table `workers`
 --
 ALTER TABLE `workers`
-  MODIFY `worker_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `worker_id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `worker_classifications`
@@ -2259,13 +2242,13 @@ ALTER TABLE `worker_type_rates`
 -- AUTO_INCREMENT for table `work_types`
 --
 ALTER TABLE `work_types`
-  MODIFY `work_type_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `work_type_id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `work_type_rate_history`
 --
 ALTER TABLE `work_type_rate_history`
-  MODIFY `history_id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `history_id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- Constraints for dumped tables
