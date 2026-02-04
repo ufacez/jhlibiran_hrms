@@ -407,6 +407,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_permissions'])
                                        <?php echo ($permissions['can_delete_payroll'] ?? 0) ? 'checked' : ''; ?>>
                                 <label for="can_delete_payroll">Delete Payroll</label>
                             </div>
+                            <div class="permission-item" onclick="toggleCheckbox('can_view_payroll_settings')">
+                                <input type="checkbox" name="can_view_payroll_settings" id="can_view_payroll_settings" value="1"
+                                       <?php echo ($permissions['can_view_payroll_settings'] ?? 0) ? 'checked' : ''; ?>>
+                                <label for="can_view_payroll_settings">View Payroll Settings</label>
+                            </div>
+                            <div class="permission-item" onclick="toggleCheckbox('can_edit_payroll_settings')">
+                                <input type="checkbox" name="can_edit_payroll_settings" id="can_edit_payroll_settings" value="1"
+                                       <?php echo ($permissions['can_edit_payroll_settings'] ?? 0) ? 'checked' : ''; ?>>
+                                <label for="can_edit_payroll_settings">Edit Payroll Settings</label>
+                            </div>
                         </div>
                     </div>
                     
@@ -608,7 +618,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_permissions'])
                 'workers': ['can_view_workers', 'can_add_workers', 'can_edit_workers', 'can_delete_workers', 'can_manage_work_types'],
                 'attendance': ['can_view_attendance', 'can_mark_attendance', 'can_edit_attendance', 'can_delete_attendance'],
                 'schedule': ['can_view_schedule', 'can_manage_schedule'],
-                'payroll': ['can_view_payroll', 'can_generate_payroll', 'can_edit_payroll', 'can_delete_payroll'],
+                'payroll': ['can_view_payroll', 'can_generate_payroll', 'can_approve_payroll', 'can_mark_paid', 'can_edit_payroll', 'can_delete_payroll', 'can_view_payroll_settings', 'can_edit_payroll_settings'],
                 'deductions': ['can_view_deductions', 'can_manage_deductions'],
                 'cashadvance': ['can_view_cashadvance', 'can_approve_cashadvance'],
                 'reports': ['can_view_reports', 'can_export_data']

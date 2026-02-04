@@ -14,10 +14,10 @@ require_once __DIR__ . '/../../../includes/auth.php';
 require_once __DIR__ . '/../../../includes/admin_functions.php';
 require_once __DIR__ . '/../../../includes/payroll_settings.php';
 
-// Payroll settings - Super Admin only (admins can view payroll but not configure settings)
-requireSuperAdmin();
-
+// Payroll settings - allow super admins or admins with specific permission
 $pdo = getDBConnection();
+requireAdminWithPermission($pdo, 'can_edit_payroll_settings');
+
 $settingsManager = new PayrollSettingsManager($pdo);
 
 // Get basic settings

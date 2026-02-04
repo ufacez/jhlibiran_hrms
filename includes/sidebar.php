@@ -6,6 +6,22 @@
 
 $current_page = basename($_SERVER['PHP_SELF']);
 $current_dir = basename(dirname($_SERVER['PHP_SELF']));
+
+// Ensure a database connection is available for permission checks
+if (!isset($db) || !$db) {
+    $db = null;
+    $db_path = __DIR__ . '/../config/database.php';
+    if (file_exists($db_path)) {
+        require_once $db_path;
+        try {
+            if (function_exists('getDBConnection')) {
+                $db = getDBConnection();
+            }
+        } catch (Exception $e) {
+            $db = null;
+        }
+    }
+}
 ?>
 <style>
 /* Enhanced Sidebar Styles */
@@ -356,7 +372,8 @@ $current_dir = basename(dirname($_SERVER['PHP_SELF']));
         </li>
         <?php endif; ?>
         
-        <!-- Payroll Settings -->
+        <!-- Payroll Settings (show only if allowed) -->
+        <?php if (getCurrentUserLevel() === 'super_admin' || (function_exists('hasPermission') && (hasPermission($db, 'can_view_payroll_settings') || hasPermission($db, 'can_edit_payroll_settings')))): ?>
         <li>
             <a href="<?php echo BASE_URL; ?>/modules/super_admin/payroll_v2/configure.php"
                class="<?php echo ($current_dir === 'payroll_v2' && $current_page === 'configure.php') ? 'active' : ''; ?>">
@@ -364,7 +381,9 @@ $current_dir = basename(dirname($_SERVER['PHP_SELF']));
                 <div class="title">Payroll Settings</div>
             </a>
         </li>
+        <?php endif; ?>
         
+        <?php if (getCurrentUserLevel() === 'super_admin' || (function_exists('hasPermission') && (hasPermission($db, 'can_view_payroll_settings') || hasPermission($db, 'can_edit_payroll_settings')))): ?>
         <div class="menu-mini-separator"></div>
         
         <!-- Government Contributions Sub-section -->
@@ -428,6 +447,7 @@ $current_dir = basename(dirname($_SERVER['PHP_SELF']));
                 <div class="title">Holiday Settings</div>
             </a>
         </li>
+        <?php endif; ?>
         
         <div class="menu-separator"></div>
         
