@@ -989,7 +989,7 @@ $skill_levels = ['entry' => 'Entry Level', 'skilled' => 'Skilled', 'senior' => '
                                     </span>
                                 </div>
                                 <?php endif; ?>
-                                <div class="meta-item meta-clickable" onclick="showWorkersByType(<?php echo $wt['work_type_id']; ?>)" title="View workers">
+                                <div class="meta-item meta-clickable worker-count-badge" onclick="showWorkersByType(<?php echo $wt['work_type_id']; ?>)" title="View workers">
                                     <i class="fas fa-users"></i>
                                     <?php echo $wt['worker_count']; ?> worker<?php echo $wt['worker_count'] != 1 ? 's' : ''; ?>
                                 </div>
@@ -1005,11 +1005,9 @@ $skill_levels = ['entry' => 'Entry Level', 'skilled' => 'Skilled', 'senior' => '
                                 <button class="btn-sm btn-edit" data-work-type="<?php echo base64_encode(json_encode($wt)); ?>" onclick="editWorkType(this)">
                                     <i class="fas fa-edit"></i> Edit
                                 </button>
-                                <?php if ($wt['worker_count'] == 0): ?>
                                 <button class="btn-sm btn-delete" onclick="deleteWorkType(<?php echo $wt['work_type_id']; ?>, '<?php echo htmlspecialchars(addslashes($wt['work_type_name'])); ?>')">
                                     <i class="fas fa-trash"></i> Delete
                                 </button>
-                                <?php endif; ?>
                             </div>
                             <?php endif; ?>
                         </div>
