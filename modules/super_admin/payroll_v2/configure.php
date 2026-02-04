@@ -68,15 +68,18 @@ $pageTitle = 'Payroll Settings';
     <link rel="stylesheet" href="https://pro.fontawesome.com/releases/v5.10.0/css/all.css"/>
     <link rel="stylesheet" href="<?php echo CSS_URL; ?>/dashboard.css">
     <style>
+        body{font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;}
         .content { padding: 40px; }
         
         .page-header { 
             display: flex; 
-            justify-content: space-between; 
-            align-items: center; 
+            flex-direction: column; 
+            gap: 6px; 
+            align-items: flex-start; 
             margin-bottom: 32px; 
         }
-        .page-title { font-size: 26px; font-weight: 800; color: #1a1a1a; letter-spacing: 0.2px; }
+        .page-subtitle { margin: 0; }
+        .page-title { font-size: 26px; font-weight: 700; color: #1a1a1a; letter-spacing: 0.2px; }
         .header-actions { display: flex; gap: 10px; }
         
         /* Section Headers */
@@ -90,7 +93,7 @@ $pageTitle = 'Payroll Settings';
             border-bottom: 2px solid #f0f0f0; 
         }
         .section-header i { color: #DAA520; font-size: 20px; }
-        .section-title { font-size: 18px; font-weight: 700; color: #1a1a1a; }
+        .section-title { font-size: 18px; font-weight: 600; color: #1a1a1a; }
         
         /* Cards Grid */
         .settings-grid { 
@@ -131,7 +134,7 @@ $pageTitle = 'Payroll Settings';
         .setting-row:last-child { border-bottom: none; }
         .setting-label { font-weight: 600; color: #2d2d2d; font-size: 14px; }
         .setting-label small { font-weight: 400; color: #888; display: block; margin-top: 3px; font-size: 12px; }
-        .setting-value { font-weight: 700; color: #1a1a1a; font-size: 15px; }
+        .setting-value { font-weight: 600; color: #1a1a1a; font-size: 15px; }
         .setting-value.highlight { color: #DAA520; }
         
         .input-group { display: flex; align-items: center; gap: 5px; }
@@ -266,7 +269,7 @@ $pageTitle = 'Payroll Settings';
         .btn { 
             padding: 10px 18px; 
             border-radius: 8px; 
-            font-weight: 600; 
+            font-weight: 400; 
             cursor: pointer; 
             border: none; 
             font-size: 13px; 

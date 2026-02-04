@@ -159,7 +159,7 @@ function generateHTMLPayslip($pdo, $recordId) {
     <title>Payslip - ' . htmlspecialchars($record['first_name'] . ' ' . $record['last_name']) . '</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: "Segoe UI", Arial, sans-serif; background: #f0f2f5; padding: 20px; }
+        body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background: #f0f2f5; padding: 20px; }
         
         .payslip-container {
             max-width: 800px;
@@ -197,14 +197,18 @@ function generateHTMLPayslip($pdo, $recordId) {
         
         .section { margin-bottom: 30px; }
         .section-title {
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 700;
             color: #1a1a2e;
             text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 15px;
-            padding-bottom: 8px;
-            border-bottom: 2px solid #DAA520;
+            letter-spacing: 0.6px;
+            margin-bottom: 10px;
+            padding-bottom: 6px;
+            border-bottom: 1px solid #e9eef6;
+            background: #f7fbff;
+            display: inline-block;
+            padding: 6px 10px;
+            border-radius: 4px;
         }
         
         .earnings-table, .deductions-table {
@@ -337,7 +341,7 @@ function generateHTMLPayslip($pdo, $recordId) {
         <div class="payslip-body">
             <!-- PART 1: GROSS PAY -->
             <div class="section">
-                <div class="section-title">Gross Pay Computation</div>
+                <div class="section-title">Taxable Incomes</div>
                 <table class="earnings-table">
                     <thead>
                         <tr>
@@ -444,7 +448,7 @@ function generateHTMLPayslip($pdo, $recordId) {
             
             <!-- PART 2: DEDUCTIONS -->
             <div class="section">
-                <div class="section-title">Gross Deductions</div>
+                <div class="section-title">Contributions &amp; Taxes</div>
                 <table class="deductions-table">
                     <thead>
                         <tr>
@@ -513,6 +517,13 @@ function generateHTMLPayslip($pdo, $recordId) {
                             </td>
                             <td>₱' . number_format($taxWeekly, 2) . '</td>
                         </tr>
+                            ' . (function() use ($record, $sssWeekly, $philhealthWeekly, $pagibigWeekly, $taxWeekly, $totalDeductions) {
+                                $otherCalc = floatval($totalDeductions) - (floatval($sssWeekly) + floatval($philhealthWeekly) + floatval($pagibigWeekly) + floatval($taxWeekly));
+                                if ($otherCalc > 0.0) {
+                                    return '\n                        <tr>\n                            <td>\n                                <strong>Other Deductions</strong>\n                                <div class="computation">Miscellaneous deductions</div>\n                            </td>\n                            <td>\n                                <div class="computation">Calculated as remaining deductions</div>\n                            </td>\n                            <td>₱' . number_format($otherCalc, 2) . '</td>\n                        </tr>';
+                                }
+                                return '';
+                            })() . '
                         
                         <tr class="total-row">
                             <td colspan="2"><strong>TOTAL DEDUCTIONS</strong></td>
@@ -524,7 +535,7 @@ function generateHTMLPayslip($pdo, $recordId) {
             
             <!-- PART 3: NET PAY -->
             <div class="section">
-                <div class="section-title">Net Pay Computation</div>
+                <div class="section-title">Net Pay</div>
                 <table class="earnings-table">
                     <tbody>
                         <tr>

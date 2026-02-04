@@ -39,10 +39,12 @@ $pageTitle = 'SSS Contribution Settings';
     <link rel="stylesheet" href="https://pro.fontawesome.com/releases/v5.10.0/css/all.css"/>
     <link rel="stylesheet" href="<?php echo CSS_URL; ?>/dashboard.css">
     <style>
+        body{font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;}
         .content { padding: 30px; }
         
-        .page-header { margin-bottom: 25px; }
+        .page-header { margin-bottom: 25px; display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
         .page-title { font-size: 22px; font-weight: 700; color: #1a1a1a; }
+        .page-subtitle { margin: 0; }
         .page-subtitle { color: #666; font-size: 13px; margin-top: 5px; }
         
         .settings-card { background: #fff; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); padding: 25px; max-width: 800px; }

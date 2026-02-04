@@ -41,9 +41,9 @@ $pageTitle = 'SSS Contribution Matrix';
     <style>
         .content { padding: 30px; }
         
-        .page-header { margin-bottom: 25px; }
+        .page-header { margin-bottom: 25px; display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
         .page-title { font-size: 22px; font-weight: 700; color: #1a1a1a; }
-        .page-subtitle { color: #666; font-size: 13px; margin-top: 5px; }
+        .page-subtitle { color: #666; font-size: 13px; margin: 0; }
         
         .toolbar { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 25px; }
         .toolbar-row { display: flex; gap: 15px; align-items: center; flex-wrap: wrap; }

@@ -110,20 +110,21 @@ $pageTitle = 'Payroll Slips';
     <link rel="stylesheet" href="<?php echo CSS_URL; ?>/dashboard.css">
     <link rel="stylesheet" href="<?php echo CSS_URL; ?>/payroll_v2.css">
     <style>
+        body{font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;}
         .content { padding: 30px 40px; }
         
         .page-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
             margin-bottom: 30px;
-            gap: 15px;
-            flex-wrap: wrap;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            align-items: flex-start;
         }
+        .page-subtitle { margin: 0; }
         
         .page-title {
             font-size: 28px;
-            font-weight: 800;
+            font-weight: 700;
             color: #1a1a1a;
             display: flex;
             align-items: center;
@@ -225,7 +226,7 @@ $pageTitle = 'Payroll Slips';
             background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
             color: white;
             padding: 15px 20px;
-            font-weight: 600;
+            font-weight: 700;
             display: grid;
             grid-template-columns: 120px 1fr 130px 130px 130px 100px 150px;
             gap: 10px;
@@ -269,7 +270,7 @@ $pageTitle = 'Payroll Slips';
         
         .item-period {
             font-size: 13px;
-            font-weight: 600;
+            font-weight: 400;
             color: #1a1a1a;
         }
         
@@ -281,7 +282,7 @@ $pageTitle = 'Payroll Slips';
         
         .item-employee {
             font-size: 13px;
-            font-weight: 600;
+            font-weight: 400;
             color: #1a1a1a;
         }
         
@@ -292,7 +293,7 @@ $pageTitle = 'Payroll Slips';
         
         .item-amount {
             text-align: right;
-            font-weight: 600;
+            font-weight: 400;
             color: #1a1a1a;
             font-size: 13px;
         }
@@ -306,7 +307,7 @@ $pageTitle = 'Payroll Slips';
             padding: 4px 10px;
             border-radius: 4px;
             font-size: 11px;
-            font-weight: 600;
+            font-weight: 400;
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
@@ -349,7 +350,7 @@ $pageTitle = 'Payroll Slips';
             border-radius: 4px;
             cursor: pointer;
             font-size: 12px;
-            font-weight: 600;
+            font-weight: 400;
             color: #666;
             transition: all 0.2s;
             display: flex;
@@ -421,7 +422,7 @@ $pageTitle = 'Payroll Slips';
         
         .empty-state h3 {
             font-size: 18px;
-            font-weight: 600;
+            font-weight: 400;
             margin-bottom: 8px;
             color: #666;
         }
@@ -507,7 +508,6 @@ $pageTitle = 'Payroll Slips';
             <!-- Page Header -->
             <div class="page-header">
                 <h1 class="page-title">
-                    <i class="fas fa-receipt"></i>
                     Payroll Slips
                 </h1>
                 <div class="header-actions">

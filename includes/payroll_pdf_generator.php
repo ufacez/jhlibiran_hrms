@@ -258,9 +258,9 @@ class PayrollPDFGenerator {
         $this->pdf->setCellHeightRatio(1.0);
         $this->pdf->setImageScale(1.0);
 
-        // Add compact page and default smaller font
+        // Add compact page and default smaller font (use DejaVu Sans for system-like rendering)
         $this->pdf->AddPage();
-        $this->pdf->SetFont('helvetica', '', 9);
+        $this->pdf->SetFont('dejavusans', '', 9);
     }
     
     /**
@@ -286,40 +286,40 @@ class PayrollPDFGenerator {
         }
         
         // Company header (compact)
-        $this->pdf->SetFont('helvetica', 'B', 12);
+        $this->pdf->SetFont('dejavusans', 'B', 12);
         $this->pdf->Cell(0, 7, $this->companyName, 0, 1, 'C');
 
-        $this->pdf->SetFont('helvetica', '', 8);
+        $this->pdf->SetFont('dejavusans', '', 8);
         if (!empty($this->companyAddress)) {
             $this->pdf->Cell(0, 6, $this->companyAddress, 0, 1, 'C');
         }
-        $this->pdf->SetFont('helvetica', 'B', 11);
+        $this->pdf->SetFont('dejavusans', 'B', 11);
         $this->pdf->Cell(0, 6, 'PAYROLL SLIP', 0, 1, 'C');
 
         // Period info (compact)
-        $this->pdf->SetFont('helvetica', 'B', 9);
+        $this->pdf->SetFont('dejavusans', 'B', 9);
         $this->pdf->Cell(60, 5, 'Period:', 0, 0, 'L');
-        $this->pdf->SetFont('helvetica', '', 9);
+        $this->pdf->SetFont('dejavusans', '', 9);
         $periodStr = date('F d, Y', strtotime($period['period_start'])) . ' - ' . date('F d, Y', strtotime($period['period_end']));
         $this->pdf->Cell(0, 5, $periodStr, 0, 1, 'L');
 
         // Employee info (single line compact)
-        $this->pdf->SetFont('helvetica', 'B', 9);
+        $this->pdf->SetFont('dejavusans', 'B', 9);
         $this->pdf->Cell(40, 5, "Employee:", 0, 0, 'L');
-        $this->pdf->SetFont('helvetica', '', 9);
+        $this->pdf->SetFont('dejavusans', '', 9);
         $empName = $worker['first_name'] . ' ' . $worker['last_name'];
         $this->pdf->Cell(0, 5, $empName . '  |  ' . ($worker['position'] ?? '') . '  |  ID: ' . ($worker['worker_code'] ?? ''), 0, 1, 'L');
 
         $this->pdf->Ln(2);
 
         // Work Hours Summary (compact cells)
-        $this->pdf->SetFont('helvetica', 'B', 9);
+        $this->pdf->SetFont('dejavusans', 'B', 9);
         $this->pdf->SetFillColor(240, 240, 240);
         $this->pdf->Cell(50, 5, 'Regular Hrs', 1, 0, 'C', true);
         $this->pdf->Cell(50, 5, 'OT Hrs', 1, 0, 'C', true);
         $this->pdf->Cell(0, 5, 'Total Hrs', 1, 1, 'C', true);
 
-        $this->pdf->SetFont('helvetica', '', 9);
+        $this->pdf->SetFont('dejavusans', '', 9);
         $totalHours = $period['total_hours'] ?? ($record['regular_hours'] + $record['overtime_hours'] + $record['night_diff_hours'] + $record['rest_day_hours'] + $record['regular_holiday_hours'] + $record['special_holiday_hours']);
         $this->pdf->Cell(50, 5, number_format($record['regular_hours'], 2), 1, 0, 'C');
         $this->pdf->Cell(50, 5, number_format($record['overtime_hours'], 2), 1, 0, 'C');
@@ -338,46 +338,43 @@ class PayrollPDFGenerator {
         if (!class_exists('TCPDF')) {
             return;
         }
-        
-        // Earnings header
-        $this->pdf->SetFont('helvetica', 'B', 10);
-        $this->pdf->SetFillColor(200, 200, 200);
-        $this->pdf->Cell(100, 6, 'EARNINGS', 0, 1, 'L', true);
-        
-        // Table headers
-        $this->pdf->SetFont('helvetica', 'B', 9);
-        $this->pdf->Cell(50, 6, 'Description', 1, 0, 'L');
-        $this->pdf->Cell(25, 6, 'Hours', 1, 0, 'R');
-        $this->pdf->Cell(25, 6, 'Rate', 1, 0, 'R');
+        // Taxable Incomes header (matches view)
+        $this->pdf->SetFont('dejavusans', 'B', 10);
+        $this->pdf->SetFillColor(247, 251, 255);
+        $this->pdf->Cell(0, 6, 'TAXABLE INCOMES', 0, 1, 'L', true);
+
+        // Table headers (Description | Quantity | Rate | Amount)
+        $this->pdf->SetFont('dejavusans', 'B', 9);
+        $this->pdf->Cell(100, 6, 'Description', 1, 0, 'L');
+        $this->pdf->Cell(30, 6, 'Quantity', 1, 0, 'R');
+        $this->pdf->Cell(35, 6, 'Rate', 1, 0, 'R');
         $this->pdf->Cell(0, 6, 'Amount', 1, 1, 'R');
-        
+
         // Earnings rows
-        $this->pdf->SetFont('helvetica', '', 9);
-        
+        $this->pdf->SetFont('dejavusans', '', 9);
         if (!empty($earnings)) {
             foreach ($earnings as $earning) {
                 $desc = $this->formatEarningType($earning['earning_type']);
                 if ($earning['description']) {
                     $desc .= ' - ' . $earning['description'];
                 }
-                // Show multiplier for overtime
                 if ($earning['earning_type'] === 'overtime' && isset($earning['multiplier_used'])) {
                     $desc .= ' (' . ($earning['multiplier_used'] * 100) . '%)';
                 }
-                $this->pdf->Cell(50, 6, substr($desc, 0, 50), 1, 0, 'L');
-                $this->pdf->Cell(25, 6, ($earning['hours'] > 0 ? number_format($earning['hours'], 2) : '-'), 1, 0, 'R');
-                $this->pdf->Cell(25, 6, '₱' . number_format($earning['rate_used'], 2), 1, 0, 'R');
+                $this->pdf->Cell(100, 6, substr($desc, 0, 60), 1, 0, 'L');
+                $this->pdf->Cell(30, 6, ($earning['hours'] > 0 ? number_format($earning['hours'], 2) . 'h' : '-'), 1, 0, 'R');
+                $this->pdf->Cell(35, 6, '₱' . number_format($earning['rate_used'], 2), 1, 0, 'R');
                 $this->pdf->Cell(0, 6, '₱' . number_format($earning['amount'], 2), 1, 1, 'R');
             }
         }
-        
+
         // Gross pay row
-        $this->pdf->SetFont('helvetica', 'B', 9);
-        $this->pdf->SetFillColor(220, 220, 220);
-        $this->pdf->Cell(100, 6, 'GROSS PAY', 0, 0, 'L', true);
-        $this->pdf->SetFont('helvetica', 'B', 10);
-        $this->pdf->Cell(0, 6, '₱' . number_format($record['gross_pay'], 2), 0, 1, 'R', true);
-        
+        $this->pdf->SetFont('dejavusans', 'B', 9);
+        $this->pdf->SetFillColor(230, 230, 230);
+        $this->pdf->Cell(165, 6, 'TOTAL GROSS', 1, 0, 'L', true);
+        $this->pdf->SetFont('dejavusans', 'B', 10);
+        $this->pdf->Cell(0, 6, '₱' . number_format($record['gross_pay'], 2), 1, 1, 'R', true);
+
         $this->pdf->Ln(3);
     }
     
@@ -390,81 +387,73 @@ class PayrollPDFGenerator {
         if (!class_exists('TCPDF')) {
             return;
         }
-        
-        // Deductions header
-        $this->pdf->SetFont('helvetica', 'B', 10);
-        $this->pdf->SetFillColor(200, 200, 200);
-        $this->pdf->Cell(100, 6, 'DEDUCTIONS', 0, 1, 'L', true);
-        
-        // Table headers
-        $this->pdf->SetFont('helvetica', 'B', 9);
-        $this->pdf->Cell(75, 6, 'Description', 1, 0, 'L');
-        $this->pdf->Cell(0, 6, 'Amount', 1, 1, 'R');
-        
-        // Deduction rows
-        $this->pdf->SetFont('helvetica', '', 9);
-        
-        $deductions = [
-            'SSS Contribution' => $record['sss_contribution'],
-            'PhilHealth Contribution' => $record['philhealth_contribution'],
-            'Pag-IBIG Contribution' => $record['pagibig_contribution'],
-            'Withholding Tax' => $record['tax_withholding'],
-            'Other Deductions' => $record['other_deductions'],
-        ];
-        
-        foreach ($deductions as $label => $amount) {
-            if ($amount > 0) {
-                $this->pdf->Cell(75, 6, $label, 1, 0, 'L');
-                $this->pdf->Cell(0, 6, '₱' . number_format($amount, 2), 1, 1, 'R');
-            }
-        }
-        
-        // Total deductions row
-        $this->pdf->SetFont('helvetica', 'B', 9);
-        $this->pdf->SetFillColor(220, 220, 220);
-        $this->pdf->Cell(75, 6, 'TOTAL DEDUCTIONS', 1, 0, 'L', true);
-        $this->pdf->SetFont('helvetica', 'B', 10);
-        $this->pdf->Cell(0, 6, '₱' . number_format($record['total_deductions'], 2), 1, 1, 'R', true);
-        
-        // Net pay row
-        $this->pdf->SetFont('helvetica', 'B', 10);
-        $this->pdf->SetFillColor(255, 215, 0); // Gold color
-        $this->pdf->Cell(75, 8, 'NET PAY', 1, 0, 'L', true);
-        $this->pdf->SetFont('helvetica', 'B', 12);
-        $this->pdf->Cell(0, 8, '₱' . number_format($record['net_pay'], 2), 1, 1, 'R', true);
-        
-        // Government deductions summary
+        // Build three small tables (Contributions | Taxes | Other Deductions) and right-side calculation summary
+        $this->pdf->SetFont('dejavusans', 'B', 10);
+        $this->pdf->SetFillColor(247, 251, 255);
+        $this->pdf->Cell(0, 6, 'DEDUCTIONS', 0, 1, 'L', true);
+
+        // Prepare values
         $sss = (float)($record['sss_contribution'] ?? 0);
         $philhealth = (float)($record['philhealth_contribution'] ?? 0);
         $pagibig = (float)($record['pagibig_contribution'] ?? 0);
         $tax = (float)($record['tax_withholding'] ?? 0);
-        $govTotal = $sss + $philhealth + $pagibig + $tax;
+        $totalDeductions = (float)($record['total_deductions'] ?? 0);
+        $other = (float)($record['other_deductions'] ?? 0);
+        if ($other <= 0) {
+            $computedOther = $totalDeductions - ($sss + $philhealth + $pagibig + $tax);
+            $other = $computedOther > 0 ? $computedOther : 0.00;
+        }
 
-        $this->pdf->Ln(4);
-        $this->pdf->SetFont('helvetica', 'B', 10);
-        $this->pdf->SetFillColor(218, 165, 32); // Gold color
-        $this->pdf->SetTextColor(255, 255, 255); // White text
-        $this->pdf->Cell(0, 6, 'GOVERNMENT DEDUCTIONS SUMMARY', 0, 1, 'L', true);
-        $this->pdf->SetTextColor(0, 0, 0); // Back to black
+        // Column widths (mm) for A4 landscape with 6mm margins ~= 285mm content width
+        $w1 = 90; // Contributions
+        $w2 = 70; // Taxes
+        $w3 = 60; // Other Deductions
+        $w4 = 285 - ($w1 + $w2 + $w3); // Summary box width
 
-        $this->pdf->SetFont('helvetica', 'B', 9);
+        // Save current X/Y
+        $startX = $this->pdf->GetX();
+        $startY = $this->pdf->GetY();
+
+        // Contributions box
+        $this->pdf->SetFont('dejavusans', 'B', 9);
         $this->pdf->SetFillColor(245, 245, 245);
-        $this->pdf->Cell(45, 6, 'SSS', 1, 0, 'L', true);
-        $this->pdf->Cell(45, 6, 'PhilHealth', 1, 0, 'L', true);
-        $this->pdf->Cell(45, 6, 'Pag-IBIG', 1, 0, 'L', true);
-        $this->pdf->Cell(0, 6, 'Withholding Tax', 1, 1, 'L', true);
+        $this->pdf->MultiCell($w1, 6, "Contributions", 1, 'L', true, 0, '', '', true, 0, false, true, 0, 'M');
+        $this->pdf->Ln(0);
+        $this->pdf->SetFont('dejavusans', '', 9);
+        $this->pdf->MultiCell($w1, 6, "SSS\nPhilHealth\nPag-IBIG", 1, 'L', false, 0);
+        $this->pdf->MultiCell($w1, 6, "₱" . number_format($sss,2) . "\n₱" . number_format($philhealth,2) . "\n₱" . number_format($pagibig,2), 1, 'R', false, 0);
 
-        $this->pdf->SetFont('helvetica', '', 9);
-        $this->pdf->Cell(45, 6, '₱' . number_format($sss, 2), 1, 0, 'R');
-        $this->pdf->Cell(45, 6, '₱' . number_format($philhealth, 2), 1, 0, 'R');
-        $this->pdf->Cell(45, 6, '₱' . number_format($pagibig, 2), 1, 0, 'R');
-        $this->pdf->Cell(0, 6, '₱' . number_format($tax, 2), 1, 1, 'R');
+        // Taxes box
+        $this->pdf->SetFont('dejavusans', 'B', 9);
+        $this->pdf->MultiCell($w2, 6, "Taxes", 1, 'L', true, 0);
+        $this->pdf->SetFont('dejavusans', '', 9);
+        $this->pdf->MultiCell($w2, 6, "BIR Withholding", 1, 'L', false, 0);
+        $this->pdf->MultiCell($w2, 6, "₱" . number_format($tax,2), 1, 'R', false, 0);
 
-        $this->pdf->SetFont('helvetica', 'B', 9);
-        $this->pdf->SetFillColor(220, 220, 220);
-        $this->pdf->Cell(0, 6, 'Total Government Deductions: ₱' . number_format($govTotal, 2), 0, 1, 'R', true);
+        // Other Deductions box
+        $this->pdf->SetFont('dejavusans', 'B', 9);
+        $this->pdf->MultiCell($w3, 6, "Other Deductions", 1, 'L', true, 0);
+        $this->pdf->SetFont('dejavusans', '', 9);
+        $this->pdf->MultiCell($w3, 6, "Other", 1, 'L', false, 0);
+        $this->pdf->MultiCell($w3, 6, "-₱" . number_format($other,2), 1, 'R', false, 0);
 
-        $this->pdf->Ln(3);
+        // Move to summary column (ensure on same line)
+        $this->pdf->SetXY($startX + $w1 + $w2 + $w3, $startY);
+        $this->pdf->SetFont('dejavusans', '', 9);
+        $this->pdf->MultiCell($w4, 6, '', 0, 'L', false, 1);
+
+        // Calculation summary box
+        $this->pdf->SetX($startX + $w1 + $w2 + $w3);
+        $this->pdf->SetFont('dejavusans', '', 9);
+        $this->pdf->SetFillColor(250,250,250);
+        $this->pdf->MultiCell($w4, 6, "Total Gross:   ₱" . number_format($record['gross_pay'],2), 1, 'L', true, 1);
+        $this->pdf->SetX($startX + $w1 + $w2 + $w3);
+        $this->pdf->MultiCell($w4, 6, "Total Deductions:   -₱" . number_format($totalDeductions,2), 1, 'L', false, 1);
+        $this->pdf->SetX($startX + $w1 + $w2 + $w3);
+        $this->pdf->SetFont('dejavusans', 'B', 12);
+        $this->pdf->MultiCell($w4, 8, "NET PAY:   ₱" . number_format($record['net_pay'],2), 1, 'C', true, 1);
+
+        $this->pdf->Ln(6);
     }
     
     /**

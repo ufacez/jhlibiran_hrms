@@ -53,7 +53,8 @@ $pageTitle = 'Pag-IBIG Settings';
     <style>
         .content { padding: 30px; }
         
-        .page-header { margin-bottom: 25px; }
+        .page-header { margin-bottom: 25px; display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
+        .page-subtitle { margin: 0; }
         .page-title { font-size: 22px; font-weight: 700; color: #1a1a1a; }
         .page-subtitle { color: #666; font-size: 13px; margin-top: 5px; }
         
