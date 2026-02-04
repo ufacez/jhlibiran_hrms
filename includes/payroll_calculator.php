@@ -147,12 +147,9 @@ class PayrollCalculator {
                     ?? $result['type_hourly_rate'] 
                     ?? ($dailyRate / 8);
                 
-                // Always use global overtime multiplier from payroll_settings
+                // Always use global overtime multiplier and night diff percentage from payroll_settings
                 $otMultiplier = $this->getRate('overtime_multiplier', 1.25);
-                    
-                // Get night diff percentage from payroll_settings
-                $nightDiffPct = $result['night_diff_percentage'] 
-                    ?? $this->getRate('night_diff_percentage', 10);
+                $nightDiffPct = $this->getRate('night_diff_percentage', 10);
                 
                 // Determine rate source for transparency
                 $rateSource = 'settings';
@@ -1324,19 +1321,15 @@ class PayrollCalculator {
         $allEarnings = [];
         
         foreach ($attendanceRecords as $attendance) {
+            // Always use worker-specific night diff percentage for all calculations
             $dayResult = $this->processAttendanceRecordWithWorkerRates($attendance, $workerRates);
             $dailyBreakdown[] = $dayResult;
-            
-            // Accumulate earnings
             foreach ($dayResult['earnings'] as $earning) {
                 $type = $earning['type'];
-                
                 $allEarnings[] = array_merge($earning, [
                     'date' => $dayResult['date'],
                     'attendance_id' => $attendance['attendance_id']
                 ]);
-                
-                // Map to totals using worker-specific multipliers
                 switch ($type) {
                     case 'regular':
                         $totals['regular_hours'] += $earning['hours'];
@@ -1369,7 +1362,6 @@ class PayrollCalculator {
                         break;
                 }
             }
-            
             $totals['gross_pay'] += $dayResult['total'];
         }
         

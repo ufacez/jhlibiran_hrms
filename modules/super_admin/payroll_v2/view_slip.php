@@ -72,16 +72,23 @@ try {
 }
 
 // Calculate rates
+
 $dailyRate = $record['daily_rate'] ?? ($record['regular_pay'] / ($record['regular_hours'] / 8));
 $hourlyRate = $dailyRate / 8;
 $monthlyRate = $dailyRate * 26; // Assuming 26 working days
 
-// Philippine standard rates
-$otRate = 1.25; // 125% for regular OT
-$nightDiffRate = 0.10; // 10% additional for night diff
-$specialHolidayRate = 1.30; // 130% for special holidays
-$regularHolidayRate = 2.00; // 200% for regular holidays
-$restDayRate = 1.30; // 130% for rest days
+// Fetch dynamic rates from payroll_settings
+$settingsStmt = $pdo->query("SELECT setting_key, setting_value FROM payroll_settings WHERE is_active = 1");
+$settings = [];
+while ($row = $settingsStmt->fetch(PDO::FETCH_ASSOC)) {
+    $settings[$row['setting_key']] = floatval($row['setting_value']);
+}
+$otRate = $settings['overtime_multiplier'] ?? 1.25; // 125% for regular OT
+$nightDiffRate = ($settings['night_diff_percentage'] ?? 10) / 100; // e.g. 0.10 for 10%
+$nightDiffPercent = $settings['night_diff_percentage'] ?? 10;
+$specialHolidayRate = $settings['special_holiday_multiplier'] ?? 1.30; // 130% for special holidays
+$regularHolidayRate = $settings['regular_holiday_multiplier'] ?? 2.00; // 200% for regular holidays
+$restDayRate = $settings['rest_day_multiplier'] ?? 1.30; // 130% for rest days
 
 // Calculate monthly equivalent for deductions
 $weeklyGross = $record['gross_pay'];
@@ -371,7 +378,7 @@ $netPay = floatval($record['net_pay']);
                             </td>
                             <td>
                                 <div class="computation">
-                                    <?php echo number_format($record['night_diff_hours'], 2); ?> hrs × ₱<?php echo number_format($hourlyRate, 2); ?> × 10%
+                                    <?php echo number_format($record['night_diff_hours'], 2); ?> hrs × ₱<?php echo number_format($hourlyRate, 2); ?> × <?php echo $nightDiffPercent; ?>%
                                 </div>
                             </td>
                             <td>₱<?php echo number_format($record['night_diff_pay'], 2); ?></td>

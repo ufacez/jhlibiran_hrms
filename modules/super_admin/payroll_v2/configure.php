@@ -859,6 +859,10 @@ $pageTitle = 'Payroll Settings';
                 showToast('Some settings failed to save', 'error');
             } else {
                 showToast('All settings saved successfully!', 'success');
+                // If loadRates is available, call it to refresh rates instantly
+                if (typeof loadRates === 'function') {
+                    loadRates();
+                }
                 setTimeout(() => location.reload(), 1000);
             }
         }

@@ -81,21 +81,29 @@ if (isset($_GET['delete'])) {
 $flash = getFlashMessage();
 
 // Get filter parameters
-$position_filter = isset($_GET['position']) ? sanitizeString($_GET['position']) : '';
+$classification_filter = isset($_GET['classification']) ? sanitizeString($_GET['classification']) : '';
+$work_type_filter = isset($_GET['work_type']) ? sanitizeString($_GET['work_type']) : '';
 $status_filter = isset($_GET['status']) ? sanitizeString($_GET['status']) : '';
 $experience_filter = isset($_GET['experience']) ? sanitizeString($_GET['experience']) : '';
 $search_query = isset($_GET['search']) ? sanitizeString($_GET['search']) : '';
 
 // Build query
-$sql = "SELECT w.*, u.email, u.status as user_status 
-        FROM workers w 
-        JOIN users u ON w.user_id = u.user_id 
-        WHERE w.is_archived = FALSE";
+$sql = "SELECT w.*, u.email, u.status as user_status, wc.classification_name, wt.work_type_name 
+    FROM workers w 
+    JOIN users u ON w.user_id = u.user_id 
+    LEFT JOIN worker_classifications wc ON w.classification_id = wc.classification_id 
+    LEFT JOIN work_types wt ON w.work_type_id = wt.work_type_id 
+    WHERE w.is_archived = FALSE";
 $params = [];
 
-if (!empty($position_filter)) {
-    $sql .= " AND w.position = ?";
-    $params[] = $position_filter;
+
+if (!empty($classification_filter)) {
+    $sql .= " AND w.classification_id = ?";
+    $params[] = $classification_filter;
+}
+if (!empty($work_type_filter)) {
+    $sql .= " AND w.work_type_id = ?";
+    $params[] = $work_type_filter;
 }
 
 if (!empty($status_filter)) {
@@ -121,8 +129,9 @@ if (!empty($experience_filter)) {
 }
 
 if (!empty($search_query)) {
-    $sql .= " AND (w.first_name LIKE ? OR w.last_name LIKE ? OR w.worker_code LIKE ? OR w.position LIKE ?)";
+    $sql .= " AND (w.first_name LIKE ? OR w.last_name LIKE ? OR w.worker_code LIKE ? OR wt.work_type_name LIKE ? OR wc.classification_name LIKE ?)";
     $search_param = '%' . $search_query . '%';
+    $params[] = $search_param;
     $params[] = $search_param;
     $params[] = $search_param;
     $params[] = $search_param;
@@ -142,12 +151,19 @@ try {
     $total_workers = 0;
 }
 
-// Get unique positions for filter
+// Get unique classifications for filter
 try {
-    $stmt = $db->query("SELECT DISTINCT position FROM workers ORDER BY position");
-    $positions = $stmt->fetchAll(PDO::FETCH_COLUMN);
+    $stmt = $db->query("SELECT classification_id, classification_name FROM worker_classifications WHERE is_active = 1 ORDER BY classification_name");
+    $classifications = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
-    $positions = [];
+    $classifications = [];
+}
+// Get unique work types for filter
+try {
+    $stmt = $db->query("SELECT work_type_id, work_type_name FROM work_types WHERE is_active = 1 ORDER BY work_type_name");
+    $work_types = $stmt->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {
+    $work_types = [];
 }
 ?>
 <!DOCTYPE html>
@@ -294,13 +310,23 @@ try {
                     <form method="GET" action="" id="filterForm">
                         <div class="filter-row">
                             <div class="filter-group">
-                                <label style="font-size:11px;font-weight:600;color:#666;letter-spacing:0.5px;text-transform:uppercase;margin-bottom:6px;">Position</label>
-                                <select name="position" id="positionFilter" onchange="submitFilter()">
-                                    <option value="">All Positions</option>
-                                    <?php foreach ($positions as $pos): ?>
-                                        <option value="<?php echo htmlspecialchars($pos); ?>" 
-                                                <?php echo $position_filter === $pos ? 'selected' : ''; ?>>
-                                            <?php echo htmlspecialchars($pos); ?>
+                                <label style="font-size:11px;font-weight:600;color:#666;letter-spacing:0.5px;text-transform:uppercase;margin-bottom:6px;">Classification</label>
+                                <select name="classification" id="classificationFilter" onchange="submitFilter()">
+                                    <option value="">All Classifications</option>
+                                    <?php foreach ($classifications as $c): ?>
+                                        <option value="<?php echo $c['classification_id']; ?>" <?php echo $classification_filter == $c['classification_id'] ? 'selected' : ''; ?>>
+                                            <?php echo htmlspecialchars($c['classification_name']); ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <div class="filter-group">
+                                <label style="font-size:11px;font-weight:600;color:#666;letter-spacing:0.5px;text-transform:uppercase;margin-bottom:6px;">Work Type</label>
+                                <select name="work_type" id="workTypeFilter" onchange="submitFilter()">
+                                    <option value="">All Work Types</option>
+                                    <?php foreach ($work_types as $wt): ?>
+                                        <option value="<?php echo $wt['work_type_id']; ?>" <?php echo $work_type_filter == $wt['work_type_id'] ? 'selected' : ''; ?>>
+                                            <?php echo htmlspecialchars($wt['work_type_name']); ?>
                                         </option>
                                     <?php endforeach; ?>
                                 </select>
@@ -328,11 +354,7 @@ try {
                                 </select>
                             </div>
                             
-                            <div style="align-self:end;">
-                                <button type="button" class="btn btn-filter" style="width:100%;" onclick="submitFilter()">
-                                    <i class="fas fa-filter"></i> Apply
-                                </button>
-                            </div>
+                            <!-- Removed Apply button: filtering is now automatic on change -->
                         </div>
                     </form>
                 </div>
@@ -348,7 +370,8 @@ try {
                             <thead>
                                 <tr>
                                     <th>Worker</th>
-                                    <th>Position</th>
+                                    <th>Classification</th>
+                                    <th>Work Type</th>
                                     <th>Contact</th>
                                     <th>Tenure</th>
                                     <th>Daily Rate</th>
@@ -387,7 +410,8 @@ try {
                                                 </div>
                                             </div>
                                         </td>
-                                        <td><?php echo htmlspecialchars($worker['position']); ?></td>
+                                        <td><?php echo htmlspecialchars($worker['classification_name'] ?? ''); ?></td>
+                                        <td><?php echo htmlspecialchars($worker['work_type_name'] ?? ''); ?></td>
                                         <td><?php echo formatPhoneNumber($worker['phone']); ?></td>
                                         <td><?php echo $worker['experience_years']; ?> years</td>
                                         <td class="daily-rate"><?php echo formatCurrency($worker['daily_rate']); ?></td>

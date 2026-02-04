@@ -20,20 +20,28 @@ $full_name = $_SESSION['full_name'] ?? 'Administrator';
 $flash = getFlashMessage();
 
 // Get filter parameters
-$position_filter = isset($_GET['position']) ? sanitizeString($_GET['position']) : '';
+$classification_filter = isset($_GET['classification']) ? sanitizeString($_GET['classification']) : '';
+$work_type_filter = isset($_GET['work_type']) ? sanitizeString($_GET['work_type']) : '';
 $status_filter = isset($_GET['status']) ? sanitizeString($_GET['status']) : '';
 $date_filter = isset($_GET['date']) ? sanitizeString($_GET['date']) : date('Y-m-d');
 
 // Build query for attendance - FIXED to exclude archived records
-$sql = "SELECT a.*, w.worker_code, w.first_name, w.last_name, w.position 
+
+$sql = "SELECT a.*, w.worker_code, w.first_name, w.last_name, wc.classification_name, wt.work_type_name 
         FROM attendance a
         JOIN workers w ON a.worker_id = w.worker_id
+        LEFT JOIN worker_classifications wc ON w.classification_id = wc.classification_id
+        LEFT JOIN work_types wt ON w.work_type_id = wt.work_type_id
         WHERE a.attendance_date = ? AND a.is_archived = FALSE AND w.is_archived = FALSE";
 $params = [$date_filter];
 
-if (!empty($position_filter)) {
-    $sql .= " AND w.position = ?";
-    $params[] = $position_filter;
+if (!empty($classification_filter)) {
+    $sql .= " AND w.classification_id = ?";
+    $params[] = $classification_filter;
+}
+if (!empty($work_type_filter)) {
+    $sql .= " AND w.work_type_id = ?";
+    $params[] = $work_type_filter;
 }
 
 if (!empty($status_filter)) {
@@ -54,12 +62,19 @@ try {
     $total_records = 0;
 }
 
-// Get unique positions for filter
+// Get unique classifications for filter
 try {
-    $stmt = $db->query("SELECT DISTINCT position FROM workers WHERE employment_status = 'active' AND is_archived = FALSE ORDER BY position");
-    $positions = $stmt->fetchAll(PDO::FETCH_COLUMN);
+    $stmt = $db->query("SELECT classification_id, classification_name FROM worker_classifications WHERE is_active = 1 ORDER BY classification_name");
+    $classifications = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
-    $positions = [];
+    $classifications = [];
+}
+// Get unique work types for filter
+try {
+    $stmt = $db->query("SELECT work_type_id, work_type_name FROM work_types WHERE is_active = 1 ORDER BY work_type_name");
+    $work_types = $stmt->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {
+    $work_types = [];
 }
 
 // Get total workers for the day
@@ -132,14 +147,20 @@ try {
                     <form method="GET" action="" id="filterForm">
                         <div class="filter-row">
                             <div class="filter-group">
-                                <label>Position</label>
-                                <select name="position" id="positionFilter" onchange="document.getElementById('filterForm').submit()">
-                                    <option value="">All Positions</option>
-                                    <?php foreach ($positions as $pos): ?>
-                                        <option value="<?php echo htmlspecialchars($pos); ?>" 
-                                                <?php echo $position_filter === $pos ? 'selected' : ''; ?>>
-                                            <?php echo htmlspecialchars($pos); ?>
-                                        </option>
+                                <label>Classification</label>
+                                <select name="classification" id="classificationFilter" onchange="document.getElementById('filterForm').submit()">
+                                    <option value="">All Classifications</option>
+                                    <?php foreach ($classifications as $c): ?>
+                                        <option value="<?php echo $c['classification_id']; ?>" <?php echo $classification_filter == $c['classification_id'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($c['classification_name']); ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <div class="filter-group">
+                                <label>Work Type</label>
+                                <select name="work_type" id="workTypeFilter" onchange="document.getElementById('filterForm').submit()">
+                                    <option value="">All Work Types</option>
+                                    <?php foreach ($work_types as $wt): ?>
+                                        <option value="<?php echo $wt['work_type_id']; ?>" <?php echo $work_type_filter == $wt['work_type_id'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($wt['work_type_name']); ?></option>
                                     <?php endforeach; ?>
                                 </select>
                             </div>
@@ -160,9 +181,7 @@ try {
                                 <input type="date" name="date" id="dateFilter" value="<?php echo htmlspecialchars($date_filter); ?>" onchange="document.getElementById('filterForm').submit()">
                             </div>
                             
-                            <button type="submit" class="btn btn-filter">
-                                <i class="fas fa-filter"></i> Apply
-                            
+                            <!-- Removed Apply button: filtering is now automatic on change -->
                             <?php if (!empty($position_filter) || !empty($status_filter) || $date_filter !== date('Y-m-d')): ?>
                             <button type="button" 
                                     class="btn btn-secondary" 
@@ -190,7 +209,8 @@ try {
                             <thead>
                                 <tr>
                                     <th>Worker</th>
-                                    <th>Position</th>
+                                    <th>Classification</th>
+                                    <th>Work Type</th>
                                     <th>Time In</th>
                                     <th>Time Out</th>
                                     <th>Hours Worked</th>
@@ -227,7 +247,8 @@ try {
                                                 </div>
                                             </div>
                                         </td>
-                                        <td><?php echo htmlspecialchars($record['position']); ?></td>
+                                        <td><?php echo htmlspecialchars($record['classification_name'] ?? ''); ?></td>
+                                        <td><?php echo htmlspecialchars($record['work_type_name'] ?? ''); ?></td>
                                         <td>
                                             <?php echo $record['time_in'] ? formatTime($record['time_in']) : '--'; ?>
                                         </td>

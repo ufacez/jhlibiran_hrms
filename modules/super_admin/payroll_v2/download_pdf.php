@@ -119,12 +119,18 @@ function generateHTMLPayslip($pdo, $recordId) {
     $dailyRate = $record['daily_rate'] ?? ($record['regular_pay'] / ($record['regular_hours'] / 8));
     $hourlyRate = $dailyRate / 8;
     $monthlyRate = $dailyRate * 26;
-    
-    // Philippine standard rates
-    $otRate = 1.25;
-    $nightDiffRate = 0.10;
-    $specialHolidayRate = 1.30;
-    $regularHolidayRate = 2.00;
+
+    // Fetch dynamic rates from payroll_settings
+    $settingsStmt = $pdo->query("SELECT setting_key, setting_value FROM payroll_settings WHERE is_active = 1");
+    $settings = [];
+    while ($row = $settingsStmt->fetch(PDO::FETCH_ASSOC)) {
+        $settings[$row['setting_key']] = floatval($row['setting_value']);
+    }
+    $otRate = $settings['overtime_multiplier'] ?? 1.25;
+    $nightDiffRate = ($settings['night_diff_percentage'] ?? 10) / 100;
+    $nightDiffPercent = $settings['night_diff_percentage'] ?? 10;
+    $specialHolidayRate = $settings['special_holiday_multiplier'] ?? 1.30;
+    $regularHolidayRate = $settings['regular_holiday_multiplier'] ?? 2.00;
     
     // Calculate monthly equivalent
     $weeklyGross = $record['gross_pay'];
@@ -365,7 +371,7 @@ function generateHTMLPayslip($pdo, $recordId) {
                         <tr>
                             <td>
                                 <strong>Overtime Pay</strong>
-                                <div class="computation">' . number_format($record['overtime_hours'], 2) . ' OT hours @ 125%</div>
+                                <div class="computation">' . number_format($record['overtime_hours'], 2) . ' OT hours @ ' . ($otRate * 100) . '%</div>
                             </td>
                             <td>
                                 <div class="computation">
@@ -375,7 +381,7 @@ function generateHTMLPayslip($pdo, $recordId) {
                             <td>₱' . number_format($record['overtime_pay'], 2) . '</td>
                         </tr>';
     }
-    
+
     // Night Diff
     if ($record['night_diff_pay'] > 0) {
         $html .= '
@@ -386,7 +392,7 @@ function generateHTMLPayslip($pdo, $recordId) {
                             </td>
                             <td>
                                 <div class="computation">
-                                    ' . number_format($record['night_diff_hours'], 2) . ' hrs × ₱' . number_format($hourlyRate, 2) . ' × 10%
+                                    ' . number_format($record['night_diff_hours'], 2) . ' hrs × ₱' . number_format($hourlyRate, 2) . ' × ' . $nightDiffPercent . '%
                                 </div>
                             </td>
                             <td>₱' . number_format($record['night_diff_pay'], 2) . '</td>

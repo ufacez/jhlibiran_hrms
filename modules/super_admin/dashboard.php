@@ -218,16 +218,15 @@ function getEnhancedActivityDescription($activity) {
     <title>Dashboard - <?php echo SYSTEM_NAME; ?></title>
     
     <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://pro.fontawesome.com/releases/v5.10.0/css/all.css" 
-          integrity="sha384-AYmEC3Yw5cVb3ZcuHtOA93w35dYTsvhLPVnYs9eStHfGJvOvKxVfELGroGkvsg+p" 
-          crossorigin="anonymous" />
-    
-    <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-    
-    <!-- Custom CSS -->
-    <link rel="stylesheet" href="<?php echo CSS_URL; ?>/dashboard.css">
-    <link rel="stylesheet" href="<?php echo CSS_URL; ?>/dashboard-enhanced.css">
+        <!-- Font Awesome Free CDN -->
+        <link rel="stylesheet" href="https://pro.fontawesome.com/releases/v5.10.0/css/all.css" />
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Super Admin Dashboard - <?php echo SYSTEM_NAME; ?></title>
+        <link rel="stylesheet" href="<?php echo CSS_URL; ?>/dashboard.css">
+        <link rel="stylesheet" href="<?php echo CSS_URL; ?>/dashboard-enhanced.css">
+        <link rel="stylesheet" href="<?php echo CSS_URL; ?>/buttons.css">
+        <link rel="stylesheet" href="<?php echo CSS_URL; ?>/payroll_v2.css">
 </head>
 <body>
     <div class="container">
@@ -609,6 +608,7 @@ function getEnhancedActivityDescription($activity) {
     </script>http://localhost/tracksite/modules/super_admin/audit/index.php
     
     <!-- JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="<?php echo JS_URL; ?>/dashboard.js"></script>
     <script src="<?php echo JS_URL; ?>/dashboard-enhanced.js"></script>
 </body>
