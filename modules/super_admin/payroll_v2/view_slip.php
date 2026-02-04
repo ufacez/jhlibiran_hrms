@@ -146,60 +146,44 @@ $netPay = floatval($record['net_pay']);
             border-bottom: 2px solid #DAA520;
         }
         .info-item label { font-size: 11px; color: #666; text-transform: uppercase; display: block; margin-bottom: 3px; }
-        .info-item span { font-size: 16px; font-weight: 600; color: #222; }
-        .payslip-body { padding: 30px 30px 0 30px; }
-        .section { margin-bottom: 32px; }
-        .section-title {
-            font-size: 15px;
-            font-weight: 700;
-            color: #1a1a2e;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 15px;
-            padding-bottom: 8px;
-            border-bottom: 2px solid #DAA520;
+        .info-item span { font-size: 14px; font-weight: 700; color: #222; }
+
+        /* Compact layout for single-page landscape */
+        .payslip-body { padding: 10px 8px 6px 8px; }
+        .section { margin-bottom: 8px; }
+        .section-title { font-size: 11px; font-weight: 700; color: #1a1a2e; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; padding-bottom: 4px; border-bottom: 1px solid #DAA520; }
+
+        .earnings-table, .deductions-table { width: 100%; border-collapse: collapse; margin-bottom: 6px; font-size: 10.2px; }
+        .earnings-table th, .deductions-table th { background: #f8f9fa; padding: 6px 8px; text-align: left; font-size: 9.5px; text-transform: uppercase; color: #666; border-bottom: 1px solid #eee; }
+        .earnings-table td, .deductions-table td { padding: 6px 8px; border-bottom: 1px solid #f0f0f0; font-size: 10.2px; }
+        .earnings-table td:last-child, .deductions-table td:last-child { text-align: right; font-family: monospace; font-weight: 700; }
+        .total-row { background: #f8f9fa; font-weight: 700; }
+        .total-row td { border-top: 1px solid #DAA520; }
+
+        .net-pay-box { background: linear-gradient(135deg,#FFD700 0%,#FFA500 100%); padding: 8px 6px; text-align: center; border-radius: 6px; margin: 8px 0 10px 0; }
+        .net-pay-label { font-size: 11px; color: #333; margin-bottom: 3px; font-weight: 700; }
+        .net-pay-amount { font-size: 16px; font-weight: 900; color: #1a1a2e; }
+
+        /* Hide detailed computation & daily breakdown by default; show only when expanded */
+        .payslip-body .computation, .payslip-body .daily-breakdown { display: none; }
+        .payslip-body.expanded .computation, .payslip-body.expanded .daily-breakdown { display: block; }
+
+        .daily-table { margin-top: 6px; font-size: 10px; }
+
+        /* Force A4 landscape for printing and compress spacing */
+        @page { size: A4 landscape; margin: 6mm; }
+        @media print {
+            html,body { width:297mm; height:210mm; }
+            body { padding: 0; background: #fff; }
+            .payslip-container { border: none; box-shadow: none; padding: 4mm; }
+            .actions, .print-btn, .btn-action, .back-btn, .sidebar, .topbar { display: none !important; }
+
+            /* Guarantee one-page: hide verbose details and tighten table spacing */
+            .payslip-body .computation, .payslip-body .daily-breakdown, .details { display: none !important; }
+            th, td { padding: 4px !important; font-size: 9.2px !important; }
+            .company-name { font-size: 12px !important; }
+            .net-pay-amount { font-size: 18px !important; }
         }
-        .earnings-table, .deductions-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 10px;
-        }
-        .earnings-table th, .deductions-table th {
-            background: #f8f9fa;
-            padding: 12px 15px;
-            text-align: left;
-            font-size: 12px;
-            text-transform: uppercase;
-            color: #666;
-            border-bottom: 1px solid #eee;
-        }
-        .earnings-table td, .deductions-table td {
-            padding: 12px 15px;
-            border-bottom: 1px solid #f0f0f0;
-            font-size: 15px;
-        }
-        .earnings-table td:last-child, .deductions-table td:last-child {
-            text-align: right;
-            font-family: 'Courier New', monospace;
-            font-weight: 600;
-        }
-        .computation { color: #888; font-size: 12px; margin-top: 3px; }
-        .total-row {
-            background: #f8f9fa;
-            font-weight: 700;
-        }
-        .total-row td { border-top: 2px solid #DAA520; }
-        .net-pay-box {
-            background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
-            padding: 30px 0 20px 0;
-            text-align: center;
-            border-radius: 10px;
-            margin: 30px 0 20px 0;
-            box-shadow: 0 2px 8px rgba(255,193,7,0.08);
-        }
-        .net-pay-label { font-size: 16px; color: #333; margin-bottom: 5px; font-weight: 600; }
-        .net-pay-amount { font-size: 40px; font-weight: 900; color: #1a1a2e; letter-spacing: 1px; }
-        .daily-breakdown { margin-top: 35px; }
         .daily-table { width: 100%; border-collapse: collapse; font-size: 14px; background: #fff; border-radius: 8px; overflow: hidden; }
         .daily-table th {
             background: #1a1a2e;
@@ -279,10 +263,13 @@ $netPay = floatval($record['net_pay']);
     </style>
 </head>
 <body>
-    <button class="print-btn" onclick="window.print();">
-        <i class="fas fa-print"></i> Print Payslip
-    </button>
-    
+    <div class="view-actions" style="text-align:right;margin-bottom:6px;">
+        <button id="toggleDetailsBtn" class="btn-action" type="button" onclick="toggleDetails()">Show details</button>
+        <button class="print-btn" onclick="window.print();">
+            <i class="fas fa-print"></i> Print Payslip
+        </button>
+    </div>
+
     <div class="payslip-container">
         <!-- Header -->
         <div class="payslip-header">
@@ -596,9 +583,35 @@ $netPay = floatval($record['net_pay']);
         
         <!-- Footer -->
         <div class="footer">
-            <p>This is a computer-generated payslip. Generated on <?php echo date('F j, Y \a\t g:i A'); ?></p>
+            <p>This is a computer-generated payslip. Generated on <?php echo date('F j, Y \\a\\t g:i A'); ?></p>
             <p>Reference: DOLE Department Order No. 183 | BIR RR No. 2-98</p>
         </div>
     </div>
+
+    <script>
+      // Collapse details by default and allow user to expand on-screen only.
+      document.addEventListener('DOMContentLoaded', function(){
+        var body = document.querySelector('.payslip-body');
+        var btn = document.getElementById('toggleDetailsBtn');
+        if (body && body.classList.contains('expanded')) body.classList.remove('expanded');
+        if (btn) btn.textContent = 'Show details';
+      });
+
+      function toggleDetails(){
+        var body = document.querySelector('.payslip-body');
+        var btn = document.getElementById('toggleDetailsBtn');
+        if (!body || !btn) return;
+        body.classList.toggle('expanded');
+        btn.textContent = body.classList.contains('expanded') ? 'Hide details' : 'Show details';
+      }
+
+      // Ensure details are collapsed when printing (guarantee single-page print)
+      window.addEventListener('beforeprint', function(){
+        var body = document.querySelector('.payslip-body');
+        var btn = document.getElementById('toggleDetailsBtn');
+        if (body) body.classList.remove('expanded');
+        if (btn) btn.textContent = 'Show details';
+      });
+    </script>
 </body>
 </html>

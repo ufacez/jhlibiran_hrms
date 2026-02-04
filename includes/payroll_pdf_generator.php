@@ -236,35 +236,31 @@ class PayrollPDFGenerator {
             return;
         }
         
-        // Define TCPDF constants if not already defined
-        if (!defined('PDF_PAGE_ORIENTATION')) {
-            define('PDF_PAGE_ORIENTATION', 'P');
-        }
+        // Initialize TCPDF for compact A4 landscape payslip (explicit, safe for other PDFs)
         if (!defined('PDF_PAGE_UNIT')) {
             define('PDF_PAGE_UNIT', 'mm');
         }
-        if (!defined('PDF_PAGE_FORMAT')) {
-            define('PDF_PAGE_FORMAT', 'A4');
-        }
-        
-        // Initialize TCPDF
-        $this->pdf = new TCPDF(PDF_PAGE_ORIENTATION, PDF_PAGE_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
+
+        // Create A4 landscape with tight margins so content fits on one page
+        $this->pdf = new TCPDF('L', PDF_PAGE_UNIT, 'A4', true, 'UTF-8', false);
         $this->pdfAvailable = true;
-        
-        // Set document properties
+
+        // Document metadata
         $this->pdf->SetCreator('TrackSite Payroll System');
         $this->pdf->SetAuthor('TrackSite Construction Management');
         $this->pdf->SetTitle('Payroll Slip');
-        
-        // Set margins
-        $this->pdf->SetMargins(10, 10, 10);
-        $this->pdf->SetAutoPageBreak(true, 10);
-        
-        // Add page
+
+        // Tighter margins and smaller auto page break to maximize printable area
+        $this->pdf->setPrintHeader(false);
+        $this->pdf->setPrintFooter(false);
+        $this->pdf->SetMargins(6, 6, 6);
+        $this->pdf->SetAutoPageBreak(true, 6);
+        $this->pdf->setCellHeightRatio(1.0);
+        $this->pdf->setImageScale(1.0);
+
+        // Add compact page and default smaller font
         $this->pdf->AddPage();
-        
-        // Set font
-        $this->pdf->SetFont('helvetica', '', 10);
+        $this->pdf->SetFont('helvetica', '', 9);
     }
     
     /**
@@ -289,57 +285,47 @@ class PayrollPDFGenerator {
             return; // Skip if TCPDF not available
         }
         
-        // Company header
-        $this->pdf->SetFont('helvetica', 'B', 14);
-        $this->pdf->Cell(0, 8, $this->companyName, 0, 1, 'C');
-        
-        $this->pdf->SetFont('helvetica', '', 9);
-        $this->pdf->Cell(0, 6, $this->companyAddress, 0, 1, 'C');
+        // Company header (compact)
+        $this->pdf->SetFont('helvetica', 'B', 12);
+        $this->pdf->Cell(0, 7, $this->companyName, 0, 1, 'C');
+
+        $this->pdf->SetFont('helvetica', '', 8);
+        if (!empty($this->companyAddress)) {
+            $this->pdf->Cell(0, 6, $this->companyAddress, 0, 1, 'C');
+        }
+        $this->pdf->SetFont('helvetica', 'B', 11);
         $this->pdf->Cell(0, 6, 'PAYROLL SLIP', 0, 1, 'C');
-        
-        // Period info
-        $this->pdf->SetFont('helvetica', 'B', 10);
-        $this->pdf->Cell(90, 6, 'Period: ', 0, 0, 'L');
-        $this->pdf->SetFont('helvetica', '', 10);
-        $periodStr = date('F d, Y', strtotime($period['period_start'])) . ' - ' . 
-                     date('F d, Y', strtotime($period['period_end']));
-        $this->pdf->Cell(0, 6, $periodStr, 0, 1, 'L');
-        
-        // Employee info
-        $this->pdf->SetFont('helvetica', 'B', 10);
-        $this->pdf->Cell(90, 6, "Employee's Name: ", 0, 0, 'L');
-        $this->pdf->SetFont('helvetica', '', 10);
-        $empName = $worker['first_name'] . ' ' . $worker['last_name'];
-        $this->pdf->Cell(0, 6, $empName, 0, 1, 'L');
-        
-        $this->pdf->SetFont('helvetica', 'B', 10);
-        $this->pdf->Cell(90, 6, 'Designation: ', 0, 0, 'L');
-        $this->pdf->SetFont('helvetica', '', 10);
-        $this->pdf->Cell(0, 6, $worker['position'], 0, 1, 'L');
-        
-        $this->pdf->SetFont('helvetica', 'B', 10);
-        $this->pdf->Cell(90, 6, 'ID No.: ', 0, 0, 'L');
-        $this->pdf->SetFont('helvetica', '', 10);
-        $this->pdf->Cell(0, 6, $worker['worker_code'], 0, 1, 'L');
-        
-        $this->pdf->Ln(2);
-        
-        // Work Hours Summary
+
+        // Period info (compact)
         $this->pdf->SetFont('helvetica', 'B', 9);
-        $this->pdf->SetFillColor(245, 245, 245);
-        $this->pdf->Cell(45, 6, 'Regular Hrs', 1, 0, 'L', true);
-        $this->pdf->Cell(45, 6, 'OT Hrs', 1, 0, 'L', true);
-        $this->pdf->Cell(0, 6, 'Total Hours', 1, 1, 'L', true);
-        
+        $this->pdf->Cell(60, 5, 'Period:', 0, 0, 'L');
         $this->pdf->SetFont('helvetica', '', 9);
-        $totalHours = $period['total_hours'] ?? ($record['regular_hours'] + $record['overtime_hours'] + 
-                     $record['night_diff_hours'] + $record['rest_day_hours'] + 
-                     $record['regular_holiday_hours'] + $record['special_holiday_hours']);
-        $this->pdf->Cell(45, 6, number_format($record['regular_hours'], 2), 1, 0, 'R');
-        $this->pdf->Cell(45, 6, number_format($record['overtime_hours'], 2), 1, 0, 'R');
-        $this->pdf->Cell(0, 6, number_format($totalHours, 2), 1, 1, 'R');
-        
-        $this->pdf->Ln(4);
+        $periodStr = date('F d, Y', strtotime($period['period_start'])) . ' - ' . date('F d, Y', strtotime($period['period_end']));
+        $this->pdf->Cell(0, 5, $periodStr, 0, 1, 'L');
+
+        // Employee info (single line compact)
+        $this->pdf->SetFont('helvetica', 'B', 9);
+        $this->pdf->Cell(40, 5, "Employee:", 0, 0, 'L');
+        $this->pdf->SetFont('helvetica', '', 9);
+        $empName = $worker['first_name'] . ' ' . $worker['last_name'];
+        $this->pdf->Cell(0, 5, $empName . '  |  ' . ($worker['position'] ?? '') . '  |  ID: ' . ($worker['worker_code'] ?? ''), 0, 1, 'L');
+
+        $this->pdf->Ln(2);
+
+        // Work Hours Summary (compact cells)
+        $this->pdf->SetFont('helvetica', 'B', 9);
+        $this->pdf->SetFillColor(240, 240, 240);
+        $this->pdf->Cell(50, 5, 'Regular Hrs', 1, 0, 'C', true);
+        $this->pdf->Cell(50, 5, 'OT Hrs', 1, 0, 'C', true);
+        $this->pdf->Cell(0, 5, 'Total Hrs', 1, 1, 'C', true);
+
+        $this->pdf->SetFont('helvetica', '', 9);
+        $totalHours = $period['total_hours'] ?? ($record['regular_hours'] + $record['overtime_hours'] + $record['night_diff_hours'] + $record['rest_day_hours'] + $record['regular_holiday_hours'] + $record['special_holiday_hours']);
+        $this->pdf->Cell(50, 5, number_format($record['regular_hours'], 2), 1, 0, 'C');
+        $this->pdf->Cell(50, 5, number_format($record['overtime_hours'], 2), 1, 0, 'C');
+        $this->pdf->Cell(0, 5, number_format($totalHours, 2), 1, 1, 'C');
+
+        $this->pdf->Ln(2);
     }
     
     /**
