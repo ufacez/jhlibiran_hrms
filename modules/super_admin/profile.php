@@ -638,7 +638,7 @@ try {
 <body>
     <?php include __DIR__ . '/../../includes/admin_sidebar.php'; ?>
     
-    <div class="main-content">
+    <div class="main">
         <?php include __DIR__ . '/../../includes/admin_topbar.php'; ?>
         
         <div class="content-wrapper">
@@ -929,26 +929,36 @@ try {
                 <button type="button" class="modal-close" onclick="closeModal('avatarModal')">&times;</button>
             </div>
             
-            <form action="" method="POST" enctype="multipart/form-data">
+            <form action="" method="POST" enctype="multipart/form-data" id="avatarForm">
                 <input type="hidden" name="action" value="upload_profile_picture">
-                
-                <div class="form-group">
-                    <label>Select Image</label>
-                    <input type="file" name="profile_picture" accept="image/jpeg,image/png,image/gif" required>
-                    <small style="color: #666; display: block; margin-top: 5px;">
-                        Allowed: JPG, PNG, GIF. Max size: 5MB
-                    </small>
-                </div>
-                
-                <div style="display: flex; gap: 10px; margin-top: 20px;">
-                    <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-upload"></i> Upload
-                    </button>
-                    <?php if (!empty($profile['profile_image'])): ?>
-                    <button type="submit" name="action" value="remove_profile_picture" class="btn btn-danger">
-                        <i class="fas fa-trash"></i> Remove Current
-                    </button>
-                    <?php endif; ?>
+
+                <div id="avatarModalAlert"></div>
+
+                <div class="profile-picture-section">
+                    <div class="profile-picture-preview" id="avatarPreview">
+                        <?php if (!empty($profile['profile_image']) && file_exists(UPLOADS_PATH . '/' . $profile['profile_image'])): ?>
+                            <img src="<?php echo UPLOADS_URL . '/' . $profile['profile_image']; ?>" alt="Profile">
+                        <?php else: ?>
+                            <i class="fas fa-user"></i>
+                        <?php endif; ?>
+                    </div>
+
+                    <div class="profile-picture-actions">
+                        <label class="file-input-wrapper btn-upload">
+                            <i class="fas fa-upload"></i> Choose Image
+                            <input type="file" name="profile_picture" id="profile_picture_input" accept="image/jpeg,image/png,image/gif">
+                        </label>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-cloud-upload-alt"></i> Upload
+                        </button>
+                        <?php if (!empty($profile['profile_image'])): ?>
+                        <button type="submit" name="action" value="remove_profile_picture" class="btn btn-danger">
+                            <i class="fas fa-trash"></i> Remove Current
+                        </button>
+                        <?php endif; ?>
+                    </div>
+
+                    <div class="upload-hint">Allowed: JPG, PNG, GIF. Max size: 5MB</div>
                 </div>
             </form>
         </div>
@@ -962,6 +972,8 @@ try {
                 <button type="button" class="modal-close" onclick="closeModal('passwordModal')">&times;</button>
             </div>
             
+            <div id="passwordModalAlert"></div>
+
             <div class="password-requirements">
                 <p><i class="fas fa-info-circle"></i> Password Requirements:</p>
                 <ul>
@@ -1017,31 +1029,79 @@ try {
             });
         });
         
+        // Helper to show modal alerts
+        function showModalAlert(containerId, message, type = 'error') {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+            const cls = type === 'success' ? 'alert alert-success' : 'alert alert-error';
+            container.innerHTML = `<div class="${cls}" style="margin-bottom:15px;">` +
+                `<i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i> ` +
+                `<span>${message}</span></div>`;
+            // Scroll modal content to top so alert is visible
+            const modal = container.closest('.modal-content');
+            if (modal) modal.scrollTop = 0;
+        }
+
         // Password validation
         document.getElementById('passwordForm').addEventListener('submit', function(e) {
             const newPass = document.getElementById('new_password').value;
             const confirmPass = document.getElementById('confirm_password').value;
             
+            // Clear previous alerts
+            document.getElementById('passwordModalAlert').innerHTML = '';
+
             // Check length
             if (newPass.length < 8) {
                 e.preventDefault();
-                alert('Password must be at least 8 characters long!');
+                showModalAlert('passwordModalAlert', 'Password must be at least 8 characters long!', 'error');
                 return false;
             }
             
             // Check for symbol
-            if (!/[!@#$%^&*()_+\-=\[\]{};\':\"\\|,.<>\/?]/.test(newPass)) {
+            if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(newPass)) {
                 e.preventDefault();
-                alert('Password must contain at least one symbol (!@#$%^&*()_+-=[]{};\':"|,.<>/?)');
+                showModalAlert('passwordModalAlert', 'Password must contain at least one symbol (!@#$%^&*()_+-=[]{};\':"|,.<>/?)', 'error');
                 return false;
             }
             
             if (newPass !== confirmPass) {
                 e.preventDefault();
-                alert('Passwords do not match!');
+                showModalAlert('passwordModalAlert', 'Passwords do not match!', 'error');
                 return false;
             }
         });
+
+        // Avatar preview and validation
+        const avatarInput = document.getElementById('profile_picture_input');
+        if (avatarInput) {
+            avatarInput.addEventListener('change', function() {
+                const file = this.files[0];
+                const alertContainer = document.getElementById('avatarModalAlert');
+                alertContainer.innerHTML = '';
+
+                if (!file) return;
+
+                const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+                if (!allowedTypes.includes(file.type)) {
+                    showModalAlert('avatarModalAlert', 'Invalid file type. Only JPG, PNG, and GIF are allowed.', 'error');
+                    this.value = '';
+                    return;
+                }
+
+                if (file.size > 5242880) { // 5MB
+                    showModalAlert('avatarModalAlert', 'File size must be less than 5MB', 'error');
+                    this.value = '';
+                    return;
+                }
+
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const preview = document.getElementById('avatarPreview');
+                    preview.innerHTML = `<img src="${e.target.result}" alt="Preview">`;
+                };
+                reader.readAsDataURL(file);
+            });
+        }
         
         <?php if (!$is_super_admin): ?>
         // Address data for admin profile

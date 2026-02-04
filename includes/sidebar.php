@@ -465,6 +465,22 @@ $current_dir = basename(dirname($_SERVER['PHP_SELF']));
         
         <div class="menu-separator"></div>
         
+        <!-- ACCOUNT SECTION -->
+        <div class="menu-category">
+            <i class="fas fa-user-circle"></i> Account
+        </div>
+
+        <!-- My Profile -->
+        <li>
+            <a href="<?php echo BASE_URL; ?>/modules/super_admin/profile.php"
+               class="<?php echo ($current_page === 'profile.php') ? 'active' : ''; ?>">
+                <i class="fas fa-user-circle"></i>
+                <div class="title">My Profile</div>
+            </a>
+        </li>
+
+        <div class="menu-separator"></div>
+
         <!-- Logout -->
         <li>
             <a href="<?php echo BASE_URL; ?>/logout.php" class="logout-link">
