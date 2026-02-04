@@ -829,6 +829,13 @@ $pageTitle = 'Payroll Management';
                     </div>
                 </div>
                 
+                <!-- Rates Banner -->
+                <div class="rates-banner">
+                    <h3><i class="fas fa-coins"></i> Current Payroll Rates <a href="payroll_v2/configure.php">Edit Rates</a></h3>
+                    <div class="rates-display" id="ratesDisplay">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
                 <!-- Main Layout -->
                 <div class="payroll-grid">
                     <!-- Left Panel: Worker Selection & Payroll List -->
@@ -1271,7 +1278,7 @@ $pageTitle = 'Payroll Management';
                         <div class="breakdown-row">
                             <span class="label">
                                 Overtime Pay
-                                <span class="formula">${formatNum(payroll.totals.overtime_hours)}hrs × ₱${formatNum(payroll.rates_used.hourly_rate)} × ${payroll.rates_used.overtime_multiplier}</span>
+                                <span class="formula">${formatNum(payroll.totals.overtime_hours)}hrs × ₱${formatNum(payroll.rates_used.hourly_rate)} × ${payroll.rates_used.overtime_multiplier} (${(parseFloat(payroll.rates_used.overtime_multiplier) * 100).toFixed(0)}%)</span>
                             </span>
                             <span class="amount">₱${formatNum(payroll.totals.overtime_pay)}</span>
                         </div>`;

@@ -350,11 +350,13 @@ $netPay = floatval($record['net_pay']);
                         <tr>
                             <td>
                                 <strong>Overtime Pay</strong>
-                                <div class="computation"><?php echo number_format($record['overtime_hours'], 2); ?> OT hours @ 125%</div>
+                                <div class="computation">
+                                    <?php echo number_format($record['overtime_hours'], 2); ?> OT hours @ <?php echo isset($record['overtime_multiplier']) ? ($record['overtime_multiplier'] * 100) : ($otRate * 100); ?>%
+                                </div>
                             </td>
                             <td>
                                 <div class="computation">
-                                    <?php echo number_format($record['overtime_hours'], 2); ?> hrs × ₱<?php echo number_format($hourlyRate, 2); ?> × <?php echo $otRate; ?>
+                                    <?php echo number_format($record['overtime_hours'], 2); ?> hrs × ₱<?php echo number_format($hourlyRate, 2); ?> × <?php echo isset($record['overtime_multiplier']) ? $record['overtime_multiplier'] : $otRate; ?>
                                 </div>
                             </td>
                             <td>₱<?php echo number_format($record['overtime_pay'], 2); ?></td>

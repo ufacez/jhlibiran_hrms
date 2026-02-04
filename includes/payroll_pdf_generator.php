@@ -374,7 +374,10 @@ class PayrollPDFGenerator {
                 if ($earning['description']) {
                     $desc .= ' - ' . $earning['description'];
                 }
-                
+                // Show multiplier for overtime
+                if ($earning['earning_type'] === 'overtime' && isset($earning['multiplier_used'])) {
+                    $desc .= ' (' . ($earning['multiplier_used'] * 100) . '%)';
+                }
                 $this->pdf->Cell(50, 6, substr($desc, 0, 50), 1, 0, 'L');
                 $this->pdf->Cell(25, 6, ($earning['hours'] > 0 ? number_format($earning['hours'], 2) : '-'), 1, 0, 'R');
                 $this->pdf->Cell(25, 6, '₱' . number_format($earning['rate_used'], 2), 1, 0, 'R');
