@@ -93,6 +93,151 @@ class PayrollCalculator {
     }
     
     /**
+     * Get worker rates with type-based fallbacks
+     * 
+     * @param int $workerId Worker ID
+     * @return array Worker rates with all applicable rates
+     */
+    public function getWorkerRates($workerId) {
+        try {
+            // Use the new work_types system with fallback to legacy worker_type_rates
+            $stmt = $this->pdo->prepare("
+                SELECT 
+                    w.worker_id,
+                    w.worker_code,
+                    w.first_name,
+                    w.last_name,
+                    w.position,
+                    w.worker_type,
+                    w.work_type_id,
+                    w.daily_rate as individual_daily_rate,
+                    w.hourly_rate as individual_hourly_rate,
+                    -- New work_types table rates (primary)
+                    wt.work_type_code,
+                    wt.work_type_name,
+                    wt.daily_rate as wt_daily_rate,
+                    wt.hourly_rate as wt_hourly_rate,
+                    -- Legacy worker_type_rates (fallback)
+                    wtr.hourly_rate as type_hourly_rate,
+                    wtr.daily_rate as type_daily_rate,
+                    wtr.overtime_multiplier,
+                    wtr.night_diff_percentage
+                FROM workers w
+                LEFT JOIN work_types wt ON w.work_type_id = wt.work_type_id AND wt.is_active = 1
+                LEFT JOIN worker_type_rates wtr ON w.worker_type = wtr.worker_type 
+                    AND wtr.is_active = 1
+                    AND wtr.effective_date <= CURRENT_DATE
+                WHERE w.worker_id = ?
+                    AND w.is_archived = 0
+                ORDER BY wtr.effective_date DESC
+                LIMIT 1
+            ");
+            $stmt->execute([$workerId]);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if ($result) {
+                // Priority: work_types > individual > worker_type_rates > payroll_settings
+                $dailyRate = $result['wt_daily_rate'] 
+                    ?? $result['individual_daily_rate'] 
+                    ?? $result['type_daily_rate'] 
+                    ?? $this->getRate('daily_rate', 600);
+                    
+                $hourlyRate = $result['wt_hourly_rate'] 
+                    ?? $result['individual_hourly_rate'] 
+                    ?? $result['type_hourly_rate'] 
+                    ?? ($dailyRate / 8);
+                
+                // Get overtime multiplier from payroll_settings (configurable)
+                $otMultiplier = $result['overtime_multiplier'] 
+                    ?? $this->getRate('overtime_multiplier', 1.25);
+                    
+                // Get night diff percentage from payroll_settings
+                $nightDiffPct = $result['night_diff_percentage'] 
+                    ?? $this->getRate('night_diff_percentage', 10);
+                
+                // Determine rate source for transparency
+                $rateSource = 'settings';
+                if ($result['wt_daily_rate']) {
+                    $rateSource = 'work_type';
+                } elseif ($result['individual_daily_rate']) {
+                    $rateSource = 'individual';
+                } elseif ($result['type_daily_rate']) {
+                    $rateSource = 'legacy_type';
+                }
+                
+                return [
+                    'worker_id' => $result['worker_id'],
+                    'worker_code' => $result['worker_code'],
+                    'name' => $result['first_name'] . ' ' . $result['last_name'],
+                    'position' => $result['position'],
+                    'worker_type' => $result['worker_type'],
+                    'work_type_id' => $result['work_type_id'],
+                    'work_type_code' => $result['work_type_code'],
+                    'work_type_name' => $result['work_type_name'],
+                    'hourly_rate' => floatval($hourlyRate),
+                    'daily_rate' => floatval($dailyRate),
+                    'overtime_multiplier' => floatval($otMultiplier),
+                    'night_diff_percentage' => floatval($nightDiffPct),
+                    'rate_source' => $rateSource,
+                    'has_custom_rate' => $rateSource === 'individual'
+                ];
+            } else {
+                throw new Exception("Worker not found or archived");
+            }
+            
+        } catch (PDOException $e) {
+            error_log("PayrollCalculator: Failed to get worker rates - " . $e->getMessage());
+            throw new Exception("Failed to retrieve worker rates");
+        }
+    }
+    
+    /**
+     * Get all worker types and their default rates
+     * 
+     * @return array Worker types with rates
+     */
+    public function getWorkerTypeRates() {
+        try {
+            $stmt = $this->pdo->query("
+                SELECT 
+                    worker_type,
+                    hourly_rate,
+                    daily_rate,
+                    overtime_multiplier,
+                    night_diff_percentage
+                FROM worker_type_rates 
+                WHERE is_active = 1
+                    AND effective_date <= CURRENT_DATE
+                ORDER BY worker_type, effective_date DESC
+            ");
+            
+            $results = [];
+            $seen = [];
+            
+            while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                // Only keep the latest rate for each type
+                if (!isset($seen[$row['worker_type']])) {
+                    $results[$row['worker_type']] = [
+                        'worker_type' => $row['worker_type'],
+                        'display_name' => ucwords(str_replace('_', ' ', $row['worker_type'])),
+                        'hourly_rate' => floatval($row['hourly_rate']),
+                        'daily_rate' => floatval($row['daily_rate']),
+                        'overtime_multiplier' => floatval($row['overtime_multiplier']),
+                        'night_diff_percentage' => floatval($row['night_diff_percentage'])
+                    ];
+                    $seen[$row['worker_type']] = true;
+                }
+            }
+            
+            return array_values($results);
+            
+        } catch (PDOException $e) {
+            error_log("PayrollCalculator: Failed to get worker type rates - " . $e->getMessage());
+            return [];
+        }
+    }
+    
+    /**
      * Calculate withholding tax based on weekly gross income
      * Uses TRAIN Law formula: Tax = Base Tax + ((Income - Lower Bound) × Tax Rate)
      * 
@@ -1133,34 +1278,32 @@ class PayrollCalculator {
         // Load holidays for the period
         $this->loadHolidays($periodStart, $periodEnd);
         
-        // Get attendance records for the period
+        // Get worker rates (includes type-based rates)
+        $workerRates = $this->getWorkerRates($workerId);
+        $hourlyRate = $workerRates['hourly_rate'];
+        
+        // Get attendance records for the period with enhanced calculation
         $stmt = $this->pdo->prepare("
             SELECT attendance_id, worker_id, attendance_date, time_in, time_out, 
-                   hours_worked, overtime_hours, status, notes
+                   hours_worked, raw_hours_worked, break_hours, late_minutes,
+                   overtime_hours, status, notes
             FROM attendance 
             WHERE worker_id = ? 
             AND attendance_date BETWEEN ? AND ?
             AND is_archived = 0
+            AND time_in IS NOT NULL 
+            AND time_out IS NOT NULL
             ORDER BY attendance_date ASC
         ");
         $stmt->execute([$workerId, $periodStart, $periodEnd]);
         $attendanceRecords = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
-        // Get worker info
-        $stmt = $this->pdo->prepare("
-            SELECT worker_id, worker_code, first_name, last_name, position 
-            FROM workers WHERE worker_id = ?
-        ");
-        $stmt->execute([$workerId]);
-        $worker = $stmt->fetch(PDO::FETCH_ASSOC);
-        
-        if (!$worker) {
+        if (!$workerRates) {
             throw new Exception("Worker not found: " . $workerId);
         }
         
         // Process each attendance record
         $dailyBreakdown = [];
-        $hourlyRate = $this->getRate('hourly_rate');
         
         // Aggregated totals
         $totals = [
@@ -1182,18 +1325,19 @@ class PayrollCalculator {
         $allEarnings = [];
         
         foreach ($attendanceRecords as $attendance) {
-            $dayResult = $this->processAttendanceRecord($attendance);
+            $dayResult = $this->processAttendanceRecordWithWorkerRates($attendance, $workerRates);
             $dailyBreakdown[] = $dayResult;
             
-            // Aggregate by type
+            // Accumulate earnings
             foreach ($dayResult['earnings'] as $earning) {
                 $type = $earning['type'];
+                
                 $allEarnings[] = array_merge($earning, [
                     'date' => $dayResult['date'],
                     'attendance_id' => $attendance['attendance_id']
                 ]);
                 
-                // Map to totals
+                // Map to totals using worker-specific multipliers
                 switch ($type) {
                     case 'regular':
                         $totals['regular_hours'] += $earning['hours'];
@@ -1237,7 +1381,14 @@ class PayrollCalculator {
         $netPay = $totals['gross_pay'] - $deductions['total'];
         
         return [
-            'worker' => $worker,
+            'worker' => [
+                'worker_id' => $workerRates['worker_id'],
+                'worker_code' => $workerRates['worker_code'],
+                'first_name' => explode(' ', $workerRates['name'])[0],
+                'last_name' => substr($workerRates['name'], strpos($workerRates['name'], ' ') + 1),
+                'position' => $workerRates['position'],
+                'worker_type' => $workerRates['worker_type']
+            ],
             'period' => [
                 'start' => $periodStart,
                 'end' => $periodEnd,
@@ -1245,18 +1396,209 @@ class PayrollCalculator {
             ],
             'rates_used' => [
                 'hourly_rate' => $hourlyRate,
-                'overtime_multiplier' => $this->getRate('overtime_multiplier'),
-                'night_diff_percentage' => $this->getRate('night_diff_percentage'),
-                'regular_holiday_multiplier' => $this->getRate('regular_holiday_multiplier'),
-                'special_holiday_multiplier' => $this->getRate('special_holiday_multiplier'),
-                'rest_day_multiplier' => $this->getRate('rest_day_multiplier')
+                'overtime_multiplier' => $workerRates['overtime_multiplier'],
+                'night_diff_percentage' => $workerRates['night_diff_percentage'],
+                'regular_holiday_multiplier' => $this->getRate('regular_holiday_multiplier', 2.0),
+                'special_holiday_multiplier' => $this->getRate('special_holiday_multiplier', 1.3),
+                'rest_day_multiplier' => $this->getRate('rest_day_multiplier', 1.3),
+                'rate_source' => $workerRates['rate_source']
             ],
-            'totals' => $totals,
-            'daily_breakdown' => $dailyBreakdown,
+            'attendance' => $dailyBreakdown,
             'earnings' => $allEarnings,
+            'totals' => $totals,
             'deductions' => $deductions,
-            'net_pay' => $netPay,
-            'generated_at' => date('Y-m-d H:i:s')
+            'net_pay' => round($netPay, 2),
+            'calculation_summary' => [
+                'days_worked' => count($attendanceRecords),
+                'total_hours' => $totals['regular_hours'] + $totals['overtime_hours'],
+                'rate_type' => $workerRates['has_custom_rate'] ? 'Custom Rate' : 'Type-based Rate (' . ucwords(str_replace('_', ' ', $workerRates['worker_type'])) . ')',
+                'calculation_date' => date('Y-m-d H:i:s')
+            ]
+        ];
+    }
+    
+    /**
+     * Process attendance record with worker-specific rates
+     * 
+     * @param array $attendance Attendance record
+     * @param array $workerRates Worker rates from getWorkerRates()
+     * @return array Detailed earnings breakdown
+     */
+    public function processAttendanceRecordWithWorkerRates($attendance, $workerRates) {
+        $workerId = $attendance['worker_id'];
+        $date = $attendance['attendance_date'];
+        $timeIn = $attendance['time_in'];
+        $timeOut = $attendance['time_out'];
+        $hourlyRate = $workerRates['hourly_rate'];
+        
+        if (empty($timeIn) || empty($timeOut)) {
+            return [
+                'date' => $date,
+                'status' => 'incomplete',
+                'earnings' => [],
+                'total' => 0,
+                'hours_breakdown' => [
+                    'total_hours' => 0,
+                    'regular_hours' => 0,
+                    'overtime_hours' => 0
+                ]
+            ];
+        }
+        
+        // Use enhanced hours if available, fallback to basic calculation
+        $totalHours = $attendance['hours_worked'] ?? $this->calculateBasicHours($timeIn, $timeOut);
+        $overtimeHours = $attendance['overtime_hours'] ?? max(0, $totalHours - 8);
+        $regularHours = $totalHours - $overtimeHours;
+        
+        $earnings = [];
+        
+        // Check if it's a holiday
+        $holiday = $this->getHoliday($date);
+        $isRestDay = $this->isRestDay($workerId, $date);
+        
+        if ($holiday) {
+            // Holiday calculations with worker-specific rates
+            if ($holiday['type'] === 'regular') {
+                $earnings[] = $this->calculateRegularHolidayPay($regularHours, $hourlyRate, $isRestDay);
+                if ($overtimeHours > 0) {
+                    $earnings[] = $this->calculateRegularHolidayOvertimePay($overtimeHours, $hourlyRate, $isRestDay);
+                }
+            } else {
+                $earnings[] = $this->calculateSpecialHolidayPay($regularHours, $hourlyRate, $isRestDay);
+                if ($overtimeHours > 0) {
+                    $earnings[] = $this->calculateSpecialHolidayOvertimePay($overtimeHours, $hourlyRate, $isRestDay);
+                }
+            }
+        } elseif ($isRestDay) {
+            // Rest Day calculations
+            if ($regularHours > 0) {
+                $earnings[] = $this->calculateRestDayPay($regularHours, $hourlyRate);
+            }
+            if ($overtimeHours > 0) {
+                $earnings[] = $this->calculateOvertimePay($overtimeHours, $hourlyRate, true);
+            }
+        } else {
+            // Regular Work Day
+            if ($regularHours > 0) {
+                $earnings[] = $this->calculateRegularPay($regularHours, $hourlyRate);
+            }
+            if ($overtimeHours > 0) {
+                $earnings[] = $this->calculateOvertimePay($overtimeHours, $hourlyRate, false);
+            }
+        }
+        
+        // Calculate night differential with worker-specific percentage
+        $nightDiffHours = $this->calculateNightDiffHours($timeIn, $timeOut, $date);
+        if ($nightDiffHours > 0) {
+            $earnings[] = $this->calculateNightDiffPayWithRate($nightDiffHours, $hourlyRate, $workerRates['night_diff_percentage']);
+        }
+        
+        // Calculate total
+        $total = array_sum(array_column($earnings, 'amount'));
+        
+        return [
+            'date' => $date,
+            'time_in' => $timeIn,
+            'time_out' => $timeOut,
+            'hours_breakdown' => [
+                'total_hours' => $totalHours,
+                'regular_hours' => $regularHours,
+                'overtime_hours' => $overtimeHours,
+                'night_diff_hours' => $nightDiffHours,
+                'raw_hours' => $attendance['raw_hours_worked'] ?? $totalHours,
+                'break_hours' => $attendance['break_hours'] ?? 0,
+                'late_minutes' => $attendance['late_minutes'] ?? 0
+            ],
+            'is_rest_day' => $isRestDay,
+            'is_holiday' => $holiday !== null,
+            'holiday_type' => $holiday['type'] ?? null,
+            'holiday_name' => $holiday['name'] ?? null,
+            'earnings' => $earnings,
+            'total' => $total,
+            'worker_rate_used' => $hourlyRate
+        ];
+    }
+
+    /**
+     * Calculate basic hours from time in and time out
+     */
+    private function calculateBasicHours($timeIn, $timeOut) {
+        $start = strtotime($timeIn);
+        $end = strtotime($timeOut);
+        
+        // Handle overnight shifts
+        if ($end < $start) {
+            $end += 86400;
+        }
+        
+        return round(($end - $start) / 3600, 2);
+    }
+    
+    /**
+     * Calculate night differential with custom percentage
+     */
+    public function calculateNightDiffPayWithRate($hours, $hourlyRate, $nightDiffPercentage) {
+        $multiplier = 1 + ($nightDiffPercentage / 100);
+        $amount = $hours * $hourlyRate * ($nightDiffPercentage / 100);
+        
+        return [
+            'type' => 'night_differential',
+            'hours' => $hours,
+            'rate' => $hourlyRate,
+            'percentage' => $nightDiffPercentage,
+            'amount' => round($amount, 2),
+            'formula' => sprintf("%.2f hrs × ₱%.2f × %.1f%% = ₱%.2f", 
+                $hours, $hourlyRate, $nightDiffPercentage, round($amount, 2))
+        ];
+    }
+    
+    /**
+     * Calculate regular holiday overtime pay
+     */
+    public function calculateRegularHolidayOvertimePay($hours, $hourlyRate, $isRestDay = false) {
+        $baseMultiplier = $this->getRate('regular_holiday_multiplier', 2.0);
+        $otMultiplier = $this->getRate('overtime_multiplier', 1.25);
+        $multiplier = $baseMultiplier * $otMultiplier;
+        
+        if ($isRestDay) {
+            $multiplier = $this->getRate('regular_holiday_rest_day_overtime_multiplier', 3.38); // 2.6 x 1.3
+        }
+        
+        $amount = $hours * $hourlyRate * $multiplier;
+        
+        return [
+            'type' => 'regular_holiday_overtime',
+            'hours' => $hours,
+            'rate' => $hourlyRate,
+            'multiplier' => $multiplier,
+            'amount' => round($amount, 2),
+            'formula' => sprintf("%.2f hrs × ₱%.2f × %.2f = ₱%.2f", 
+                $hours, $hourlyRate, $multiplier, round($amount, 2))
+        ];
+    }
+    
+    /**
+     * Calculate special holiday overtime pay
+     */
+    public function calculateSpecialHolidayOvertimePay($hours, $hourlyRate, $isRestDay = false) {
+        $baseMultiplier = $this->getRate('special_holiday_multiplier', 1.3);
+        $otMultiplier = $this->getRate('overtime_multiplier', 1.25);
+        $multiplier = $baseMultiplier * $otMultiplier;
+        
+        if ($isRestDay) {
+            $multiplier = $this->getRate('special_holiday_rest_day_overtime_multiplier', 2.19); // 1.69 x 1.3
+        }
+        
+        $amount = $hours * $hourlyRate * $multiplier;
+        
+        return [
+            'type' => 'special_holiday_overtime',
+            'hours' => $hours,
+            'rate' => $hourlyRate,
+            'multiplier' => $multiplier,
+            'amount' => round($amount, 2),
+            'formula' => sprintf("%.2f hrs × ₱%.2f × %.2f = ₱%.2f", 
+                $hours, $hourlyRate, $multiplier, round($amount, 2))
         ];
     }
     

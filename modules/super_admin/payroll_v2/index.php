@@ -819,9 +819,12 @@ $pageTitle = 'Payroll Management';
                         </button>
                         <div class="custom-period">
                             <span>Custom:</span>
-                            <input type="date" id="customStart" onchange="selectCustomPeriod()">
+                            <input type="date" id="customStart">
                             <span>to</span>
-                            <input type="date" id="customEnd" onchange="selectCustomPeriod()">
+                            <input type="date" id="customEnd">
+                            <button type="button" class="btn-apply-custom" onclick="applyCustomPeriod()" style="padding: 6px 12px; background: var(--gold); color: #000; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; margin-left: 8px;">
+                                <i class="fas fa-check"></i> Apply
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -1108,6 +1111,31 @@ $pageTitle = 'Payroll Management';
             }
         }
         
+        function applyCustomPeriod() {
+            const start = document.getElementById('customStart').value;
+            const end = document.getElementById('customEnd').value;
+            
+            if (!start || !end) {
+                showToast('Please select both start and end dates', 'error');
+                return;
+            }
+            
+            if (new Date(start) > new Date(end)) {
+                showToast('Start date must be before end date', 'error');
+                return;
+            }
+            
+            document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+            selectedPeriod.start = start;
+            selectedPeriod.end = end;
+            
+            showToast(`Custom period set: ${formatDate(start)} - ${formatDate(end)}`, 'success');
+            
+            if (selectedWorker) {
+                generatePayroll();
+            }
+        }
+        
         // Select worker (toggle)
         function selectWorker(workerId, element) {
             const isCurrentlySelected = element.classList.contains('selected');
@@ -1176,115 +1204,122 @@ $pageTitle = 'Payroll Management';
             }
         }
         
+        // Helper to safely format numbers
+        function formatNum(value, decimals = 2) {
+            const num = parseFloat(value) || 0;
+            return num.toFixed(decimals);
+        }
+        
         // Display payroll results
         function displayPayrollResults(payroll) {
-            document.getElementById('emptyState').style.display = 'none';
-            document.getElementById('payrollResults').style.display = 'block';
+            try {
+                document.getElementById('emptyState').style.display = 'none';
+                document.getElementById('payrollResults').style.display = 'block';
+                
+                // Worker info
+                document.getElementById('resultWorkerName').textContent = 
+                    payroll.worker.first_name + ' ' + payroll.worker.last_name;
+                document.getElementById('resultPeriod').textContent = 
+                    `${formatDate(payroll.period.start)} - ${formatDate(payroll.period.end)} (${payroll.period.days} days worked)`;
+                
+                // Hours breakdown
+                const hoursHtml = `
+                    <div class="breakdown-row">
+                        <span class="label">Regular Hours</span>
+                        <span class="amount">${formatNum(payroll.totals.regular_hours)} hrs</span>
+                    </div>
+                    <div class="breakdown-row">
+                        <span class="label">Overtime Hours</span>
+                        <span class="amount">${formatNum(payroll.totals.overtime_hours)} hrs</span>
+                    </div>
+                    <div class="breakdown-row">
+                        <span class="label">Night Diff Hours</span>
+                        <span class="amount">${formatNum(payroll.totals.night_diff_hours)} hrs</span>
+                    </div>
+                    ${payroll.totals.rest_day_hours > 0 ? `
+                    <div class="breakdown-row">
+                        <span class="label">Rest Day Hours</span>
+                        <span class="amount">${formatNum(payroll.totals.rest_day_hours)} hrs</span>
+                    </div>` : ''}
+                    ${payroll.totals.regular_holiday_hours > 0 ? `
+                    <div class="breakdown-row">
+                        <span class="label">Regular Holiday Hours</span>
+                        <span class="amount">${formatNum(payroll.totals.regular_holiday_hours)} hrs</span>
+                    </div>` : ''}
+                    ${payroll.totals.special_holiday_hours > 0 ? `
+                    <div class="breakdown-row">
+                        <span class="label">Special Holiday Hours</span>
+                        <span class="amount">${formatNum(payroll.totals.special_holiday_hours)} hrs</span>
+                    </div>` : ''}
+                `;
+                document.getElementById('hoursBreakdown').innerHTML = hoursHtml;
             
-            // Worker info
-            document.getElementById('resultWorkerName').textContent = 
-                payroll.worker.first_name + ' ' + payroll.worker.last_name;
-            document.getElementById('resultPeriod').textContent = 
-                `${formatDate(payroll.period.start)} - ${formatDate(payroll.period.end)} (${payroll.period.days} days worked)`;
+                // Earnings breakdown with formulas
+                let earningsHtml = '';
+                if (payroll.totals.regular_pay > 0) {
+                    earningsHtml += `
+                        <div class="breakdown-row">
+                            <span class="label">
+                                Regular Pay
+                                <span class="formula">${formatNum(payroll.totals.regular_hours)}hrs × ₱${formatNum(payroll.rates_used.hourly_rate)}</span>
+                            </span>
+                            <span class="amount">₱${formatNum(payroll.totals.regular_pay)}</span>
+                        </div>`;
+                }
+                if (payroll.totals.overtime_pay > 0) {
+                    earningsHtml += `
+                        <div class="breakdown-row">
+                            <span class="label">
+                                Overtime Pay
+                                <span class="formula">${formatNum(payroll.totals.overtime_hours)}hrs × ₱${formatNum(payroll.rates_used.hourly_rate)} × ${payroll.rates_used.overtime_multiplier}</span>
+                            </span>
+                            <span class="amount">₱${formatNum(payroll.totals.overtime_pay)}</span>
+                        </div>`;
+                }
+                if (payroll.totals.night_diff_pay > 0) {
+                    earningsHtml += `
+                        <div class="breakdown-row">
+                            <span class="label">
+                                Night Differential
+                                <span class="formula">${formatNum(payroll.totals.night_diff_hours)}hrs × ₱${formatNum(payroll.rates_used.hourly_rate)} × ${payroll.rates_used.night_diff_percentage}%</span>
+                            </span>
+                            <span class="amount">₱${formatNum(payroll.totals.night_diff_pay)}</span>
+                        </div>`;
+                }
+                if (payroll.totals.rest_day_pay > 0) {
+                    earningsHtml += `
+                        <div class="breakdown-row">
+                            <span class="label">Rest Day Pay</span>
+                            <span class="amount">₱${formatNum(payroll.totals.rest_day_pay)}</span>
+                        </div>`;
+                }
+                if (payroll.totals.regular_holiday_pay > 0) {
+                    earningsHtml += `
+                        <div class="breakdown-row">
+                            <span class="label">
+                                Regular Holiday Pay
+                                <span class="formula">× ${payroll.rates_used.regular_holiday_multiplier}</span>
+                            </span>
+                            <span class="amount">₱${formatNum(payroll.totals.regular_holiday_pay)}</span>
+                        </div>`;
+                }
+                if (payroll.totals.special_holiday_pay > 0) {
+                    earningsHtml += `
+                        <div class="breakdown-row">
+                            <span class="label">
+                                Special Holiday Pay
+                                <span class="formula">× ${payroll.rates_used.special_holiday_multiplier}</span>
+                            </span>
+                            <span class="amount">₱${formatNum(payroll.totals.special_holiday_pay)}</span>
+                        </div>`;
+                }
+                
+                if (!earningsHtml) {
+                    earningsHtml = '<div class="breakdown-row" style="color: #888;">No attendance records found for this period</div>';
+                }
             
-            // Hours breakdown
-            const hoursHtml = `
-                <div class="breakdown-row">
-                    <span class="label">Regular Hours</span>
-                    <span class="amount">${payroll.totals.regular_hours.toFixed(2)} hrs</span>
-                </div>
-                <div class="breakdown-row">
-                    <span class="label">Overtime Hours</span>
-                    <span class="amount">${payroll.totals.overtime_hours.toFixed(2)} hrs</span>
-                </div>
-                <div class="breakdown-row">
-                    <span class="label">Night Diff Hours</span>
-                    <span class="amount">${payroll.totals.night_diff_hours.toFixed(2)} hrs</span>
-                </div>
-                ${payroll.totals.rest_day_hours > 0 ? `
-                <div class="breakdown-row">
-                    <span class="label">Rest Day Hours</span>
-                    <span class="amount">${payroll.totals.rest_day_hours.toFixed(2)} hrs</span>
-                </div>` : ''}
-                ${payroll.totals.regular_holiday_hours > 0 ? `
-                <div class="breakdown-row">
-                    <span class="label">Regular Holiday Hours</span>
-                    <span class="amount">${payroll.totals.regular_holiday_hours.toFixed(2)} hrs</span>
-                </div>` : ''}
-                ${payroll.totals.special_holiday_hours > 0 ? `
-                <div class="breakdown-row">
-                    <span class="label">Special Holiday Hours</span>
-                    <span class="amount">${payroll.totals.special_holiday_hours.toFixed(2)} hrs</span>
-                </div>` : ''}
-            `;
-            document.getElementById('hoursBreakdown').innerHTML = hoursHtml;
-            
-            // Earnings breakdown with formulas
-            let earningsHtml = '';
-            if (payroll.totals.regular_pay > 0) {
-                earningsHtml += `
-                    <div class="breakdown-row">
-                        <span class="label">
-                            Regular Pay
-                            <span class="formula">${payroll.totals.regular_hours}hrs × ₱${payroll.rates_used.hourly_rate}</span>
-                        </span>
-                        <span class="amount">₱${payroll.totals.regular_pay.toFixed(2)}</span>
-                    </div>`;
-            }
-            if (payroll.totals.overtime_pay > 0) {
-                earningsHtml += `
-                    <div class="breakdown-row">
-                        <span class="label">
-                            Overtime Pay
-                            <span class="formula">${payroll.totals.overtime_hours}hrs × ₱${payroll.rates_used.hourly_rate} × ${payroll.rates_used.overtime_multiplier}</span>
-                        </span>
-                        <span class="amount">₱${payroll.totals.overtime_pay.toFixed(2)}</span>
-                    </div>`;
-            }
-            if (payroll.totals.night_diff_pay > 0) {
-                earningsHtml += `
-                    <div class="breakdown-row">
-                        <span class="label">
-                            Night Differential
-                            <span class="formula">${payroll.totals.night_diff_hours}hrs × ₱${payroll.rates_used.hourly_rate} × ${payroll.rates_used.night_diff_percentage}%</span>
-                        </span>
-                        <span class="amount">₱${payroll.totals.night_diff_pay.toFixed(2)}</span>
-                    </div>`;
-            }
-            if (payroll.totals.rest_day_pay > 0) {
-                earningsHtml += `
-                    <div class="breakdown-row">
-                        <span class="label">Rest Day Pay</span>
-                        <span class="amount">₱${payroll.totals.rest_day_pay.toFixed(2)}</span>
-                    </div>`;
-            }
-            if (payroll.totals.regular_holiday_pay > 0) {
-                earningsHtml += `
-                    <div class="breakdown-row">
-                        <span class="label">
-                            Regular Holiday Pay
-                            <span class="formula">× ${payroll.rates_used.regular_holiday_multiplier}</span>
-                        </span>
-                        <span class="amount">₱${payroll.totals.regular_holiday_pay.toFixed(2)}</span>
-                    </div>`;
-            }
-            if (payroll.totals.special_holiday_pay > 0) {
-                earningsHtml += `
-                    <div class="breakdown-row">
-                        <span class="label">
-                            Special Holiday Pay
-                            <span class="formula">× ${payroll.rates_used.special_holiday_multiplier}</span>
-                        </span>
-                        <span class="amount">₱${payroll.totals.special_holiday_pay.toFixed(2)}</span>
-                    </div>`;
-            }
-            
-            if (!earningsHtml) {
-                earningsHtml = '<div class="breakdown-row" style="color: #888;">No attendance records found for this period</div>';
-            }
-            
-            document.getElementById('earningsBreakdown').innerHTML = earningsHtml;
-            document.getElementById('grossPayAmount').textContent = '₱' + payroll.totals.gross_pay.toFixed(2);
+                document.getElementById('earningsBreakdown').innerHTML = earningsHtml;
+                document.getElementById('grossPayAmount').textContent = '₱' + formatNum(payroll.totals.gross_pay);
             
             // Deductions breakdown
             let deductionsHtml = '';
@@ -1294,7 +1329,7 @@ $pageTitle = 'Payroll Management';
                 const sssDetails = payroll.deductions.sss_details;
                 deductionsHtml += `
                     <div class="info-note">
-                        <i class="fas fa-info-circle"></i> <strong>SSS Breakdown:</strong> ₱${sssDetails.monthly_total.toFixed(2)}/month ÷ 4 weeks = ₱${sssDetails.employee_contribution.toFixed(2)}/week
+                        <i class="fas fa-info-circle"></i> <strong>SSS Breakdown:</strong> ₱${formatNum(sssDetails.monthly_total)}/month ÷ 4 weeks = ₱${formatNum(sssDetails.employee_contribution)}/week
                     </div>`;
             }
             
@@ -1307,7 +1342,7 @@ $pageTitle = 'Payroll Management';
                     deductionsHtml += `
                         <div class="breakdown-row">
                             <span class="label">${deductionLabel}</span>
-                            <span class="amount">₱${deduction.amount.toFixed(2)}</span>
+                            <span class="amount">₱${formatNum(deduction.amount)}</span>
                         </div>`;
                 });
             } else if (payroll.deductions && payroll.deductions.total > 0) {
@@ -1316,21 +1351,21 @@ $pageTitle = 'Payroll Management';
                     deductionsHtml += `
                         <div class="breakdown-row">
                             <span class="label">SSS</span>
-                            <span class="amount">₱${payroll.deductions.sss.toFixed(2)}</span>
+                            <span class="amount">₱${formatNum(payroll.deductions.sss)}</span>
                         </div>`;
                 }
                 if (payroll.deductions.philhealth > 0) {
                     deductionsHtml += `
                         <div class="breakdown-row">
                             <span class="label">PhilHealth</span>
-                            <span class="amount">₱${payroll.deductions.philhealth.toFixed(2)}</span>
+                            <span class="amount">₱${formatNum(payroll.deductions.philhealth)}</span>
                         </div>`;
                 }
                 if (payroll.deductions.pagibig > 0) {
                     deductionsHtml += `
                         <div class="breakdown-row">
                             <span class="label">Pag-IBIG</span>
-                            <span class="amount">₱${payroll.deductions.pagibig.toFixed(2)}</span>
+                            <span class="amount">₱${formatNum(payroll.deductions.pagibig)}</span>
                         </div>`;
                 }
                 if (payroll.deductions.tax > 0) {
@@ -1340,28 +1375,28 @@ $pageTitle = 'Payroll Management';
                                 Withholding Tax (BIR)
                                 ${payroll.deductions.tax_details ? `<span class="formula">${payroll.deductions.tax_details.formula}</span>` : ''}
                             </span>
-                            <span class="amount">₱${payroll.deductions.tax.toFixed(2)}</span>
+                            <span class="amount">₱${formatNum(payroll.deductions.tax)}</span>
                         </div>`;
                 }
                 if (payroll.deductions.cashadvance > 0) {
                     deductionsHtml += `
                         <div class="breakdown-row">
                             <span class="label">Cash Advance</span>
-                            <span class="amount">₱${payroll.deductions.cashadvance.toFixed(2)}</span>
+                            <span class="amount">₱${formatNum(payroll.deductions.cashadvance)}</span>
                         </div>`;
                 }
                 if (payroll.deductions.loan > 0) {
                     deductionsHtml += `
                         <div class="breakdown-row">
                             <span class="label">Loan</span>
-                            <span class="amount">₱${payroll.deductions.loan.toFixed(2)}</span>
+                            <span class="amount">₱${formatNum(payroll.deductions.loan)}</span>
                         </div>`;
                 }
                 if (payroll.deductions.other > 0) {
                     deductionsHtml += `
                         <div class="breakdown-row">
                             <span class="label">Other Deductions</span>
-                            <span class="amount">₱${payroll.deductions.other.toFixed(2)}</span>
+                            <span class="amount">₱${formatNum(payroll.deductions.other)}</span>
                         </div>`;
                 }
             }
@@ -1374,42 +1409,50 @@ $pageTitle = 'Payroll Management';
                 deductionsHtml += `
                     <div class="breakdown-row total-deduction">
                         <span class="label"><strong>Total Deductions</strong></span>
-                        <span class="amount">₱${payroll.deductions.total.toFixed(2)}</span>
+                        <span class="amount">₱${formatNum(payroll.deductions.total)}</span>
                     </div>`;
-            }
-            
-            document.getElementById('deductionsBreakdown').innerHTML = deductionsHtml;
-            document.getElementById('netPayAmount').textContent = '₱' + payroll.net_pay.toFixed(2);
-            
-            // Daily breakdown
-            let dailyHtml = '';
-            payroll.daily_breakdown.forEach(day => {
-                let dayClass = '';
-                let dayLabel = '';
-                if (day.is_holiday) {
-                    dayClass = 'holiday';
-                    dayLabel = ` <small>(${day.holiday_name})</small>`;
-                } else if (day.is_rest_day) {
-                    dayClass = 'rest-day';
-                    dayLabel = ' <small>(Rest Day)</small>';
                 }
                 
-                dailyHtml += `
-                    <div class="day-row ${dayClass}">
-                        <div>
-                            <div class="date">${formatDate(day.date)}${dayLabel}</div>
-                            <div class="hours">${day.time_in} - ${day.time_out} (${day.total_hours}hrs)</div>
+                document.getElementById('deductionsBreakdown').innerHTML = deductionsHtml;
+                document.getElementById('netPayAmount').textContent = '₱' + formatNum(payroll.net_pay);
+            
+                // Daily breakdown - use attendance array
+                let dailyHtml = '';
+                const attendanceData = payroll.attendance || [];
+                
+                attendanceData.forEach(day => {
+                    let dayClass = '';
+                    let dayLabel = '';
+                    if (day.is_holiday) {
+                        dayClass = 'holiday';
+                        dayLabel = ` <small>(${day.holiday_name || 'Holiday'})</small>`;
+                    } else if (day.is_rest_day) {
+                        dayClass = 'rest-day';
+                        dayLabel = ' <small>(Rest Day)</small>';
+                    }
+                    
+                    const totalHours = day.hours_breakdown ? day.hours_breakdown.total_hours : '0.00';
+                    
+                    dailyHtml += `
+                        <div class="day-row ${dayClass}">
+                            <div>
+                                <div class="date">${formatDate(day.date)}${dayLabel}</div>
+                                <div class="hours">${day.time_in || '--:--'} - ${day.time_out || '--:--'} (${totalHours} hrs)</div>
+                            </div>
+                            <div class="amount">₱${formatNum(day.total)}</div>
                         </div>
-                        <div class="amount">₱${day.total.toFixed(2)}</div>
-                    </div>
-                `;
-            });
+                    `;
+                });
+                
+                if (!dailyHtml) {
+                    dailyHtml = '<div style="text-align:center;color:#888;padding:20px;">No attendance records</div>';
+                }
             
-            if (!dailyHtml) {
-                dailyHtml = '<div style="text-align:center;color:#888;padding:20px;">No attendance records</div>';
+                document.getElementById('dailyBreakdown').innerHTML = dailyHtml;
+            } catch (displayError) {
+                console.error('Error displaying payroll results:', displayError);
+                showToast('Error displaying results. Check console for details.', 'error');
             }
-            
-            document.getElementById('dailyBreakdown').innerHTML = dailyHtml;
         }
         
         // Save payroll

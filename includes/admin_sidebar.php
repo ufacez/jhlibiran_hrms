@@ -27,6 +27,7 @@ if ($is_admin && !$is_super_admin) {
         'can_add_workers' => true,
         'can_edit_workers' => true,
         'can_delete_workers' => true,
+        'can_manage_work_types' => true,
         'can_view_attendance' => true,
         'can_mark_attendance' => true,
         'can_edit_attendance' => true,
@@ -347,9 +348,20 @@ $module_path = '/modules/super_admin';
         <?php if ($permissions['can_view_workers']): ?>
         <li>
             <a href="<?php echo BASE_URL . $module_path; ?>/workers/index.php"
-               class="<?php echo ($current_dir === 'workers') ? 'active' : ''; ?>">
+               class="<?php echo ($current_dir === 'workers' && $current_page === 'index.php') ? 'active' : ''; ?>">
                 <i class="fas fa-user-hard-hat"></i>
                 <div class="title">Workers</div>
+            </a>
+        </li>
+        <?php endif; ?>
+        
+        <!-- Worker Types -->
+        <?php if ($is_super_admin || ($permissions['can_manage_work_types'] ?? false) || $permissions['can_view_workers']): ?>
+        <li>
+            <a href="<?php echo BASE_URL . $module_path; ?>/workers/work_types.php"
+               class="<?php echo ($current_dir === 'workers' && $current_page === 'work_types.php') ? 'active' : ''; ?>">
+                <i class="fas fa-hard-hat"></i>
+                <div class="title">Worker Types</div>
             </a>
         </li>
         <?php endif; ?>

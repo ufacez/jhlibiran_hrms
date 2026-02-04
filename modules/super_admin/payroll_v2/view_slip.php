@@ -51,15 +51,19 @@ try {
 try {
     $stmt = $pdo->prepare("
         SELECT a.*, 
-               DATE(a.time_in) as work_date,
-               DAYNAME(a.time_in) as day_name,
-               TIME(a.time_in) as in_time,
-               TIME(a.time_out) as out_time
+               a.attendance_date as work_date,
+               DAYNAME(a.attendance_date) as day_name,
+               a.time_in as in_time,
+               a.time_out as out_time,
+               a.hours_worked as total_hours,
+               GREATEST(0, a.hours_worked - 8) as overtime_hours,
+               LEAST(a.hours_worked, 8) as regular_hours
         FROM attendance a
         WHERE a.worker_id = ? 
-        AND DATE(a.time_in) BETWEEN ? AND ?
+        AND a.attendance_date BETWEEN ? AND ?
         AND a.status = 'present'
-        ORDER BY a.time_in ASC
+        AND a.is_archived = 0
+        ORDER BY a.attendance_date ASC
     ");
     $stmt->execute([$record['worker_id'], $record['period_start'], $record['period_end']]);
     $attendance = $stmt->fetchAll(PDO::FETCH_ASSOC);

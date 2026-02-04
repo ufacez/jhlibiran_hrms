@@ -57,7 +57,8 @@ function getAdminPermissions($db, $user_id = null) {
             'can_approve_cashadvance' => true,
             'can_access_settings' => true,
             'can_access_audit' => true,
-            'can_access_archive' => true
+            'can_access_archive' => true,
+            'can_manage_work_types' => true
         ];
     }
     
@@ -99,7 +100,8 @@ function getAdminPermissions($db, $user_id = null) {
                 'can_approve_cashadvance' => false,
                 'can_access_settings' => false,
                 'can_access_audit' => false,
-                'can_access_archive' => false
+                'can_access_archive' => false,
+                'can_manage_work_types' => false
             ];
         }
         
@@ -153,7 +155,8 @@ function getAdminPermissions($db, $user_id = null) {
             'can_approve_cashadvance' => (bool)($permissions['can_approve_cashadvance'] ?? 0),
             'can_access_settings' => (bool)($permissions['can_access_settings'] ?? 0),
             'can_access_audit' => (bool)($permissions['can_access_audit'] ?? 0),
-            'can_access_archive' => (bool)($permissions['can_access_archive'] ?? 0)
+            'can_access_archive' => (bool)($permissions['can_access_archive'] ?? 0),
+            'can_manage_work_types' => (bool)($permissions['can_manage_work_types'] ?? 0)
         ];
         
     } catch (PDOException $e) {
@@ -166,7 +169,7 @@ function getAdminPermissions($db, $user_id = null) {
             'can_view_deductions', 'can_manage_deductions', 'can_view_reports', 'can_export_data',
             'can_manage_admins', 'can_view_settings', 'can_edit_settings', 'can_view_logs',
             'can_view_schedule', 'can_manage_schedule', 'can_view_cashadvance', 'can_approve_cashadvance',
-            'can_access_settings', 'can_access_audit', 'can_access_archive'
+            'can_access_settings', 'can_access_audit', 'can_access_archive', 'can_manage_work_types'
         ], false);
     }
 }

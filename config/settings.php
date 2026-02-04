@@ -90,9 +90,11 @@ date_default_timezone_set(TIMEZONE);
 
 // ============================================
 // WORK HOURS CONFIGURATION
+// Note: Actual rates are loaded from payroll_settings table
+// These are fallback defaults only
 // ============================================
 define('STANDARD_WORK_HOURS', 8);
-define('OVERTIME_RATE_MULTIPLIER', 1.25);
+define('OVERTIME_RATE_MULTIPLIER', 1.25); // Fallback, use payroll_settings.overtime_multiplier
 define('LATE_THRESHOLD_MINUTES', 15);
 
 // ============================================

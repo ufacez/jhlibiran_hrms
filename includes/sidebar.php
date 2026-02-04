@@ -296,9 +296,18 @@ $current_dir = basename(dirname($_SERVER['PHP_SELF']));
         <!-- Workers -->
         <li>
             <a href="<?php echo BASE_URL; ?>/modules/super_admin/workers/index.php"
-               class="<?php echo ($current_dir === 'workers') ? 'active' : ''; ?>">
+               class="<?php echo ($current_dir === 'workers' && $current_page === 'index.php') ? 'active' : ''; ?>">
                 <i class="fas fa-user-hard-hat"></i>
                 <div class="title">Workers</div>
+            </a>
+        </li>
+        
+        <!-- Worker Types -->
+        <li>
+            <a href="<?php echo BASE_URL; ?>/modules/super_admin/workers/work_types.php"
+               class="<?php echo ($current_dir === 'workers' && $current_page === 'work_types.php') ? 'active' : ''; ?>">
+                <i class="fas fa-hard-hat"></i>
+                <div class="title">Worker Types</div>
             </a>
         </li>
         

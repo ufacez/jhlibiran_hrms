@@ -13,6 +13,7 @@ require_once __DIR__ . '/../config/settings.php';
 require_once __DIR__ . '/../config/session.php';
 require_once __DIR__ . '/../includes/functions.php';
 require_once __DIR__ . '/../includes/auth.php';
+require_once __DIR__ . '/../includes/attendance_calculator.php';
 
 // Set JSON header
 header('Content-Type: application/json');
@@ -247,17 +248,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     jsonError('Attendance already marked for this worker today');
                 }
                 
-                // Calculate hours worked
-                $hours_worked = 0;
-                if ($time_out) {
-                    $hours_worked = calculateHours($time_in, $time_out);
+                // Calculate hours worked with enhanced calculator
+                $attendanceCalculator = new AttendanceCalculator($db);
+                $calculation = $attendanceCalculator->calculateWorkHours($time_in, $time_out, $attendance_date);
+                
+                if (!$calculation['is_valid']) {
+                    http_response_code(400);
+                    jsonError('Calculated work hours are below minimum threshold: ' . $calculation['calculation_details']);
                 }
                 
-                // Insert attendance
+                $hours_worked = $calculation['worked_hours'];
+                $overtime_hours = $calculation['overtime_hours'];
+                
+                // Insert attendance with enhanced calculation details
                 $stmt = $db->prepare("INSERT INTO attendance 
-                                     (worker_id, attendance_date, time_in, time_out, status, hours_worked, verified_by) 
-                                     VALUES (?, ?, ?, ?, ?, ?, ?)");
-                $stmt->execute([$worker_id, $attendance_date, $time_in, $time_out, $status, $hours_worked, $user_id]);
+                                     (worker_id, attendance_date, time_in, time_out, status, hours_worked, 
+                                      raw_hours_worked, break_hours, late_minutes, overtime_hours, 
+                                      calculated_at, notes, verified_by) 
+                                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), ?, ?)");
+                $stmt->execute([
+                    $worker_id, $attendance_date, $time_in, $time_out, $status, $hours_worked,
+                    $calculation['raw_hours'], $calculation['break_hours'], $calculation['late_minutes'],
+                    $overtime_hours, $calculation['calculation_details'], $user_id
+                ]);
                 
                 $attendance_id = $db->lastInsertId();
                 
@@ -266,9 +279,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                            "Marked attendance for worker ID: {$worker_id}");
                 
                 http_response_code(201);
-                jsonSuccess('Attendance marked successfully', [
+                jsonSuccess('Attendance marked successfully with enhanced calculations', [
                     'attendance_id' => $attendance_id,
-                    'hours_worked' => $hours_worked
+                    'hours_worked' => $hours_worked,
+                    'overtime_hours' => $overtime_hours,
+                    'calculation_details' => $calculation,
+                    'grace_period_applied' => $calculation['grace_period_applied']
                 ]);
                 break;
                 

@@ -66,6 +66,16 @@ try {
     $addresses = $worker['addresses'] ? json_decode($worker['addresses'], true) : ['current' => [], 'permanent' => []];
     $ids = $worker['identification_data'] ? json_decode($worker['identification_data'], true) : ['primary' => [], 'additional' => []];
     
+    // Get work types for dropdown
+    $stmt = $db->query("
+        SELECT wt.*, wc.classification_name, wc.skill_level 
+        FROM work_types wt 
+        LEFT JOIN worker_classifications wc ON wt.classification_id = wc.classification_id 
+        WHERE wt.is_active = 1 
+        ORDER BY wt.display_order, wt.work_type_name
+    ");
+    $work_types = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
 } catch (PDOException $e) {
     error_log("Fetch Worker Error: " . $e->getMessage());
     setFlashMessage('Failed to load worker data', 'error');
@@ -122,6 +132,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $pagibig_number = sanitizeString($_POST['pagibig_number'] ?? '');
     $tin_number = sanitizeString($_POST['tin_number'] ?? '');
     
+    // Work Type
+    $work_type_id = sanitizeInt($_POST['work_type_id'] ?? 0);
+    $worker_type = '';
+    $hourly_rate = 0;
+    
+    // Validate and get work type data
+    if ($work_type_id > 0) {
+        $stmt = $db->prepare("SELECT daily_rate, hourly_rate, work_type_name FROM work_types WHERE work_type_id = ? AND is_active = 1");
+        $stmt->execute([$work_type_id]);
+        $work_type_data = $stmt->fetch(PDO::FETCH_ASSOC);
+        if ($work_type_data) {
+            $daily_rate = $work_type_data['daily_rate'];
+            $hourly_rate = $work_type_data['hourly_rate'];
+            $worker_type = $work_type_data['work_type_name'];
+        }
+    }
+    
     // Primary ID
     $primary_id_type = sanitizeString($_POST['primary_id_type'] ?? '');
     $primary_id_number = sanitizeString($_POST['primary_id_number'] ?? '');
@@ -143,6 +170,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($first_name)) $errors[] = 'First name is required';
     if (empty($last_name)) $errors[] = 'Last name is required';
     if (empty($position)) $errors[] = 'Position is required';
+    if ($work_type_id <= 0) $errors[] = 'Work type is required';
     if (empty($phone)) $errors[] = 'Phone number is required';
     if (empty($email)) $errors[] = 'Email is required';
     if (empty($date_of_birth)) $errors[] = 'Date of birth is required';
@@ -228,12 +256,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     middle_name = ?,
                     last_name = ?,
                     position = ?,
+                    worker_type = ?,
+                    work_type_id = ?,
                     phone = ?,
                     date_of_birth = ?,
                     gender = ?,
                     addresses = ?,
                     date_hired = ?,
                     daily_rate = ?,
+                    hourly_rate = ?,
                     experience_years = ?,
                     employment_status = ?,
                     emergency_contact_name = ?,
@@ -249,9 +280,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ");
             
             $stmt->execute([
-                $first_name, $middle_name, $last_name, $position, $phone,
+                $first_name, $middle_name, $last_name, $position, $worker_type, $work_type_id, $phone,
                 $date_of_birth, $gender, $addresses_json, $date_hired,
-                $daily_rate, $experience_years, $employment_status,
+                $daily_rate, $hourly_rate, $experience_years, $employment_status,
                 $emergency_contact_name, $emergency_contact_phone, $emergency_contact_relationship,
                 $sss_number, $philhealth_number, $pagibig_number, $tin_number,
                 $ids_json, $worker_id
@@ -370,6 +401,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         .form-card h3 i {
             color: #DAA520;
+        }
+        
+        /* ==========================================
+        RATE DISPLAY BOX (Work Type Based)
+        ========================================== */
+        
+        .rate-display-box {
+            background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+            border: 2px solid #4caf50;
+            border-radius: 10px;
+            padding: 12px 16px;
+            text-align: center;
+        }
+        
+        .rate-display-box .rate-value {
+            display: block;
+            font-size: 20px;
+            font-weight: 700;
+            color: #2e7d32;
+        }
+        
+        .rate-display-box .rate-label {
+            display: block;
+            font-size: 11px;
+            color: #558b2f;
+            text-transform: uppercase;
+            margin-top: 2px;
         }
         
         /* ==========================================
@@ -816,7 +874,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         
                         <div class="form-row">
                             <div class="form-group">
-                                <label>Position <span class="required-asterisk">*</span></label>
+                                <label>Work Type / Role <span class="required-asterisk">*</span></label>
+                                <select id="work_type_id" name="work_type_id" required onchange="updateRateDisplay()">
+                                    <option value="">-- Select Work Type --</option>
+                                    <?php foreach ($work_types as $wt): ?>
+                                    <option value="<?php echo $wt['work_type_id']; ?>" 
+                                            data-rate="<?php echo $wt['daily_rate']; ?>"
+                                            data-hourly="<?php echo $wt['hourly_rate']; ?>"
+                                            <?php echo ($worker['work_type_id'] == $wt['work_type_id']) ? 'selected' : ''; ?>>
+                                        <?php echo htmlspecialchars($wt['work_type_name']); ?> 
+                                        (₱<?php echo number_format($wt['daily_rate'], 2); ?>/day)
+                                    </option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Position Title <span class="required-asterisk">*</span></label>
                                 <input type="text" name="position" id="position" required 
                                        value="<?php echo htmlspecialchars($worker['position']); ?>"
                                        list="position-suggestions">
@@ -831,6 +905,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     <option value="Heavy Equipment Operator">
                                 </datalist>
                             </div>
+                        </div>
+                        
+                        <div class="form-row" id="rate-display-row" style="grid-template-columns: repeat(3, 1fr);">
+                            <div class="form-group">
+                                <label>Daily Rate</label>
+                                <div class="rate-display-box">
+                                    <span class="rate-value" id="display_daily_rate">₱<?php echo number_format($worker['daily_rate'], 2); ?></span>
+                                    <span class="rate-label">Based on Work Type</span>
+                                </div>
+                                <input type="hidden" name="daily_rate" id="daily_rate" value="<?php echo $worker['daily_rate']; ?>">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Hourly Rate</label>
+                                <div class="rate-display-box">
+                                    <span class="rate-value" id="display_hourly_rate">₱<?php echo number_format(($worker['hourly_rate'] ?? $worker['daily_rate'] / 8), 2); ?></span>
+                                    <span class="rate-label">Daily ÷ 8 Hours</span>
+                                </div>
+                            </div>
                             
                             <div class="form-group">
                                 <label>Date Hired <span class="required-asterisk">*</span></label>
@@ -840,12 +933,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </div>
                         
                         <div class="form-row">
-                            <div class="form-group">
-                                <label>Daily Rate (₱) <span class="required-asterisk">*</span></label>
-                                <input type="number" name="daily_rate" id="daily_rate" required 
-                                       step="0.01" min="0" value="<?php echo htmlspecialchars($worker['daily_rate']); ?>">
-                            </div>
-                            
                             <div class="form-group">
                                 <label>Experience (Years) <span class="required-asterisk">*</span></label>
                                 <input type="number" name="experience_years" id="experience_years" required 
@@ -1508,6 +1595,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         
         // ==========================================
+        // WORK TYPE RATE DISPLAY
+        // ==========================================
+        
+        function updateRateDisplay() {
+            const select = document.getElementById('work_type_id');
+            const selectedOption = select.options[select.selectedIndex];
+            
+            if (selectedOption && selectedOption.value) {
+                const dailyRate = parseFloat(selectedOption.dataset.rate) || 0;
+                const hourlyRate = parseFloat(selectedOption.dataset.hourly) || (dailyRate / 8);
+                
+                document.getElementById('display_daily_rate').textContent = '₱' + dailyRate.toLocaleString('en-PH', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                document.getElementById('display_hourly_rate').textContent = '₱' + hourlyRate.toLocaleString('en-PH', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                document.getElementById('daily_rate').value = dailyRate;
+                
+                // Auto-update position if empty
+                const positionField = document.getElementById('position');
+                if (!positionField.value || positionField.value === '') {
+                    positionField.value = selectedOption.textContent.split('(')[0].trim();
+                }
+            } else {
+                document.getElementById('display_daily_rate').textContent = '₱0.00';
+                document.getElementById('display_hourly_rate').textContent = '₱0.00';
+                document.getElementById('daily_rate').value = 0;
+            }
+        }
+        
+        // ==========================================
         // INITIALIZATION
         // ==========================================
         
@@ -1515,6 +1630,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         document.addEventListener('DOMContentLoaded', function() {
             loadProvinces();
             initializeRealTimeValidation();
+            // Initialize rate display
+            updateRateDisplay();
         });
     </script>
 </body>

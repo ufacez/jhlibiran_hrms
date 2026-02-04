@@ -74,7 +74,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_permissions'])
     try {
         // All possible permissions
         $all_permissions = [
-            'can_view_workers', 'can_add_workers', 'can_edit_workers', 'can_delete_workers',
+            'can_view_workers', 'can_add_workers', 'can_edit_workers', 'can_delete_workers', 'can_manage_work_types',
             'can_view_attendance', 'can_mark_attendance', 'can_edit_attendance', 'can_delete_attendance',
             'can_view_schedule', 'can_manage_schedule',
             'can_view_payroll', 'can_generate_payroll', 'can_approve_payroll', 'can_mark_paid', 'can_edit_payroll', 'can_delete_payroll',
@@ -296,6 +296,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_permissions'])
                                 <input type="checkbox" name="can_delete_workers" id="can_delete_workers" value="1"
                                        <?php echo ($permissions['can_delete_workers'] ?? 0) ? 'checked' : ''; ?>>
                                 <label for="can_delete_workers">Delete Workers</label>
+                            </div>
+                            <div class="permission-item" onclick="toggleCheckbox('can_manage_work_types')">
+                                <input type="checkbox" name="can_manage_work_types" id="can_manage_work_types" value="1"
+                                       <?php echo ($permissions['can_manage_work_types'] ?? 0) ? 'checked' : ''; ?>>
+                                <label for="can_manage_work_types">Manage Work Types</label>
                             </div>
                         </div>
                     </div>
@@ -543,7 +548,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_permissions'])
         
         function toggleSection(section) {
             const sections = {
-                'workers': ['can_view_workers', 'can_add_workers', 'can_edit_workers', 'can_delete_workers'],
+                'workers': ['can_view_workers', 'can_add_workers', 'can_edit_workers', 'can_delete_workers', 'can_manage_work_types'],
                 'attendance': ['can_view_attendance', 'can_add_attendance', 'can_edit_attendance', 'can_delete_attendance'],
                 'schedule': ['can_view_schedule', 'can_manage_schedule'],
                 'payroll': ['can_view_payroll', 'can_generate_payroll', 'can_edit_payroll', 'can_delete_payroll'],

@@ -46,6 +46,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $last_name = sanitizeString($_POST['last_name'] ?? '');
     $middle_name = sanitizeString($_POST['middle_name'] ?? '');
     $position = sanitizeString($_POST['position'] ?? '');
+    $worker_type = sanitizeString($_POST['worker_type'] ?? '');
     $phone = sanitizeString($_POST['phone'] ?? '');
     $email = sanitizeEmail($_POST['email'] ?? '');
     
@@ -73,6 +74,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $gender = sanitizeString($_POST['gender'] ?? '');
     $date_hired = sanitizeString($_POST['date_hired'] ?? '');
     $daily_rate = sanitizeFloat($_POST['daily_rate'] ?? 0);
+    $hourly_rate = sanitizeFloat($_POST['hourly_rate'] ?? 0);
     $experience_years = sanitizeInt($_POST['experience_years'] ?? 0);
     
     // Emergency Contact
@@ -108,6 +110,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($first_name)) $errors[] = 'First name is required';
     if (empty($last_name)) $errors[] = 'Last name is required';
     if (empty($position)) $errors[] = 'Position is required';
+    if (empty($worker_type)) $errors[] = 'Worker type is required';
     if (empty($phone)) $errors[] = 'Phone number is required';
     if (empty($email)) $errors[] = 'Email is required';
     if (empty($current_address)) $errors[] = 'Current address is required';
@@ -123,7 +126,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($date_of_birth)) $errors[] = 'Date of birth is required';
     if (empty($gender)) $errors[] = 'Gender is required';
     if (empty($date_hired)) $errors[] = 'Date hired is required';
-    if ($daily_rate <= 0) $errors[] = 'Daily rate must be greater than zero';
+    
+    // Validate work type selection
+    $work_type_id = sanitizeInt($_POST['work_type_id'] ?? 0);
+    if ($work_type_id <= 0) {
+        $errors[] = 'Work type is required';
+    } else {
+        // Get daily rate from work type
+        $stmt = $db->prepare("SELECT daily_rate, hourly_rate, work_type_name FROM work_types WHERE work_type_id = ? AND is_active = 1");
+        $stmt->execute([$work_type_id]);
+        $work_type_data = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$work_type_data) {
+            $errors[] = 'Invalid or inactive work type selected';
+        } else {
+            $daily_rate = $work_type_data['daily_rate'];
+            $hourly_rate = $work_type_data['hourly_rate'];
+            $worker_type = $work_type_data['work_type_name'];
+        }
+    }
+    
     if (empty($emergency_contact_name)) $errors[] = 'Emergency contact name is required';
     if (empty($emergency_contact_phone)) $errors[] = 'Emergency contact phone is required';
     if (empty($emergency_contact_relationship)) $errors[] = 'Emergency contact relationship is required';
@@ -238,18 +259,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
             // Create worker profile
             $stmt = $db->prepare("INSERT INTO workers (
-                user_id, worker_code, first_name, middle_name, last_name, position, phone,
+                user_id, worker_code, first_name, middle_name, last_name, position, worker_type, phone,
                 addresses, date_of_birth, gender, emergency_contact_name, emergency_contact_phone,
-                emergency_contact_relationship, date_hired, employment_status, daily_rate, 
+                emergency_contact_relationship, date_hired, employment_status, daily_rate, hourly_rate,
                 experience_years, sss_number, philhealth_number, pagibig_number, tin_number,
-                identification_data
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, ?, ?, ?, ?, ?)");
+                identification_data, work_type_id
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, ?, ?, ?, ?, ?, ?, ?)");
             
             $stmt->execute([
-                $user_id, $worker_code, $first_name, $middle_name, $last_name, $position, $phone,
+                $user_id, $worker_code, $first_name, $middle_name, $last_name, $position, $worker_type, $phone,
                 $addresses, $date_of_birth, $gender, $emergency_contact_name, $emergency_contact_phone,
-                $emergency_contact_relationship, $date_hired, $daily_rate, $experience_years,
-                $sss_number, $philhealth_number, $pagibig_number, $tin_number, $ids_data
+                $emergency_contact_relationship, $date_hired, $daily_rate, $hourly_rate > 0 ? $hourly_rate : null,
+                $experience_years, $sss_number, $philhealth_number, $pagibig_number, $tin_number, $ids_data,
+                $work_type_id
             ]);
             
             $worker_id = $db->lastInsertId();
@@ -316,6 +338,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             width: 100%;
             max-width: 1000px;
             margin: 0 auto 20px auto;
+        }
+        
+        /* ==========================================
+        RATE DISPLAY BOX (Work Type Based)
+        ========================================== */
+        
+        .rate-display-box {
+            background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+            border: 2px solid #4caf50;
+            border-radius: 10px;
+            padding: 12px 16px;
+            text-align: center;
+        }
+        
+        .rate-display-box .rate-value {
+            display: block;
+            font-size: 20px;
+            font-weight: 700;
+            color: #2e7d32;
+        }
+        
+        .rate-display-box .rate-label {
+            display: block;
+            font-size: 11px;
+            color: #558b2f;
+            text-transform: uppercase;
+            margin-top: 2px;
+        }
+        
+        #rate-display-row {
+            grid-template-columns: repeat(3, 1fr);
         }
         
         /* ==========================================
@@ -770,29 +823,90 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         
                         <div class="form-row">
                             <div class="form-group">
-                                <label for="position">Position <span class="required">*</span></label>
-                                <input type="text" id="position" name="position" required placeholder="e.g., Carpenter, Mason"
-                                       value="<?php echo isset($_POST['position']) ? htmlspecialchars($_POST['position']) : ''; ?>">
+                                <label for="work_type_id">Work Type / Role <span class="required">*</span></label>
+                                <select id="work_type_id" name="work_type_id" required onchange="updateRateDisplay()">
+                                    <option value="">Select work type</option>
+                                    <?php
+                                    // Fetch work types from database
+                                    try {
+                                        $work_types_stmt = $db->query("
+                                            SELECT wt.*, wc.classification_name, wc.skill_level
+                                            FROM work_types wt
+                                            LEFT JOIN worker_classifications wc ON wt.classification_id = wc.classification_id
+                                            WHERE wt.is_active = 1
+                                            ORDER BY wt.display_order, wt.work_type_name
+                                        ");
+                                        $work_types_list = $work_types_stmt->fetchAll(PDO::FETCH_ASSOC);
+                                        foreach ($work_types_list as $wt):
+                                    ?>
+                                    <option value="<?php echo $wt['work_type_id']; ?>" 
+                                            data-daily-rate="<?php echo $wt['daily_rate']; ?>"
+                                            data-hourly-rate="<?php echo $wt['hourly_rate']; ?>"
+                                            data-classification="<?php echo htmlspecialchars($wt['classification_name'] ?? ''); ?>"
+                                            <?php echo (isset($_POST['work_type_id']) && $_POST['work_type_id'] == $wt['work_type_id']) ? 'selected' : ''; ?>>
+                                        <?php echo htmlspecialchars($wt['work_type_name']); ?> 
+                                        (₱<?php echo number_format($wt['daily_rate'], 2); ?>/day)
+                                        <?php if ($wt['classification_name']): ?>
+                                        - <?php echo htmlspecialchars($wt['classification_name']); ?>
+                                        <?php endif; ?>
+                                    </option>
+                                    <?php 
+                                        endforeach;
+                                    } catch (PDOException $e) {
+                                        error_log("Work types load error: " . $e->getMessage());
+                                    }
+                                    ?>
+                                </select>
+                                <small class="form-text">The work type determines the daily rate. <a href="../settings/work_types.php" target="_blank">Manage work types</a></small>
                             </div>
                             
+                            <div class="form-group">
+                                <label for="position">Position / Title <span class="optional">Optional</span></label>
+                                <input type="text" id="position" name="position" placeholder="e.g., Lead, Senior, Trainee"
+                                       value="<?php echo isset($_POST['position']) ? htmlspecialchars($_POST['position']) : ''; ?>">
+                                <small class="form-text">Additional position title or seniority level</small>
+                            </div>
+                        </div>
+                        
+                        <!-- Rate Display (Read-only from work type) -->
+                        <div class="form-row" id="rate-display-row" style="display: none;">
+                            <div class="form-group">
+                                <label>Daily Rate</label>
+                                <div class="rate-display-box">
+                                    <span class="rate-value" id="display_daily_rate">₱0.00</span>
+                                    <span class="rate-label">per day</span>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Hourly Rate</label>
+                                <div class="rate-display-box">
+                                    <span class="rate-value" id="display_hourly_rate">₱0.00</span>
+                                    <span class="rate-label">per hour</span>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Classification</label>
+                                <div class="rate-display-box">
+                                    <span class="rate-value" id="display_classification">-</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Hidden fields for form submission -->
+                        <input type="hidden" id="daily_rate" name="daily_rate" value="<?php echo isset($_POST['daily_rate']) ? htmlspecialchars($_POST['daily_rate']) : '0'; ?>">
+                        <input type="hidden" id="hourly_rate" name="hourly_rate" value="<?php echo isset($_POST['hourly_rate']) ? htmlspecialchars($_POST['hourly_rate']) : '0'; ?>">
+                        <input type="hidden" id="worker_type" name="worker_type" value="">
+                        
+                        <div class="form-row">
                             <div class="form-group">
                                 <label for="experience_years">Years of Tenure <span class="required">*</span></label>
                                 <input type="number" id="experience_years" name="experience_years" required min="0" value="0">
                             </div>
-                        </div>
-                        
-                        <div class="form-row">
+                            
                             <div class="form-group">
                                 <label for="date_hired">Date Hired <span class="required">*</span></label>
                                 <input type="date" id="date_hired" name="date_hired" required
                                        value="<?php echo isset($_POST['date_hired']) ? htmlspecialchars($_POST['date_hired']) : date('Y-m-d'); ?>">
-                            </div>
-                            
-                            <div class="form-group">
-                                <label for="daily_rate">Daily Rate (₱) <span class="required">*</span></label>
-                                <input type="number" id="daily_rate" name="daily_rate" required min="0" step="0.01" 
-                                       placeholder="0.00"
-                                       value="<?php echo isset($_POST['daily_rate']) ? htmlspecialchars($_POST['daily_rate']) : ''; ?>">
                             </div>
                         </div>
                     </div>
@@ -942,11 +1056,44 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         let philippinesData = null;
         let additionalIdCounter = 0;
         
+        // Update rate display when work type is selected
+        function updateRateDisplay() {
+            const select = document.getElementById('work_type_id');
+            const selectedOption = select.options[select.selectedIndex];
+            const rateDisplayRow = document.getElementById('rate-display-row');
+            
+            if (select.value && selectedOption) {
+                const dailyRate = parseFloat(selectedOption.dataset.dailyRate) || 0;
+                const hourlyRate = parseFloat(selectedOption.dataset.hourlyRate) || 0;
+                const classification = selectedOption.dataset.classification || '-';
+                
+                // Update display values
+                document.getElementById('display_daily_rate').textContent = '₱' + dailyRate.toFixed(2);
+                document.getElementById('display_hourly_rate').textContent = '₱' + hourlyRate.toFixed(2);
+                document.getElementById('display_classification').textContent = classification || '-';
+                
+                // Update hidden form fields
+                document.getElementById('daily_rate').value = dailyRate;
+                document.getElementById('hourly_rate').value = hourlyRate;
+                document.getElementById('worker_type').value = selectedOption.text.split(' (')[0];
+                
+                // Show rate display
+                rateDisplayRow.style.display = 'grid';
+            } else {
+                rateDisplayRow.style.display = 'none';
+                document.getElementById('daily_rate').value = '0';
+                document.getElementById('hourly_rate').value = '0';
+                document.getElementById('worker_type').value = '';
+            }
+        }
+        
         // Load Philippines address data on page load
         document.addEventListener('DOMContentLoaded', function() {
             loadPhilippinesData();
             updatePermanentAddressRequired();
             initializeRealTimeValidation();
+            // Initialize rate display if work type is already selected
+            updateRateDisplay();
         });
         
         // Initialize real-time validation for all fields

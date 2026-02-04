@@ -90,6 +90,7 @@ function canMarkPaid($db) {
 // Initialize
 try {
     $pdo = getDBConnection();
+    $db = $pdo; // Alias for compatibility with permission functions
     if ($pdo === null) {
         throw new Exception('Database connection failed');
     }
