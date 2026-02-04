@@ -112,10 +112,6 @@ $pageTitle = 'Payroll Management';
             .payroll-grid {
                 grid-template-columns: 1fr;
             }
-            .results-panel {
-                max-width: 100%;
-                min-width: 0;
-            }
         }
         
         /* Rates Banner */
@@ -368,43 +364,44 @@ $pageTitle = 'Payroll Management';
             box-shadow: none;
         }
         
-        /* Results Panel */
+        /* Results Panel - FIXED */
         .results-panel {
             background: white;
             border-radius: 12px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.05);
             position: sticky;
             top: 90px;
-            overflow-x: auto;
-            overflow-x: visible;
-            word-break: break-word;
+            overflow: hidden;
             width: 100%;
-            min-width: 700px;
-            max-width: none;
+            max-width: 100%;
         }
-            /* Status badge styles removed from index */
-            .status-badge.draft {
-                background: #fef3c7;
-                color: #92400e;
-            }
-            .status-badge.pending {
-                background: #dbeafe;
-                color: #1e40af;
-            }
-            .status-badge.approved {
-                background: #d1fae5;
-                color: #065f46;
-            }
-            .status-badge.paid {
-                background: #10b981;
-                color: white;
-            }
+        
+        .results-header {
+            padding: 20px;
+            border-bottom: 1px solid #f0f0f0;
+            background: #fafbfc;
+        }
+        
+        .results-header h3 {
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        
+        .results-header .period {
+            font-size: 13px;
+            color: #888;
+        }
+        
+        .payroll-breakdown {
+            padding: 20px;
+            max-height: calc(100vh - 200px);
+            overflow-y: auto;
+        }
         
         .breakdown-section {
             margin-bottom: 20px;
-            overflow-x: auto;
-            word-break: break-word;
-            max-width: 100%;
         }
         
         .breakdown-section h4 {
@@ -425,12 +422,11 @@ $pageTitle = 'Payroll Management';
         .breakdown-row {
             display: flex;
             justify-content: space-between;
+            align-items: flex-start;
             padding: 8px 0;
             border-bottom: 1px solid #f0f0f0;
             font-size: 13px;
-            flex-wrap: wrap;
-            word-break: break-word;
-            overflow-wrap: anywhere;
+            gap: 15px;
         }
         
         .breakdown-row:last-child {
@@ -441,22 +437,24 @@ $pageTitle = 'Payroll Management';
             color: #555;
             display: flex;
             flex-direction: column;
+            flex: 1;
             min-width: 0;
-            word-break: break-word;
-            overflow-wrap: anywhere;
         }
         
         .breakdown-row .formula {
             font-size: 10px;
             color: #999;
             font-family: monospace;
-            word-break: break-word;
-            overflow-wrap: anywhere;
+            margin-top: 3px;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
         }
         
         .breakdown-row .amount {
             font-weight: 600;
             color: #333;
+            white-space: nowrap;
+            flex-shrink: 0;
         }
         
         .breakdown-row.total {
@@ -964,14 +962,13 @@ $pageTitle = 'Payroll Management';
                                             <th>Period</th>
                                             <th>Workers</th>
                                             <th>Total Net</th>
-                                            <!-- Status column removed -->
                                             <th></th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         <?php if (empty($recentPeriods)): ?>
                                         <tr>
-                                            <td colspan="5" style="text-align: center; color: #888; padding: 30px;">
+                                            <td colspan="4" style="text-align: center; color: #888; padding: 30px;">
                                                 No payroll periods yet
                                             </td>
                                         </tr>
@@ -981,13 +978,11 @@ $pageTitle = 'Payroll Management';
                                             <td><?php echo date('M d', strtotime($period['period_start'])); ?> - <?php echo date('M d, Y', strtotime($period['period_end'])); ?></td>
                                             <td><?php echo $period['total_workers']; ?></td>
                                             <td class="amount positive">₱<?php echo number_format($period['total_net'], 2); ?></td>
-                                            <!-- Status cell removed -->
-                                            <td style="display:flex; gap:6px; align-items:center;">
+                                            <td>
                                                 <button class="action-btn" style="padding: 5px 10px; background:#111; color:#fff; border-radius:8px; border:none; display:flex; align-items:center; justify-content:center;"
                                                         onclick="viewPeriod(<?php echo $period['period_id']; ?>)">
                                                     <i class="fas fa-eye" style="color:#fff;"></i>
                                                 </button>
-                                                <!-- Close button removed -->
                                             </td>
                                         </tr>
                                         <?php endforeach; ?>
@@ -1057,13 +1052,10 @@ $pageTitle = 'Payroll Management';
                                     </div>
                                 </div>
                                 
-                                <!-- Actions -->
-                                <div style="margin-top: 20px; display: flex; gap: 10px;">
-                                    <button class="btn-gold" onclick="savePayroll()" id="savePayrollBtn" style="flex: 1;">
+                                <!-- Actions - PRINT BUTTON REMOVED -->
+                                <div style="margin-top: 20px;">
+                                    <button class="btn-gold" onclick="savePayroll()" id="savePayrollBtn" style="width: 100%;">
                                         <i class="fas fa-save"></i> Save Payroll
-                                    </button>
-                                    <button class="action-btn" onclick="printPayslip()">
-                                        <i class="fas fa-print"></i> Print
                                     </button>
                                 </div>
                             </div>
@@ -1684,11 +1676,6 @@ $pageTitle = 'Payroll Management';
         // View period details
         function viewPeriod(periodId) {
             window.location.href = 'payroll_slips.php?period=' + periodId;
-        }
-        
-        // Print payslip
-        function printPayslip() {
-            window.print();
         }
         
         // Helpers
