@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Feb 04, 2026 at 03:33 AM
+-- Generation Time: Feb 13, 2026 at 06:21 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -79,7 +79,36 @@ INSERT INTO `activity_logs` (`log_id`, `user_id`, `action`, `table_name`, `recor
 (33, 1, 'login', 'users', 1, 'User logged in', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-07-05 02:20:58'),
 (34, 1, 'login', 'users', 1, 'User logged in', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-11-05 02:23:33'),
 (35, 1, 'login', 'users', 1, 'User logged in', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-11-05 02:24:15'),
-(36, 1, 'mark_attendance', 'attendance', 24, 'Marked attendance for worker ID: 3', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-11-05 02:25:03');
+(36, 1, 'mark_attendance', 'attendance', 24, 'Marked attendance for worker ID: 3', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-11-05 02:25:03'),
+(37, 1, 'login', 'users', 1, 'User logged in', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-04 03:07:00'),
+(38, 1, 'logout', 'users', 1, 'User logged out', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-04 03:08:55'),
+(39, 1, 'login', 'users', 1, 'User logged in', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-04 03:20:30'),
+(40, 1, 'add_admin', 'users', 13, 'Created new admin account: Christopher John Cruz (@cjcruz)', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-04 04:02:10'),
+(41, 1, 'logout', 'users', 1, 'User logged out', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-04 04:02:26'),
+(42, 13, 'login', 'users', 13, 'User logged in', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-04 04:02:40'),
+(43, 13, 'logout', 'users', 13, 'User logged out', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-04 04:03:06'),
+(44, 1, 'login', 'users', 1, 'User logged in', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-04 04:03:11'),
+(45, 1, 'login', 'users', 1, 'User logged in', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-12-01 04:03:39'),
+(46, 1, 'login', 'users', 1, 'User logged in', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-12-01 04:04:39'),
+(47, 1, 'mark_attendance', 'attendance', 25, 'Marked attendance for worker ID: 3', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-12-01 04:04:57'),
+(48, 1, 'update', 'work_types', 34, 'Updated work type: Mason', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-04 04:11:10'),
+(49, 1, 'update', 'work_types', 34, 'Updated work type: Mason', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-04 04:11:11'),
+(50, 1, 'logout', 'users', 1, 'User logged out', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-25 04:12:27'),
+(51, 1, 'login', 'users', 1, 'User logged in', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-25 04:12:34'),
+(52, 1, 'login', 'users', 1, 'User logged in', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-25 04:13:19'),
+(53, 1, 'mark_attendance', 'attendance', 26, 'Marked attendance for worker ID: 3', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-25 04:13:47'),
+(54, 1, 'update', 'work_types', 33, 'Updated work type: Regular Worker', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-25 04:15:26'),
+(55, 1, 'mark_attendance', 'attendance', 27, 'Marked attendance for worker ID: 1', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-25 04:16:47'),
+(56, 1, 'logout', 'users', 1, 'User logged out', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-04 04:19:20'),
+(57, 1, 'login', 'users', 1, 'User logged in', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-04 04:19:38'),
+(58, 1, 'login', 'users', 1, 'User logged in', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-04 04:44:22'),
+(59, 1, 'login', 'users', 1, 'User logged in', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-10 05:13:36'),
+(60, 1, 'mark_attendance', 'attendance', 28, 'Marked attendance for worker ID: 3', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-10 05:14:02'),
+(61, 1, 'login', 'users', 1, 'User logged in', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-10 05:14:31'),
+(62, 1, 'login', 'users', 1, 'User logged in', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-13 05:17:29'),
+(63, 1, 'mark_attendance', 'attendance', 29, 'Marked attendance for worker ID: 3', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-13 05:17:51'),
+(64, 1, 'login', 'users', 1, 'User logged in', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-13 05:18:14'),
+(65, 1, 'mark_attendance', 'attendance', 30, 'Marked attendance for worker ID: 1', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-13 05:18:59');
 
 -- --------------------------------------------------------
 
@@ -126,7 +155,8 @@ CREATE TABLE `admin_permissions` (
 --
 
 INSERT INTO `admin_permissions` (`permission_id`, `admin_id`, `can_view_workers`, `can_add_workers`, `can_edit_workers`, `can_delete_workers`, `can_manage_work_types`, `can_view_attendance`, `can_mark_attendance`, `can_edit_attendance`, `can_delete_attendance`, `can_view_schedule`, `can_manage_schedule`, `can_view_payroll`, `can_generate_payroll`, `can_approve_payroll`, `can_mark_paid`, `can_edit_payroll`, `can_delete_payroll`, `can_view_payroll_settings`, `can_edit_payroll_settings`, `can_view_deductions`, `can_manage_deductions`, `can_view_cashadvance`, `can_approve_cashadvance`, `can_access_settings`, `can_access_audit`, `can_access_archive`, `can_manage_admins`, `created_at`, `updated_at`) VALUES
-(1, 1, 1, 1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, '2026-02-02 17:00:43', '2026-02-02 18:13:15');
+(1, 1, 1, 1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, '2026-02-02 17:00:43', '2026-02-02 18:13:15'),
+(2, 2, 1, 1, 1, 0, 0, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0, 0, 1, 0, 1, 1, 1, 1, 0, 0, 0, 0, '2026-02-04 04:02:10', '2026-02-04 04:02:10');
 
 -- --------------------------------------------------------
 
@@ -166,7 +196,8 @@ CREATE TABLE `admin_profile` (
 --
 
 INSERT INTO `admin_profile` (`admin_id`, `user_id`, `first_name`, `last_name`, `middle_name`, `phone`, `date_of_birth`, `gender`, `address`, `current_province`, `current_city`, `current_barangay`, `permanent_address`, `permanent_province`, `permanent_city`, `permanent_barangay`, `emergency_contact_name`, `emergency_contact_phone`, `emergency_contact_relationship`, `position`, `profile_image`, `is_active`, `created_at`, `updated_at`) VALUES
-(1, 7, 'Mzhayt', 'Power', NULL, '12121212121212', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'Administrator', NULL, 1, '2026-02-02 17:00:43', '2026-02-02 17:00:43');
+(1, 7, 'Mzhayt', 'Power', NULL, '12121212121212', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'Administrator', NULL, 1, '2026-02-02 17:00:43', '2026-02-02 17:00:43'),
+(2, 13, 'Christopher John', 'Cruz', 'Zamora', '09123456789', '2005-04-11', 'male', 'Block 2 Purok 1', 'Basilan', 'Akbar', 'Linongan', 'Block 2 Purok 1', 'Basilan', 'Akbar', 'Linongan', 'Iza Zapata', '09237237223', 'Spouse', 'Administrator', NULL, 1, '2026-02-04 04:02:10', '2026-02-04 04:02:10');
 
 -- --------------------------------------------------------
 
@@ -223,7 +254,13 @@ INSERT INTO `attendance` (`attendance_id`, `worker_id`, `attendance_date`, `time
 (21, 3, '2026-02-05', '08:00:00', '19:10:00', 'present', 11.17, 0.00, 0.00, 0, NULL, 0.00, NULL, NULL, '2026-02-05 02:10:48', '2026-02-05 02:10:48', 0, NULL, NULL),
 (22, 3, '2026-08-06', '08:00:00', '19:00:00', 'present', 11.00, 0.00, 0.00, 0, NULL, 0.00, NULL, NULL, '2026-08-06 02:15:16', '2026-08-06 02:15:16', 0, NULL, NULL),
 (23, 3, '2026-07-05', '08:00:00', '19:30:00', 'present', 11.50, 0.00, 0.00, 0, NULL, 0.00, NULL, NULL, '2026-07-05 02:20:41', '2026-07-05 02:20:41', 0, NULL, NULL),
-(24, 3, '2026-11-05', '08:00:00', '19:00:00', 'present', 11.00, 0.00, 0.00, 0, NULL, 0.00, NULL, NULL, '2026-11-05 02:25:03', '2026-11-05 02:25:03', 0, NULL, NULL);
+(24, 3, '2026-11-05', '08:00:00', '19:00:00', 'present', 11.00, 0.00, 0.00, 0, NULL, 0.00, NULL, NULL, '2026-11-05 02:25:03', '2026-11-05 02:25:03', 0, NULL, NULL),
+(25, 3, '2026-12-01', '22:00:00', '07:00:00', 'present', -15.00, 0.00, 0.00, 0, NULL, 0.00, NULL, NULL, '2026-12-01 04:04:56', '2026-12-01 04:04:56', 0, NULL, NULL),
+(26, 3, '2026-02-25', '10:00:00', '20:00:00', 'present', 10.00, 0.00, 0.00, 0, NULL, 0.00, NULL, NULL, '2026-02-25 04:13:47', '2026-02-25 04:13:47', 0, NULL, NULL),
+(27, 1, '2026-02-25', '14:00:00', '00:00:00', 'present', -14.00, 0.00, 0.00, 0, NULL, 0.00, NULL, NULL, '2026-02-25 04:16:47', '2026-02-25 04:16:47', 0, NULL, NULL),
+(28, 3, '2026-02-10', '18:00:00', '03:00:00', 'present', -15.00, 0.00, 0.00, 0, NULL, 0.00, NULL, NULL, '2026-02-10 05:14:02', '2026-02-10 05:14:02', 0, NULL, NULL),
+(29, 3, '2026-02-13', '20:00:00', '00:00:00', 'present', -20.00, 0.00, 0.00, 0, NULL, 0.00, NULL, NULL, '2026-02-13 05:17:51', '2026-02-13 05:17:51', 0, NULL, NULL),
+(30, 1, '2026-02-13', '08:00:00', '03:00:00', 'present', -5.00, 0.00, 0.00, 0, NULL, 0.00, NULL, NULL, '2026-02-13 05:18:59', '2026-02-13 05:18:59', 0, NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -339,7 +376,10 @@ INSERT INTO `audit_trail` (`audit_id`, `user_id`, `username`, `user_level`, `act
 (51, NULL, NULL, NULL, 'delete', 'workers', 'workers', 7, 'Enzo Espiritu Jimenez (WKR-0007)', '{\"worker_code\": \"WKR-0007\", \"first_name\": \"Enzo\", \"middle_name\": \"Espiritu\", \"last_name\": \"Jimenez\", \"position\": \"Mason\", \"daily_rate\": 680.00, \"employment_status\": \"active\", \"addresses\": \"{\\\"current\\\":{\\\"address\\\":\\\"Purok 6\\\",\\\"province\\\":\\\"Zambales\\\",\\\"city\\\":\\\"Botolan\\\",\\\"barangay\\\":\\\"San Juan\\\"},\\\"permanent\\\":{\\\"address\\\":\\\"Purok 6\\\",\\\"province\\\":\\\"Zambales\\\",\\\"city\\\":\\\"Botolan\\\",\\\"barangay\\\":\\\"San Juan\\\"}}\"}', NULL, 'Deleted worker: Enzo Jimenez', NULL, NULL, NULL, NULL, NULL, 'critical', 0, 1, NULL, '2026-02-04 01:46:24'),
 (52, NULL, NULL, NULL, 'create', 'workers', 'workers', 1, 'Juan  Dela Cruz (WRK-001)', NULL, '{\"worker_code\": \"WRK-001\", \"first_name\": \"Juan\", \"middle_name\": null, \"last_name\": \"Dela Cruz\", \"position\": \"Mason\", \"daily_rate\": 600.00, \"employment_status\": \"active\", \"phone\": null, \"addresses\": null, \"emergency_contact_name\": null, \"emergency_contact_relationship\": null}', 'Created worker: Juan Dela Cruz (WRK-001)', NULL, NULL, NULL, NULL, NULL, 'medium', 0, 1, NULL, '2026-02-04 01:53:42'),
 (53, NULL, NULL, NULL, 'create', 'workers', 'workers', 2, 'Maria  Santos (WRK-002)', NULL, '{\"worker_code\": \"WRK-002\", \"first_name\": \"Maria\", \"middle_name\": null, \"last_name\": \"Santos\", \"position\": \"Electrician\", \"daily_rate\": 650.00, \"employment_status\": \"active\", \"phone\": null, \"addresses\": null, \"emergency_contact_name\": null, \"emergency_contact_relationship\": null}', 'Created worker: Maria Santos (WRK-002)', NULL, NULL, NULL, NULL, NULL, 'medium', 0, 1, NULL, '2026-02-04 01:53:42'),
-(54, NULL, NULL, NULL, 'create', 'workers', 'workers', 3, 'Ean Paolo Jimenez Espiritu (WKR-0003)', NULL, '{\"worker_code\": \"WKR-0003\", \"first_name\": \"Ean Paolo\", \"middle_name\": \"Jimenez\", \"last_name\": \"Espiritu\", \"position\": \"Senior\", \"daily_rate\": 700.00, \"employment_status\": \"active\", \"phone\": \"09123456789\", \"addresses\": \"{\\\"current\\\":{\\\"address\\\":\\\"Purok 5 456\\\",\\\"province\\\":\\\"Pampanga\\\",\\\"city\\\":\\\"City of San Fernando\\\",\\\"barangay\\\":\\\"Dela Paz Norte\\\"},\\\"permanent\\\":{\\\"address\\\":\\\"Purok 5 456\\\",\\\"province\\\":\\\"Pampanga\\\",\\\"city\\\":\\\"City of San Fernando\\\",\\\"barangay\\\":\\\"Dela Paz Norte\\\"}}\", \"emergency_contact_name\": \"Marycris Espiritu\", \"emergency_contact_relationship\": \"Parent\"}', 'Created worker: Ean Paolo Espiritu (WKR-0003)', NULL, NULL, NULL, NULL, NULL, 'medium', 0, 1, NULL, '2026-02-04 01:58:50');
+(54, NULL, NULL, NULL, 'create', 'workers', 'workers', 3, 'Ean Paolo Jimenez Espiritu (WKR-0003)', NULL, '{\"worker_code\": \"WKR-0003\", \"first_name\": \"Ean Paolo\", \"middle_name\": \"Jimenez\", \"last_name\": \"Espiritu\", \"position\": \"Senior\", \"daily_rate\": 700.00, \"employment_status\": \"active\", \"phone\": \"09123456789\", \"addresses\": \"{\\\"current\\\":{\\\"address\\\":\\\"Purok 5 456\\\",\\\"province\\\":\\\"Pampanga\\\",\\\"city\\\":\\\"City of San Fernando\\\",\\\"barangay\\\":\\\"Dela Paz Norte\\\"},\\\"permanent\\\":{\\\"address\\\":\\\"Purok 5 456\\\",\\\"province\\\":\\\"Pampanga\\\",\\\"city\\\":\\\"City of San Fernando\\\",\\\"barangay\\\":\\\"Dela Paz Norte\\\"}}\", \"emergency_contact_name\": \"Marycris Espiritu\", \"emergency_contact_relationship\": \"Parent\"}', 'Created worker: Ean Paolo Espiritu (WKR-0003)', NULL, NULL, NULL, NULL, NULL, 'medium', 0, 1, NULL, '2026-02-04 01:58:50'),
+(55, NULL, NULL, NULL, 'update', 'workers', 'workers', 3, 'Ean Paolo Jimenez Espiritu (WKR-0003)', '{\"first_name\": \"Ean Paolo\", \"middle_name\": \"Jimenez\", \"last_name\": \"Espiritu\", \"position\": \"Senior\", \"daily_rate\": 700.00, \"employment_status\": \"active\", \"phone\": \"09123456789\", \"addresses\": \"{\\\"current\\\":{\\\"address\\\":\\\"Purok 5 456\\\",\\\"province\\\":\\\"Pampanga\\\",\\\"city\\\":\\\"City of San Fernando\\\",\\\"barangay\\\":\\\"Dela Paz Norte\\\"},\\\"permanent\\\":{\\\"address\\\":\\\"Purok 5 456\\\",\\\"province\\\":\\\"Pampanga\\\",\\\"city\\\":\\\"City of San Fernando\\\",\\\"barangay\\\":\\\"Dela Paz Norte\\\"}}\", \"emergency_contact_relationship\": \"Parent\"}', '{\"first_name\": \"Ean Paolo\", \"middle_name\": \"Jimenez\", \"last_name\": \"Espiritu\", \"position\": \"Senior\", \"daily_rate\": 960.00, \"employment_status\": \"active\", \"phone\": \"09123456789\", \"addresses\": \"{\\\"current\\\":{\\\"address\\\":\\\"Purok 5 456\\\",\\\"province\\\":\\\"Pampanga\\\",\\\"city\\\":\\\"City of San Fernando\\\",\\\"barangay\\\":\\\"Dela Paz Norte\\\"},\\\"permanent\\\":{\\\"address\\\":\\\"Purok 5 456\\\",\\\"province\\\":\\\"Pampanga\\\",\\\"city\\\":\\\"City of San Fernando\\\",\\\"barangay\\\":\\\"Dela Paz Norte\\\"}}\", \"emergency_contact_relationship\": \"Parent\"}', 'Updated worker: Ean Paolo Espiritu', NULL, NULL, NULL, NULL, NULL, 'medium', 0, 1, NULL, '2026-02-04 04:11:10'),
+(56, NULL, NULL, NULL, 'update', 'workers', 'workers', 1, 'Juan  Dela Cruz (WRK-001)', '{\"first_name\": \"Juan\", \"middle_name\": null, \"last_name\": \"Dela Cruz\", \"position\": \"Mason\", \"daily_rate\": 600.00, \"employment_status\": \"active\", \"phone\": null, \"addresses\": null, \"emergency_contact_relationship\": null}', '{\"first_name\": \"Juan\", \"middle_name\": null, \"last_name\": \"Dela Cruz\", \"position\": \"Mason\", \"daily_rate\": 960.00, \"employment_status\": \"active\", \"phone\": null, \"addresses\": null, \"emergency_contact_relationship\": null}', 'Updated worker: Juan Dela Cruz', NULL, NULL, NULL, NULL, NULL, 'medium', 0, 1, NULL, '2026-02-25 04:15:26'),
+(57, NULL, NULL, NULL, 'update', 'workers', 'workers', 2, 'Maria  Santos (WRK-002)', '{\"first_name\": \"Maria\", \"middle_name\": null, \"last_name\": \"Santos\", \"position\": \"Electrician\", \"daily_rate\": 650.00, \"employment_status\": \"active\", \"phone\": null, \"addresses\": null, \"emergency_contact_relationship\": null}', '{\"first_name\": \"Maria\", \"middle_name\": null, \"last_name\": \"Santos\", \"position\": \"Electrician\", \"daily_rate\": 960.00, \"employment_status\": \"active\", \"phone\": null, \"addresses\": null, \"emergency_contact_relationship\": null}', 'Updated worker: Maria Santos', NULL, NULL, NULL, NULL, NULL, 'medium', 0, 1, NULL, '2026-02-25 04:15:26');
 
 -- --------------------------------------------------------
 
@@ -802,20 +842,28 @@ INSERT INTO `payroll_earnings` (`earning_id`, `record_id`, `earning_date`, `earn
 (213, 22, '2026-02-04', 'regular', NULL, 9.00, 125.0000, 1.0000, 1125.00, '9.00 hrs × ₱125.00 = ₱1125.00', 59, '2026-02-04 01:26:25'),
 (214, 22, '2026-02-05', 'regular', NULL, 10.00, 125.0000, 1.0000, 1250.00, '10.00 hrs × ₱125.00 = ₱1250.00', 60, '2026-02-04 01:26:25'),
 (215, 22, '2026-02-06', 'regular', NULL, 8.50, 125.0000, 1.0000, 1062.50, '8.50 hrs × ₱125.00 = ₱1062.50', 53, '2026-02-04 01:26:25'),
-(216, 1, '2026-02-02', 'regular', NULL, 8.00, 125.0000, 1.0000, 1000.00, '8.00 hrs × ₱125.00 = ₱1000.00', 1, '2026-02-04 01:40:55'),
-(217, 1, '2026-02-03', 'regular', NULL, 9.00, 125.0000, 1.0000, 1125.00, '9.00 hrs × ₱125.00 = ₱1125.00', 2, '2026-02-04 01:40:55'),
-(218, 1, '2026-02-04', 'regular', NULL, 8.50, 125.0000, 1.0000, 1062.50, '8.50 hrs × ₱125.00 = ₱1062.50', 3, '2026-02-04 01:40:55'),
-(219, 1, '2026-02-02', 'regular', NULL, 8.00, 75.0000, 1.0000, 600.00, '8.00 hrs × ₱75.00 = ₱600.00', 2, '2026-02-04 01:54:10'),
-(220, 1, '2026-02-02', 'overtime', NULL, 1.00, 75.0000, 1.2500, 93.75, '1.00 hrs × ₱75.00 × 1.25 = ₱93.75', 2, '2026-02-04 01:54:10'),
-(221, 1, '2026-02-03', 'regular', NULL, 7.50, 75.0000, 1.0000, 562.50, '7.50 hrs × ₱75.00 = ₱562.50', 3, '2026-02-04 01:54:10'),
-(222, 1, '2026-02-04', 'regular', NULL, 8.00, 75.0000, 1.0000, 600.00, '8.00 hrs × ₱75.00 = ₱600.00', 4, '2026-02-04 01:54:10'),
-(223, 1, '2026-02-05', 'regular', NULL, 8.00, 75.0000, 1.0000, 600.00, '8.00 hrs × ₱75.00 = ₱600.00', 5, '2026-02-04 01:54:11'),
-(224, 1, '2026-02-05', 'overtime', NULL, 2.00, 75.0000, 1.2500, 187.50, '2.00 hrs × ₱75.00 × 1.25 = ₱187.50', 5, '2026-02-04 01:54:11'),
-(225, 1, '2026-02-08', 'regular', NULL, 8.00, 75.0000, 1.0000, 600.00, '8.00 hrs × ₱75.00 = ₱600.00', 6, '2026-02-04 01:54:11'),
 (226, 2, '2026-11-05', 'regular', NULL, 8.00, 87.5000, 1.0000, 700.00, '8.00 hrs × ₱87.50 = ₱700.00', 24, '2026-02-04 02:27:45'),
 (227, 2, '2026-11-05', 'overtime', NULL, 2.00, 87.5000, 1.2500, 218.75, '2.00 hrs × ₱87.50 × 1.25 = ₱218.75', 24, '2026-02-04 02:27:45'),
 (228, 3, '2026-11-05', 'regular', NULL, 8.00, 87.5000, 1.0000, 700.00, '8.00 hrs × ₱87.50 = ₱700.00', 24, '2026-02-04 02:31:50'),
-(229, 3, '2026-11-05', 'overtime', NULL, 2.00, 87.5000, 1.2500, 218.75, '2.00 hrs × ₱87.50 × 1.25 = ₱218.75', 24, '2026-02-04 02:31:50');
+(229, 3, '2026-11-05', 'overtime', NULL, 2.00, 87.5000, 1.2500, 218.75, '2.00 hrs × ₱87.50 × 1.25 = ₱218.75', 24, '2026-02-04 02:31:50'),
+(245, 4, '2026-02-04', 'regular', NULL, 8.00, 120.0000, 1.0000, 960.00, '8.00 hrs × ₱120.00 = ₱960.00', 19, '2026-02-04 04:44:43'),
+(246, 4, '2026-02-04', 'overtime', NULL, 0.50, 120.0000, 2.0000, 120.00, '0.50 hrs × ₱120.00 × 2.00 = ₱120.00', 19, '2026-02-04 04:44:43'),
+(247, 4, '2026-02-05', 'regular', NULL, 8.00, 120.0000, 1.0000, 960.00, '8.00 hrs × ₱120.00 = ₱960.00', 21, '2026-02-04 04:44:43'),
+(248, 4, '2026-02-05', 'overtime', NULL, 2.17, 120.0000, 2.0000, 520.80, '2.17 hrs × ₱120.00 × 2.00 = ₱520.80', 21, '2026-02-04 04:44:43'),
+(249, 1, '2026-02-02', 'regular', NULL, 8.00, 120.0000, 1.0000, 960.00, '8.00 hrs × ₱120.00 = ₱960.00', 2, '2026-02-04 04:44:43'),
+(250, 1, '2026-02-02', 'overtime', NULL, 1.00, 120.0000, 2.0000, 240.00, '1.00 hrs × ₱120.00 × 2.00 = ₱240.00', 2, '2026-02-04 04:44:43'),
+(251, 1, '2026-02-03', 'regular', NULL, 7.50, 120.0000, 1.0000, 900.00, '7.50 hrs × ₱120.00 = ₱900.00', 3, '2026-02-04 04:44:43'),
+(252, 1, '2026-02-04', 'regular', NULL, 8.00, 120.0000, 1.0000, 960.00, '8.00 hrs × ₱120.00 = ₱960.00', 4, '2026-02-04 04:44:43'),
+(253, 1, '2026-02-05', 'regular', NULL, 8.00, 120.0000, 1.0000, 960.00, '8.00 hrs × ₱120.00 = ₱960.00', 5, '2026-02-04 04:44:43'),
+(254, 1, '2026-02-05', 'overtime', NULL, 2.00, 120.0000, 2.0000, 480.00, '2.00 hrs × ₱120.00 × 2.00 = ₱480.00', 5, '2026-02-04 04:44:43'),
+(255, 1, '2026-02-08', 'regular', NULL, 8.00, 120.0000, 1.0000, 960.00, '8.00 hrs × ₱120.00 = ₱960.00', 6, '2026-02-04 04:44:43'),
+(256, 5, '2026-02-02', 'regular', NULL, 8.00, 120.0000, 1.0000, 960.00, '8.00 hrs × ₱120.00 = ₱960.00', 12, '2026-02-04 04:44:43'),
+(257, 5, '2026-02-03', 'regular', NULL, 8.00, 120.0000, 1.0000, 960.00, '8.00 hrs × ₱120.00 = ₱960.00', 13, '2026-02-04 04:44:43'),
+(258, 5, '2026-02-03', 'overtime', NULL, 1.00, 120.0000, 2.0000, 240.00, '1.00 hrs × ₱120.00 × 2.00 = ₱240.00', 13, '2026-02-04 04:44:43'),
+(259, 5, '2026-02-04', 'regular', NULL, 8.00, 120.0000, 1.0000, 960.00, '8.00 hrs × ₱120.00 = ₱960.00', 14, '2026-02-04 04:44:43'),
+(260, 5, '2026-02-05', 'regular', NULL, 8.00, 120.0000, 1.0000, 960.00, '8.00 hrs × ₱120.00 = ₱960.00', 15, '2026-02-04 04:44:43'),
+(261, 5, '2026-02-08', 'regular', NULL, 8.00, 120.0000, 1.0000, 960.00, '8.00 hrs × ₱120.00 = ₱960.00', 16, '2026-02-04 04:44:43'),
+(262, 5, '2026-02-08', 'overtime', NULL, 1.50, 120.0000, 2.0000, 360.00, '1.50 hrs × ₱120.00 × 2.00 = ₱360.00', 16, '2026-02-04 04:44:43');
 
 -- --------------------------------------------------------
 
@@ -847,7 +895,7 @@ CREATE TABLE `payroll_periods` (
 --
 
 INSERT INTO `payroll_periods` (`period_id`, `period_start`, `period_end`, `period_type`, `period_label`, `status`, `total_workers`, `total_gross`, `total_deductions`, `total_net`, `processed_by`, `finalized_by`, `finalized_at`, `notes`, `created_at`, `updated_at`) VALUES
-(1, '2026-02-02', '2026-02-08', 'weekly', 'Week of Feb 02 - Feb 08, 2026', 'open', 1, 3243.75, 287.84, 2955.91, NULL, NULL, NULL, NULL, '2026-02-04 01:54:10', '2026-02-04 01:54:10'),
+(1, '2026-02-02', '2026-02-08', 'weekly', 'Week of Feb 02 - Feb 08, 2026', 'open', 3, 13420.80, 1350.05, 12070.75, NULL, NULL, NULL, NULL, '2026-02-04 01:54:10', '2026-02-04 04:44:43'),
 (2, '2026-11-01', '2026-11-14', 'weekly', 'Week of Nov 01 - Nov 14, 2026', 'open', 1, 918.75, 144.90, 773.85, NULL, NULL, NULL, NULL, '2026-02-04 02:27:45', '2026-02-04 02:27:45'),
 (3, '2026-11-01', '2026-11-30', 'weekly', 'Week of Nov 01 - Nov 30, 2026', 'open', 1, 918.75, 144.90, 773.85, NULL, NULL, NULL, NULL, '2026-02-04 02:31:50', '2026-02-04 02:31:50');
 
@@ -906,9 +954,11 @@ CREATE TABLE `payroll_records` (
 --
 
 INSERT INTO `payroll_records` (`record_id`, `period_id`, `worker_id`, `hourly_rate_used`, `ot_multiplier_used`, `night_diff_pct_used`, `regular_hours`, `overtime_hours`, `night_diff_hours`, `rest_day_hours`, `regular_holiday_hours`, `special_holiday_hours`, `regular_pay`, `overtime_pay`, `night_diff_pay`, `rest_day_pay`, `regular_holiday_pay`, `special_holiday_pay`, `other_earnings`, `gross_pay`, `sss_contribution`, `philhealth_contribution`, `pagibig_contribution`, `tax_withholding`, `other_deductions`, `total_deductions`, `net_pay`, `status`, `payment_method`, `payment_date`, `paid_by`, `payment_reference`, `notes`, `generated_by`, `approved_by`, `approved_at`, `is_archived`, `archived_at`, `archived_by`, `created_at`, `updated_at`) VALUES
-(1, 1, 1, 75.0000, 1.2500, 0.1000, 39.50, 3.00, 0.00, 0.00, 0.00, 0.00, 2962.50, 281.25, 0.00, 0.00, 0.00, 0.00, 0.00, 3243.75, 175.00, 87.84, 25.00, 0.00, 0.00, 287.84, 2955.91, 'draft', NULL, NULL, NULL, NULL, NULL, 1, NULL, NULL, 0, NULL, NULL, '2026-02-04 01:54:10', '2026-02-04 01:54:10'),
+(1, 1, 1, 120.0000, 1.2500, 0.1000, 39.50, 3.00, 0.00, 0.00, 0.00, 0.00, 4740.00, 720.00, 0.00, 0.00, 0.00, 0.00, 0.00, 5460.00, 293.75, 147.86, 25.00, 97.80, 0.00, 564.41, 4895.59, 'draft', NULL, NULL, NULL, NULL, NULL, 1, NULL, NULL, 0, NULL, NULL, '2026-02-04 01:54:10', '2026-02-04 04:33:33'),
 (2, 2, 3, 87.5000, 1.2500, 0.1000, 8.00, 2.00, 0.00, 0.00, 0.00, 0.00, 700.00, 218.75, 0.00, 0.00, 0.00, 0.00, 0.00, 918.75, 62.50, 62.50, 19.90, 0.00, 0.00, 144.90, 773.85, 'draft', NULL, NULL, NULL, NULL, NULL, 1, NULL, NULL, 0, NULL, NULL, '2026-02-04 02:27:45', '2026-02-04 02:27:45'),
-(3, 3, 3, 87.5000, 1.2500, 0.1000, 8.00, 2.00, 0.00, 0.00, 0.00, 0.00, 700.00, 218.75, 0.00, 0.00, 0.00, 0.00, 0.00, 918.75, 62.50, 62.50, 19.90, 0.00, 0.00, 144.90, 773.85, 'draft', NULL, NULL, NULL, NULL, NULL, 1, NULL, NULL, 0, NULL, NULL, '2026-02-04 02:31:50', '2026-02-04 02:31:50');
+(3, 3, 3, 87.5000, 1.2500, 0.1000, 8.00, 2.00, 0.00, 0.00, 0.00, 0.00, 700.00, 218.75, 0.00, 0.00, 0.00, 0.00, 0.00, 918.75, 62.50, 62.50, 19.90, 0.00, 0.00, 144.90, 773.85, 'draft', NULL, NULL, NULL, NULL, NULL, 1, NULL, NULL, 0, NULL, NULL, '2026-02-04 02:31:50', '2026-02-04 02:31:50'),
+(4, 1, 3, 120.0000, 1.2500, 0.1000, 16.00, 2.67, 0.00, 0.00, 0.00, 0.00, 1920.00, 640.80, 0.00, 0.00, 0.00, 0.00, 0.00, 2560.80, 137.50, 69.35, 25.00, 0.00, 0.00, 231.85, 2328.95, 'draft', NULL, NULL, NULL, NULL, NULL, 1, NULL, NULL, 0, NULL, NULL, '2026-02-04 04:02:53', '2026-02-04 04:29:32'),
+(5, 1, 2, 120.0000, 1.2500, 0.1000, 40.00, 2.50, 0.00, 0.00, 0.00, 0.00, 4800.00, 600.00, 0.00, 0.00, 0.00, 0.00, 0.00, 5400.00, 293.75, 146.24, 25.00, 88.80, 0.00, 553.79, 4846.21, 'draft', NULL, NULL, NULL, NULL, NULL, 1, NULL, NULL, 0, NULL, NULL, '2026-02-04 04:44:43', '2026-02-04 04:44:43');
 
 --
 -- Triggers `payroll_records`
@@ -973,12 +1023,12 @@ INSERT INTO `payroll_settings` (`setting_id`, `setting_key`, `setting_value`, `s
 (3, 'standard_days_per_week', 6.0000, 'hours', 'base', 'Standard Days Per Week', 'Regular working days per week', '6 days/week', NULL, NULL, 1, 1, 3, NULL, '2026-02-02 14:25:18', '2026-02-02 14:25:18'),
 (4, 'daily_rate', 600.0000, 'rate', 'base', 'Daily Rate', 'Computed daily wage (hourly ├ù 8)', 'Hourly Rate × 8 hours = ₱600.00', NULL, NULL, 1, 1, 4, NULL, '2026-02-02 14:25:18', '2026-02-04 01:49:24'),
 (5, 'weekly_rate', 3600.0000, 'rate', 'base', 'Weekly Rate', 'Computed weekly wage (daily ├ù 6)', 'Daily Rate × 6 days = ₱3,600.00', NULL, NULL, 1, 1, 5, NULL, '2026-02-02 14:25:18', '2026-02-04 01:49:24'),
-(6, 'overtime_multiplier', 1.2500, 'multiplier', 'overtime', 'Overtime Multiplier', 'Premium rate for work beyond 8 hours (125%)', 'Hourly Rate ├ù 1.25 = Ôé▒93.75/hr OT', NULL, NULL, 1, 1, 10, 1, '2026-02-02 14:25:18', '2026-02-02 15:26:56'),
-(7, 'overtime_rate', 93.7500, 'rate', 'overtime', 'Overtime Hourly Rate', 'Computed overtime rate per hour', 'Hourly Rate × 1.25 = ₱93.75/hr OT', NULL, NULL, 1, 1, 11, NULL, '2026-02-02 14:25:18', '2026-02-04 01:49:24'),
+(6, 'overtime_multiplier', 1.2500, 'multiplier', 'overtime', 'Overtime Multiplier', 'Premium rate for work beyond 8 hours (125%)', 'Hourly Rate ├ù 1.25 = Ôé▒93.75/hr OT', NULL, NULL, 1, 1, 10, 1, '2026-02-02 14:25:18', '2026-02-04 04:50:42'),
+(7, 'overtime_rate', 93.7500, 'rate', 'overtime', 'Overtime Hourly Rate', 'Computed overtime rate per hour', 'Hourly Rate × 1.25 = ₱93.75/hr OT', NULL, NULL, 1, 1, 11, NULL, '2026-02-02 14:25:18', '2026-02-04 04:50:42'),
 (8, 'night_diff_start', 22.0000, 'hours', 'differential', 'Night Diff Start Hour', 'Night differential starts at 10:00 PM (22:00)', '10:00 PM', NULL, NULL, 1, 1, 12, NULL, '2026-02-02 14:25:18', '2026-02-02 14:25:18'),
 (9, 'night_diff_end', 6.0000, 'hours', 'differential', 'Night Diff End Hour', 'Night differential ends at 6:00 AM (06:00)', '6:00 AM', NULL, NULL, 1, 1, 13, NULL, '2026-02-02 14:25:18', '2026-02-02 14:25:18'),
-(10, 'night_diff_percentage', 110.0000, 'percentage', 'differential', 'Night Differential %', 'Additional percentage for night work (Labor Code Art. 86)', '+10% of hourly rate', NULL, NULL, 1, 1, 14, 1, '2026-02-02 14:25:18', '2026-02-04 00:26:14'),
-(11, 'night_diff_rate', 82.5000, 'rate', 'differential', 'Night Diff Additional Rate', 'Additional pay per night hour', 'Hourly Rate × 110% = ₱82.50/hr', NULL, NULL, 1, 1, 15, NULL, '2026-02-02 14:25:18', '2026-02-04 01:49:24'),
+(10, 'night_diff_percentage', 10.0000, 'percentage', 'differential', 'Night Differential %', 'Additional percentage for night work (Labor Code Art. 86)', '+10% of hourly rate', NULL, NULL, 1, 1, 14, 1, '2026-02-02 14:25:18', '2026-02-04 04:20:40'),
+(11, 'night_diff_rate', 7.5000, 'rate', 'differential', 'Night Diff Additional Rate', 'Additional pay per night hour', 'Hourly Rate × 10% = ₱7.50/hr', NULL, NULL, 1, 1, 15, NULL, '2026-02-02 14:25:18', '2026-02-04 04:20:40'),
 (12, 'regular_holiday_multiplier', 2.0000, 'multiplier', 'holiday', 'Regular Holiday Multiplier', 'Pay rate for work on regular holidays (200%) (Labor Code Art. 94)', 'Hourly Rate × 2.00', NULL, NULL, 1, 1, 16, NULL, '2026-02-02 14:25:18', '2026-02-04 00:26:14'),
 (13, 'regular_holiday_rate', 150.0000, 'rate', 'holiday', 'Regular Holiday Hourly Rate', 'Computed hourly rate for regular holidays', 'Hourly Rate × 2.00 = ₱150.00/hr', NULL, NULL, 1, 1, 17, NULL, '2026-02-02 14:25:18', '2026-02-04 01:49:24'),
 (14, 'regular_holiday_ot_multiplier', 2.6000, 'multiplier', 'holiday', 'Regular Holiday OT Multiplier', 'Overtime on regular holiday (200% ├ù 130%)', 'Regular Holiday Rate ├ù 1.30', NULL, NULL, 1, 1, 18, NULL, '2026-02-02 14:25:18', '2026-02-02 14:25:18'),
@@ -1277,10 +1327,11 @@ CREATE TABLE `users` (
 --
 
 INSERT INTO `users` (`user_id`, `username`, `password`, `email`, `user_level`, `status`, `is_active`, `created_at`, `updated_at`, `last_login`) VALUES
-(1, 'Jeff', '$2y$10$Yz/cYyQM7gJXayhlgAjDi.uXLbexy4FqGvRomUGhwppJzCVf9ceJu', 'superadmin@tracksite.com', 'super_admin', 'active', 1, '2026-02-02 15:01:24', '2026-11-05 02:24:15', '2026-11-05 02:24:15'),
+(1, 'Jeff', '$2y$10$Yz/cYyQM7gJXayhlgAjDi.uXLbexy4FqGvRomUGhwppJzCVf9ceJu', 'superadmin@tracksite.com', 'super_admin', 'active', 1, '2026-02-02 15:01:24', '2026-02-13 05:18:14', '2026-02-13 05:18:14'),
 (10, 'juan.delacruz', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'juan@test.com', 'worker', 'active', 1, '2026-02-04 01:53:42', '2026-02-04 01:53:42', NULL),
 (11, 'maria.santos', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'maria@test.com', 'worker', 'active', 1, '2026-02-04 01:53:42', '2026-02-04 01:53:42', NULL),
-(12, 'ean paolo0003@tracksite.com', '$2y$10$YIKiVEISsm9FkgAMLLWXO.nVxyyYfmAPTqlF8JMAgFQnRjAhWKKdC', 'ean paolo0003@tracksite.com', 'worker', 'active', 1, '2026-02-04 01:58:50', '2026-02-04 01:58:50', NULL);
+(12, 'ean paolo0003@tracksite.com', '$2y$10$YIKiVEISsm9FkgAMLLWXO.nVxyyYfmAPTqlF8JMAgFQnRjAhWKKdC', 'eanpaolo0003@tracksite.com', 'worker', 'active', 1, '2026-02-04 01:58:50', '2026-02-04 03:06:52', NULL),
+(13, 'cjcruz', '$2y$10$QjmSMrL79If88XLqVxvyqO0ZtKg47PjRQuU.WPqB3yQ/Mc5ljIx.C', 'admin@tracksite.com', 'admin', 'active', 1, '2026-02-04 04:02:10', '2026-02-04 04:02:40', '2026-02-04 04:02:40');
 
 -- --------------------------------------------------------
 
@@ -1548,9 +1599,9 @@ CREATE TABLE `workers` (
 --
 
 INSERT INTO `workers` (`worker_id`, `user_id`, `worker_code`, `first_name`, `middle_name`, `last_name`, `position`, `work_type_id`, `classification_id`, `worker_type`, `phone`, `addresses`, `address`, `date_of_birth`, `gender`, `emergency_contact_name`, `emergency_contact_phone`, `emergency_contact_relationship`, `date_hired`, `employment_status`, `daily_rate`, `hourly_rate`, `experience_years`, `profile_image`, `sss_number`, `philhealth_number`, `pagibig_number`, `tin_number`, `identification_data`, `is_archived`, `archived_at`, `archived_by`, `archive_reason`, `created_at`, `updated_at`) VALUES
-(1, 10, 'WRK-001', 'Juan', NULL, 'Dela Cruz', 'Mason', 33, NULL, 'skilled_worker', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2025-08-04', 'active', 600.00, 75.00, 0, NULL, '33-1234567-8', '12-123456789-0', '1234-5678-9012', '123-456-789-000', NULL, 0, NULL, NULL, NULL, '2026-02-04 01:53:42', '2026-02-04 01:53:42'),
-(2, 11, 'WRK-002', 'Maria', NULL, 'Santos', 'Electrician', 33, NULL, 'electrician', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2025-11-04', 'active', 650.00, 81.25, 0, NULL, '33-7654321-0', '12-987654321-0', '9876-5432-1098', '987-654-321-000', NULL, 0, NULL, NULL, NULL, '2026-02-04 01:53:42', '2026-02-04 01:53:42'),
-(3, 12, 'WKR-0003', 'Ean Paolo', 'Jimenez', 'Espiritu', 'Senior', 34, NULL, 'mason', '09123456789', '{\"current\":{\"address\":\"Purok 5 456\",\"province\":\"Pampanga\",\"city\":\"City of San Fernando\",\"barangay\":\"Dela Paz Norte\"},\"permanent\":{\"address\":\"Purok 5 456\",\"province\":\"Pampanga\",\"city\":\"City of San Fernando\",\"barangay\":\"Dela Paz Norte\"}}', NULL, '2004-11-19', 'male', 'Marycris Espiritu', '09123456789', 'Parent', '2026-02-04', 'active', 700.00, 87.50, 0, NULL, '', '', '', '', '{\"primary\":{\"type\":\"UMID\",\"number\":\"123456\"},\"additional\":[]}', 0, NULL, NULL, NULL, '2026-02-04 01:58:50', '2026-02-04 01:58:50');
+(1, 10, 'WRK-001', 'Juan', NULL, 'Dela Cruz', 'Mason', 33, NULL, 'skilled_worker', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2025-08-04', 'active', 960.00, 120.00, 0, NULL, '33-1234567-8', '12-123456789-0', '1234-5678-9012', '123-456-789-000', NULL, 0, NULL, NULL, NULL, '2026-02-04 01:53:42', '2026-02-25 04:15:26'),
+(2, 11, 'WRK-002', 'Maria', NULL, 'Santos', 'Electrician', 33, NULL, 'electrician', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2025-11-04', 'active', 960.00, 120.00, 0, NULL, '33-7654321-0', '12-987654321-0', '9876-5432-1098', '987-654-321-000', NULL, 0, NULL, NULL, NULL, '2026-02-04 01:53:42', '2026-02-25 04:15:26'),
+(3, 12, 'WKR-0003', 'Ean Paolo', 'Jimenez', 'Espiritu', 'Senior', 34, NULL, 'mason', '09123456789', '{\"current\":{\"address\":\"Purok 5 456\",\"province\":\"Pampanga\",\"city\":\"City of San Fernando\",\"barangay\":\"Dela Paz Norte\"},\"permanent\":{\"address\":\"Purok 5 456\",\"province\":\"Pampanga\",\"city\":\"City of San Fernando\",\"barangay\":\"Dela Paz Norte\"}}', NULL, '2004-11-19', 'male', 'Marycris Espiritu', '09123456789', 'Parent', '2026-02-04', 'active', 960.00, 120.00, 0, NULL, '', '', '', '', '{\"primary\":{\"type\":\"UMID\",\"number\":\"123456\"},\"additional\":[]}', 0, NULL, NULL, NULL, '2026-02-04 01:58:50', '2026-02-04 04:11:10');
 
 --
 -- Triggers `workers`
@@ -1727,14 +1778,14 @@ CREATE TABLE `worker_type_rates` (
 --
 
 INSERT INTO `worker_type_rates` (`rate_id`, `worker_type`, `hourly_rate`, `daily_rate`, `overtime_multiplier`, `night_diff_percentage`, `is_active`, `effective_date`, `created_at`, `updated_at`) VALUES
-(1, 'skilled_worker', 120.00, 960.00, 1.25, 10.00, 1, '2026-02-04', '2026-02-04 00:09:20', '2026-02-04 00:09:20'),
-(2, 'laborer', 80.00, 640.00, 1.25, 10.00, 1, '2026-02-04', '2026-02-04 00:09:20', '2026-02-04 00:09:20'),
-(3, 'foreman', 150.00, 1200.00, 1.25, 10.00, 1, '2026-02-04', '2026-02-04 00:09:20', '2026-02-04 00:09:20'),
-(4, 'electrician', 130.00, 1040.00, 1.25, 10.00, 1, '2026-02-04', '2026-02-04 00:09:20', '2026-02-04 00:09:20'),
-(5, 'carpenter', 110.00, 880.00, 1.25, 10.00, 1, '2026-02-04', '2026-02-04 00:09:20', '2026-02-04 00:09:20'),
-(6, 'plumber', 115.00, 920.00, 1.25, 10.00, 1, '2026-02-04', '2026-02-04 00:09:20', '2026-02-04 00:09:20'),
-(7, 'mason', 100.00, 800.00, 1.25, 10.00, 1, '2026-02-04', '2026-02-04 00:09:20', '2026-02-04 00:09:20'),
-(8, 'other', 90.00, 720.00, 1.25, 10.00, 1, '2026-02-04', '2026-02-04 00:09:20', '2026-02-04 00:09:20');
+(1, 'skilled_worker', 120.00, 960.00, 1.25, 10.00, 1, '2026-02-04', '2026-02-04 00:09:20', '2026-02-04 04:48:47'),
+(2, 'laborer', 80.00, 640.00, 1.25, 10.00, 1, '2026-02-04', '2026-02-04 00:09:20', '2026-02-04 04:48:47'),
+(3, 'foreman', 150.00, 1200.00, 1.25, 10.00, 1, '2026-02-04', '2026-02-04 00:09:20', '2026-02-04 04:48:47'),
+(4, 'electrician', 130.00, 1040.00, 1.25, 10.00, 1, '2026-02-04', '2026-02-04 00:09:20', '2026-02-04 04:48:47'),
+(5, 'carpenter', 110.00, 880.00, 1.25, 10.00, 1, '2026-02-04', '2026-02-04 00:09:20', '2026-02-04 04:48:47'),
+(6, 'plumber', 115.00, 920.00, 1.25, 10.00, 1, '2026-02-04', '2026-02-04 00:09:20', '2026-02-04 04:48:47'),
+(7, 'mason', 100.00, 800.00, 1.25, 10.00, 1, '2026-02-04', '2026-02-04 00:09:20', '2026-02-04 04:48:47'),
+(8, 'other', 90.00, 720.00, 1.25, 10.00, 1, '2026-02-04', '2026-02-04 00:09:20', '2026-02-04 04:48:47');
 
 -- --------------------------------------------------------
 
@@ -1762,8 +1813,8 @@ CREATE TABLE `work_types` (
 --
 
 INSERT INTO `work_types` (`work_type_id`, `work_type_code`, `work_type_name`, `classification_id`, `description`, `daily_rate`, `is_active`, `display_order`, `created_by`, `created_at`, `updated_at`) VALUES
-(33, 'REG', 'Regular Worker', NULL, 'Regular construction worker', 600.00, 1, 1, NULL, '2026-02-04 01:53:42', '2026-02-04 01:53:42'),
-(34, 'MSN', 'Mason', 2, 'Masons build structures with brick, block, and stone', 700.00, 1, 0, 1, '2026-02-04 01:56:25', '2026-02-04 01:56:25');
+(33, 'REG', 'Regular Worker', 1, 'Regular construction worker', 960.00, 1, 1, NULL, '2026-02-04 01:53:42', '2026-02-25 04:15:26'),
+(34, 'MSN', 'Mason', 2, 'Masons build structures with brick, block, and stone', 960.00, 1, 0, 1, '2026-02-04 01:56:25', '2026-02-04 04:11:10');
 
 -- --------------------------------------------------------
 
@@ -1781,6 +1832,14 @@ CREATE TABLE `work_type_rate_history` (
   `changed_by` int(11) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `work_type_rate_history`
+--
+
+INSERT INTO `work_type_rate_history` (`history_id`, `work_type_id`, `old_daily_rate`, `new_daily_rate`, `change_reason`, `effective_date`, `changed_by`, `created_at`) VALUES
+(1, 34, 700.00, 960.00, NULL, '2026-02-04', 1, '2026-02-04 04:11:10'),
+(2, 33, 600.00, 960.00, NULL, '2026-02-25', 1, '2026-02-25 04:15:26');
 
 -- --------------------------------------------------------
 
@@ -2184,25 +2243,25 @@ ALTER TABLE `work_type_rate_history`
 -- AUTO_INCREMENT for table `activity_logs`
 --
 ALTER TABLE `activity_logs`
-  MODIFY `log_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=37;
+  MODIFY `log_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=66;
 
 --
 -- AUTO_INCREMENT for table `admin_permissions`
 --
 ALTER TABLE `admin_permissions`
-  MODIFY `permission_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `permission_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT for table `admin_profile`
 --
 ALTER TABLE `admin_profile`
-  MODIFY `admin_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `admin_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT for table `attendance`
 --
 ALTER TABLE `attendance`
-  MODIFY `attendance_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=25;
+  MODIFY `attendance_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=31;
 
 --
 -- AUTO_INCREMENT for table `attendance_settings`
@@ -2214,7 +2273,7 @@ ALTER TABLE `attendance_settings`
 -- AUTO_INCREMENT for table `audit_trail`
 --
 ALTER TABLE `audit_trail`
-  MODIFY `audit_id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=55;
+  MODIFY `audit_id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=58;
 
 --
 -- AUTO_INCREMENT for table `bir_tax_brackets`
@@ -2280,7 +2339,7 @@ ALTER TABLE `payroll`
 -- AUTO_INCREMENT for table `payroll_earnings`
 --
 ALTER TABLE `payroll_earnings`
-  MODIFY `earning_id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=230;
+  MODIFY `earning_id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=263;
 
 --
 -- AUTO_INCREMENT for table `payroll_periods`
@@ -2292,7 +2351,7 @@ ALTER TABLE `payroll_periods`
 -- AUTO_INCREMENT for table `payroll_records`
 --
 ALTER TABLE `payroll_records`
-  MODIFY `record_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `record_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- AUTO_INCREMENT for table `payroll_settings`
@@ -2352,7 +2411,7 @@ ALTER TABLE `system_settings`
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `user_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
+  MODIFY `user_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
 
 --
 -- AUTO_INCREMENT for table `workers`
@@ -2388,7 +2447,7 @@ ALTER TABLE `work_types`
 -- AUTO_INCREMENT for table `work_type_rate_history`
 --
 ALTER TABLE `work_type_rate_history`
-  MODIFY `history_id` bigint(20) NOT NULL AUTO_INCREMENT;
+  MODIFY `history_id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- Constraints for dumped tables
@@ -2407,106 +2466,12 @@ ALTER TABLE `admin_permissions`
   ADD CONSTRAINT `admin_permissions_ibfk_1` FOREIGN KEY (`admin_id`) REFERENCES `admin_profile` (`admin_id`) ON DELETE CASCADE;
 
 --
--- Constraints for table `admin_profile`
---
-ALTER TABLE `admin_profile`
-  ADD CONSTRAINT `admin_profile_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE;
-
---
 -- Constraints for table `attendance`
 --
 ALTER TABLE `attendance`
   ADD CONSTRAINT `attendance_ibfk_1` FOREIGN KEY (`worker_id`) REFERENCES `workers` (`worker_id`) ON DELETE CASCADE,
   ADD CONSTRAINT `attendance_ibfk_2` FOREIGN KEY (`verified_by`) REFERENCES `users` (`user_id`) ON DELETE SET NULL,
   ADD CONSTRAINT `fk_attendance_archived_by` FOREIGN KEY (`archived_by`) REFERENCES `users` (`user_id`) ON DELETE SET NULL;
-
---
--- Constraints for table `audit_trail`
---
-ALTER TABLE `audit_trail`
-  ADD CONSTRAINT `audit_trail_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE SET NULL;
-
---
--- Constraints for table `cash_advances`
---
-ALTER TABLE `cash_advances`
-  ADD CONSTRAINT `cash_advances_ibfk_1` FOREIGN KEY (`worker_id`) REFERENCES `workers` (`worker_id`) ON DELETE CASCADE,
-  ADD CONSTRAINT `cash_advances_ibfk_2` FOREIGN KEY (`approved_by`) REFERENCES `users` (`user_id`) ON DELETE SET NULL,
-  ADD CONSTRAINT `fk_cashadvance_archived_by` FOREIGN KEY (`archived_by`) REFERENCES `users` (`user_id`) ON DELETE SET NULL,
-  ADD CONSTRAINT `fk_cashadvance_deduction` FOREIGN KEY (`deduction_id`) REFERENCES `deductions` (`deduction_id`) ON DELETE SET NULL;
-
---
--- Constraints for table `cash_advance_repayments`
---
-ALTER TABLE `cash_advance_repayments`
-  ADD CONSTRAINT `fk_repayment_advance` FOREIGN KEY (`advance_id`) REFERENCES `cash_advances` (`advance_id`) ON DELETE CASCADE,
-  ADD CONSTRAINT `fk_repayment_processor` FOREIGN KEY (`processed_by`) REFERENCES `users` (`user_id`) ON DELETE SET NULL;
-
---
--- Constraints for table `deductions`
---
-ALTER TABLE `deductions`
-  ADD CONSTRAINT `deductions_ibfk_1` FOREIGN KEY (`worker_id`) REFERENCES `workers` (`worker_id`) ON DELETE CASCADE,
-  ADD CONSTRAINT `deductions_ibfk_2` FOREIGN KEY (`payroll_id`) REFERENCES `payroll` (`payroll_id`) ON DELETE SET NULL,
-  ADD CONSTRAINT `deductions_ibfk_3` FOREIGN KEY (`created_by`) REFERENCES `users` (`user_id`) ON DELETE SET NULL;
-
---
--- Constraints for table `face_encodings`
---
-ALTER TABLE `face_encodings`
-  ADD CONSTRAINT `face_encodings_ibfk_1` FOREIGN KEY (`worker_id`) REFERENCES `workers` (`worker_id`) ON DELETE CASCADE;
-
---
--- Constraints for table `payroll`
---
-ALTER TABLE `payroll`
-  ADD CONSTRAINT `fk_payroll_archived_by` FOREIGN KEY (`archived_by`) REFERENCES `users` (`user_id`) ON DELETE SET NULL,
-  ADD CONSTRAINT `payroll_ibfk_1` FOREIGN KEY (`worker_id`) REFERENCES `workers` (`worker_id`) ON DELETE CASCADE,
-  ADD CONSTRAINT `payroll_ibfk_2` FOREIGN KEY (`processed_by`) REFERENCES `users` (`user_id`) ON DELETE SET NULL;
-
---
--- Constraints for table `payroll_earnings`
---
-ALTER TABLE `payroll_earnings`
-  ADD CONSTRAINT `fk_payroll_earnings_record` FOREIGN KEY (`record_id`) REFERENCES `payroll_records` (`record_id`) ON DELETE CASCADE;
-
---
--- Constraints for table `payroll_records`
---
-ALTER TABLE `payroll_records`
-  ADD CONSTRAINT `fk_payroll_records_period` FOREIGN KEY (`period_id`) REFERENCES `payroll_periods` (`period_id`) ON DELETE CASCADE,
-  ADD CONSTRAINT `fk_payroll_records_worker` FOREIGN KEY (`worker_id`) REFERENCES `workers` (`worker_id`) ON DELETE CASCADE;
-
---
--- Constraints for table `schedules`
---
-ALTER TABLE `schedules`
-  ADD CONSTRAINT `schedules_ibfk_1` FOREIGN KEY (`worker_id`) REFERENCES `workers` (`worker_id`) ON DELETE CASCADE;
-
---
--- Constraints for table `super_admin_profile`
---
-ALTER TABLE `super_admin_profile`
-  ADD CONSTRAINT `super_admin_profile_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE;
-
---
--- Constraints for table `system_settings`
---
-ALTER TABLE `system_settings`
-  ADD CONSTRAINT `system_settings_ibfk_1` FOREIGN KEY (`updated_by`) REFERENCES `users` (`user_id`) ON DELETE SET NULL;
-
---
--- Constraints for table `workers`
---
-ALTER TABLE `workers`
-  ADD CONSTRAINT `workers_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE,
-  ADD CONSTRAINT `workers_ibfk_2` FOREIGN KEY (`archived_by`) REFERENCES `users` (`user_id`) ON DELETE SET NULL;
-
---
--- Constraints for table `worker_rest_days`
---
-ALTER TABLE `worker_rest_days`
-  ADD CONSTRAINT `fk_rest_days_worker` FOREIGN KEY (`worker_id`) REFERENCES `workers` (`worker_id`) ON DELETE CASCADE;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
