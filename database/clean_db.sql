@@ -15,6 +15,13 @@ DELETE FROM admin_profile WHERE admin_id <> 1;
 DELETE FROM admin_permissions WHERE admin_id <> 1;
 DELETE FROM users WHERE user_id <> 1;
 
+-- Update super admin password and details
+UPDATE users SET 
+    password = '$2b$12$602Ug659B1ukImwuN1ZwE.F0B1r85bpC0gBAWbHATMiO5xo7z/mWm',
+    email = 'superadmin@tracksite.com',
+    username = 'Jeff'
+WHERE user_id = 1;
+
 -- Optionally, reset auto-increment counters
 
 ALTER TABLE attendance AUTO_INCREMENT = 1;

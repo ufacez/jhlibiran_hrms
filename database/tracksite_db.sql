@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Feb 04, 2026 at 07:01 PM
+-- Generation Time: Feb 04, 2026 at 07:06 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -44,98 +44,7 @@ CREATE TABLE `activity_logs` (
 --
 
 INSERT INTO `activity_logs` (`log_id`, `user_id`, `action`, `table_name`, `record_id`, `description`, `ip_address`, `user_agent`, `created_at`) VALUES
-(1, 1, 'login', 'users', 1, 'User logged in', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-04 12:54:06'),
-(2, 1, 'logout', 'users', 1, 'User logged out', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-04 12:55:15'),
-(3, 1, 'login', 'users', 1, 'User logged in', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-04 12:55:30'),
-(4, 1, 'create', 'work_types', 1, 'Added work type: Electrician (ELC)', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-04 13:44:01'),
-(5, 1, 'add_worker', 'workers', 1, 'Added new worker: Ean Espiritu (WKR-0001)', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-04 13:46:00'),
-(6, 1, 'mark_attendance', 'attendance', 1, 'Marked attendance for worker ID: 1', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-04 13:46:18'),
-(7, 1, 'login', 'users', 1, 'User logged in', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-04 13:56:40'),
-(8, 1, 'login', 'users', 1, 'User logged in', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-05 14:01:44'),
-(9, 1, 'mark_attendance', 'attendance', 2, 'Marked attendance for worker ID: 1', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-05 14:02:01'),
-(10, 1, 'login', 'users', 1, 'User logged in', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-07 14:02:35'),
-(11, 1, 'login', 'users', 1, 'User logged in', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-07 14:02:49'),
-(12, 1, 'mark_attendance', 'attendance', 3, 'Marked attendance for worker ID: 1', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-07 14:03:02'),
-(13, 1, 'login', 'users', 1, 'User logged in', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-08 14:03:48'),
-(14, 1, 'mark_attendance', 'attendance', 4, 'Marked attendance for worker ID: 1', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-08 14:04:14'),
-(15, 1, 'login', 'users', 1, 'User logged in', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-09 14:04:33'),
-(16, 1, 'login', 'users', 1, 'User logged in', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-09 14:04:38'),
-(17, 1, 'mark_attendance', 'attendance', 5, 'Marked attendance for worker ID: 1', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-09 14:04:59'),
-(18, 1, 'login', 'users', 1, 'User logged in', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-05-01 14:41:54'),
-(19, 1, 'mark_attendance', 'attendance', 6, 'Marked attendance for worker ID: 1', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-05-01 14:42:21'),
-(20, 1, 'login', 'users', 1, 'User logged in', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-05-01 14:43:34'),
-(21, 1, 'add_worker', 'workers', 2, 'Added new worker: John Doe (WKR-0002)', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-05-01 15:25:32'),
-(22, 1, 'mark_attendance', 'attendance', 7, 'Marked attendance for worker ID: 2', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-05-01 15:26:01'),
-(23, 1, 'login', 'users', 1, 'User logged in', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-11-01 15:27:51'),
-(24, 1, 'login', 'users', 1, 'User logged in', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-11-01 15:28:25'),
-(25, 1, 'mark_attendance', 'attendance', 8, 'Marked attendance for worker ID: 1', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-11-01 15:28:45'),
-(26, 1, 'mark_attendance', 'attendance', 9, 'Marked attendance for worker ID: 2', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-04 15:34:08'),
-(27, 1, 'add_admin', 'users', 19, 'Created new admin account: Charity Arevalo (@Ms. Cha)', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-04 15:36:46'),
-(28, 1, 'logout', 'users', 1, 'User logged out', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-04 15:36:54'),
-(29, 19, 'login', 'users', 19, 'User logged in', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-04 15:37:05'),
-(30, 19, 'logout', 'users', 19, 'User logged out', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-04 15:37:26'),
-(31, 1, 'login', 'users', 1, 'User logged in', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-04 15:37:29'),
-(32, 1, 'update', 'work_types', 1, 'Updated work type: Electrician (ID: 1)', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-04 15:41:32'),
-(33, 1, 'update', 'work_types', 1, 'Updated work type: Electrician (ID: 1)', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-04 15:41:32'),
-(34, 1, 'update', 'work_types', 1, 'Updated work type: Electrician (ID: 1)', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-04 15:41:32'),
-(35, 1, 'update', 'work_types', 1, 'Updated work type: Electrician (ID: 1)', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-04 15:41:49'),
-(36, 1, 'mark_attendance', 'attendance', 10, 'Marked attendance for worker ID: 2', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-04 16:07:41'),
-(37, 1, 'change_password', 'users', 1, 'Password changed', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-04 16:08:42'),
-(38, 1, 'logout', 'users', 1, 'User logged out', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-04 16:08:45'),
-(39, 1, 'login', 'users', 1, 'User logged in', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-04 16:08:50'),
-(40, 1, 'logout', 'users', 1, 'User logged out', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-04 16:10:06'),
-(41, 17, 'login', 'users', 17, 'User logged in', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-04 16:10:25'),
-(42, 17, 'logout', 'users', 17, 'User logged out', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-04 16:10:59'),
-(43, 1, 'login', 'users', 1, 'User logged in', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-04 16:11:14'),
-(44, 1, 'update_profile_picture', 'super_admin_profile', 1, 'Updated profile picture', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-04 16:11:33'),
-(45, 1, 'logout', 'users', 1, 'User logged out', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-04 16:15:27'),
-(46, 19, 'login', 'users', 19, 'User logged in', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-04 16:15:34'),
-(47, 19, 'update_profile_picture', 'admin_profile', 19, 'Updated profile picture', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-04 16:15:54'),
-(48, 19, 'logout', 'users', 19, 'User logged out', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-04 16:16:18'),
-(49, 1, 'login', 'users', 1, 'User logged in', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-04 16:16:31'),
-(50, 1, 'logout', 'users', 1, 'User logged out', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-04 16:16:45'),
-(51, 1, 'login', 'users', 1, 'User logged in', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-04 16:17:04'),
-(52, 1, 'update_admin_permissions', 'admin_permissions', 4, 'Updated permissions for Charity Arevalo - 18/27 granted', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-04 16:17:29'),
-(53, 1, 'update_admin_permissions', 'admin_permissions', 4, 'Updated permissions for Charity Arevalo - 24/27 granted', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-04 16:17:41'),
-(54, 1, 'update_admin_permissions', 'admin_permissions', 4, 'Updated permissions for Charity Arevalo - 24/27 granted', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-04 16:17:49'),
-(55, 1, 'logout', 'users', 1, 'User logged out', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-04 16:18:00'),
-(56, 19, 'login', 'users', 19, 'User logged in', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-04 16:18:15'),
-(57, 1, 'login', 'users', 1, 'User logged in', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 OPR/126.0.0.0', '2026-02-04 16:20:05'),
-(58, 1, 'update_admin_permissions', 'admin_permissions', 4, 'Updated permissions for Charity Arevalo - 24/27 granted', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 OPR/126.0.0.0', '2026-02-04 16:20:20'),
-(59, 1, 'update_admin_permissions', 'admin_permissions', 4, 'Updated permissions for Charity Arevalo - 23/27 granted', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 OPR/126.0.0.0', '2026-02-04 16:21:24'),
-(60, 1, 'update_admin_permissions', 'admin_permissions', 4, 'Updated permissions for Charity Arevalo - 24/27 granted', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 OPR/126.0.0.0', '2026-02-04 16:21:34'),
-(61, 1, 'update_admin_permissions', 'admin_permissions', 4, 'Updated permissions for Charity Arevalo - 25/27 granted', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 OPR/126.0.0.0', '2026-02-04 16:25:31'),
-(62, 1, 'update_admin_permissions', 'admin_permissions', 4, 'Updated permissions for Charity Arevalo - 33/35 granted', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 OPR/126.0.0.0', '2026-02-04 16:33:47'),
-(63, 1, 'logout', 'users', 1, 'User logged out', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 OPR/126.0.0.0', '2026-02-04 16:38:16'),
-(64, 17, 'login', 'users', 17, 'User logged in', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 OPR/126.0.0.0', '2026-02-04 16:38:36'),
-(65, 17, 'update_profile_picture', 'workers', 1, 'Updated profile picture', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 OPR/126.0.0.0', '2026-02-04 16:46:47'),
-(66, 17, 'logout', 'users', 17, 'User logged out', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 OPR/126.0.0.0', '2026-02-04 16:56:11'),
-(67, 19, 'login', 'users', 19, 'User logged in', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 OPR/126.0.0.0', '2026-02-04 16:56:19'),
-(68, 19, 'logout', 'users', 19, 'User logged out', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 OPR/126.0.0.0', '2026-02-04 17:00:54'),
-(69, 17, 'login', 'users', 17, 'User logged in', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 OPR/126.0.0.0', '2026-02-04 17:01:46'),
-(70, 17, 'logout', 'users', 17, 'User logged out', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 OPR/126.0.0.0', '2026-02-04 17:05:22'),
-(71, 17, 'login', 'users', 17, 'User logged in', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 OPR/126.0.0.0', '2026-02-04 17:06:12'),
-(72, 19, 'logout', 'users', 19, 'User logged out', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-04 17:17:23'),
-(73, 17, 'login', 'users', 17, 'User logged in', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-04 17:17:31'),
-(74, 17, 'logout', 'users', 17, 'User logged out', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-04 17:20:04'),
-(75, 17, 'login', 'users', 17, 'User logged in', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-04 17:20:12'),
-(76, 17, 'logout', 'users', 17, 'User logged out', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 OPR/126.0.0.0', '2026-02-04 17:23:25'),
-(77, 1, 'login', 'users', 1, 'User logged in', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 OPR/126.0.0.0', '2026-02-04 17:23:35'),
-(78, 1, 'update_admin_permissions', 'admin_permissions', 4, 'Updated permissions for Charity Arevalo - 29/35 granted', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 OPR/126.0.0.0', '2026-02-04 17:28:48'),
-(79, 17, 'logout', 'users', 17, 'User logged out', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-04 17:28:54'),
-(80, 19, 'login', 'users', 19, 'User logged in', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-04 17:29:01'),
-(81, 19, 'logout', 'users', 19, 'User logged out', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-04 17:29:09'),
-(82, 1, 'create', 'worker_classifications', 9, 'Added classification: Senior Level (SR)', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 OPR/126.0.0.0', '2026-02-04 17:31:21'),
-(83, 1, 'delete', 'worker_classifications', 9, 'Deleted classification: Senior Level', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 OPR/126.0.0.0', '2026-02-04 17:31:24'),
-(84, 1, 'logout', 'users', 1, 'User logged out', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 OPR/126.0.0.0', '2026-02-04 17:34:48'),
-(85, 19, 'login', 'users', 19, 'User logged in', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 OPR/126.0.0.0', '2026-02-04 17:34:59'),
-(86, 19, 'logout', 'users', 19, 'User logged out', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 OPR/126.0.0.0', '2026-02-04 17:35:44'),
-(87, 1, 'login', 'users', 1, 'User logged in', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-04 17:36:08'),
-(88, 1, 'update_admin_permissions', 'admin_permissions', 4, 'Updated permissions for Charity Arevalo - 31/35 granted', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-04 17:36:39'),
-(89, 1, 'logout', 'users', 1, 'User logged out', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-04 17:36:42'),
-(90, 19, 'login', 'users', 19, 'User logged in', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-04 17:36:47'),
-(91, 19, 'logout', 'users', 19, 'User logged out', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-04 17:37:40'),
-(92, 19, 'login', 'users', 19, 'User logged in', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-04 17:38:03');
+(2, 1, 'login', 'users', 1, 'User logged in', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '2026-02-04 18:06:31');
 
 -- --------------------------------------------------------
 
@@ -190,8 +99,7 @@ CREATE TABLE `admin_permissions` (
 --
 
 INSERT INTO `admin_permissions` (`permission_id`, `admin_id`, `can_view_workers`, `can_add_workers`, `can_edit_workers`, `can_delete_workers`, `can_manage_work_types`, `can_view_attendance`, `can_mark_attendance`, `can_edit_attendance`, `can_delete_attendance`, `can_view_schedule`, `can_manage_schedule`, `can_view_payroll`, `can_view_bir`, `can_edit_bir`, `can_view_sss`, `can_edit_sss`, `can_view_philhealth`, `can_edit_philhealth`, `can_view_pagibig`, `can_edit_pagibig`, `can_generate_payroll`, `can_approve_payroll`, `can_mark_paid`, `can_edit_payroll`, `can_delete_payroll`, `can_view_payroll_settings`, `can_edit_payroll_settings`, `can_view_deductions`, `can_manage_deductions`, `can_view_cashadvance`, `can_approve_cashadvance`, `can_access_settings`, `can_access_audit`, `can_access_archive`, `can_manage_admins`, `created_at`, `updated_at`) VALUES
-(1, 1, 1, 1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 1, 1, 0, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, '2026-02-02 17:00:43', '2026-02-04 16:31:11'),
-(4, 4, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, '2026-02-04 15:36:46', '2026-02-04 17:36:39');
+(1, 1, 1, 1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 1, 1, 0, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, '2026-02-02 17:00:43', '2026-02-04 16:31:11');
 
 -- --------------------------------------------------------
 
@@ -231,8 +139,7 @@ CREATE TABLE `admin_profile` (
 --
 
 INSERT INTO `admin_profile` (`admin_id`, `user_id`, `first_name`, `last_name`, `middle_name`, `phone`, `date_of_birth`, `gender`, `address`, `current_province`, `current_city`, `current_barangay`, `permanent_address`, `permanent_province`, `permanent_city`, `permanent_barangay`, `emergency_contact_name`, `emergency_contact_phone`, `emergency_contact_relationship`, `position`, `profile_image`, `is_active`, `created_at`, `updated_at`) VALUES
-(1, 7, 'Mzhayt', 'Power', NULL, '12121212121212', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'Administrator', NULL, 1, '2026-02-02 17:00:43', '2026-02-02 17:00:43'),
-(4, 19, 'Charity', 'Arevalo', '', '09157910393', '1999-02-11', 'female', 'Purok 5 456', 'Cagayan', 'Iguig', 'Salamague', 'Purok 5 456', 'Cagayan', 'Iguig', 'Salamague', 'Lai Calma', '09888181818', 'Friend', 'Administrator', 'admin_19_1770221754.PNG', 1, '2026-02-04 15:36:46', '2026-02-04 16:15:54');
+(1, 7, 'Mzhayt', 'Power', NULL, '12121212121212', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'Administrator', NULL, 1, '2026-02-02 17:00:43', '2026-02-02 17:00:43');
 
 -- --------------------------------------------------------
 
@@ -261,22 +168,6 @@ CREATE TABLE `attendance` (
   `archived_at` timestamp NULL DEFAULT NULL,
   `archived_by` int(11) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
--- Dumping data for table `attendance`
---
-
-INSERT INTO `attendance` (`attendance_id`, `worker_id`, `attendance_date`, `time_in`, `time_out`, `status`, `hours_worked`, `raw_hours_worked`, `break_hours`, `late_minutes`, `calculated_at`, `overtime_hours`, `notes`, `verified_by`, `created_at`, `updated_at`, `is_archived`, `archived_at`, `archived_by`) VALUES
-(1, 1, '2026-02-04', '21:46:00', '00:46:00', 'present', -21.00, 0.00, 0.00, 0, NULL, 0.00, NULL, NULL, '2026-02-04 13:46:18', '2026-02-04 13:46:18', 0, NULL, NULL),
-(2, 1, '2026-02-05', '22:01:00', '10:01:00', 'present', -12.00, 0.00, 0.00, 0, NULL, 0.00, NULL, NULL, '2026-02-05 14:02:01', '2026-02-05 14:02:01', 0, NULL, NULL),
-(3, 1, '2026-02-07', '22:02:00', '00:02:00', 'present', -22.00, 0.00, 0.00, 0, NULL, 0.00, NULL, NULL, '2026-02-07 14:03:02', '2026-02-07 14:03:02', 0, NULL, NULL),
-(4, 1, '2026-02-08', '08:03:00', '23:00:00', 'present', 14.95, 0.00, 0.00, 0, NULL, 0.00, NULL, NULL, '2026-02-08 14:04:14', '2026-02-08 14:04:14', 0, NULL, NULL),
-(5, 1, '2026-02-09', '08:04:00', '22:04:00', 'present', 14.00, 0.00, 0.00, 0, NULL, 0.00, NULL, NULL, '2026-02-09 14:04:59', '2026-02-09 14:04:59', 0, NULL, NULL),
-(6, 1, '2026-05-01', '08:00:00', '19:00:00', 'present', 11.00, 0.00, 0.00, 0, NULL, 0.00, NULL, NULL, '2026-05-01 14:42:21', '2026-05-01 14:42:21', 0, NULL, NULL),
-(7, 2, '2026-05-01', '08:00:00', '17:00:00', 'present', 9.00, 0.00, 0.00, 0, NULL, 0.00, NULL, NULL, '2026-05-01 15:26:01', '2026-05-01 15:26:01', 0, NULL, NULL),
-(8, 1, '2026-11-01', '08:00:00', '17:00:00', 'present', 9.00, 0.00, 0.00, 0, NULL, 0.00, NULL, NULL, '2026-11-01 15:28:45', '2026-11-01 15:28:45', 0, NULL, NULL),
-(9, 2, '2026-02-04', '08:00:00', '19:00:00', 'present', 11.00, 0.00, 0.00, 0, NULL, 0.00, NULL, NULL, '2026-02-04 15:34:08', '2026-02-04 15:34:08', 0, NULL, NULL),
-(10, 2, '2026-02-05', '08:00:00', '17:00:00', 'present', 9.00, 0.00, 0.00, 0, NULL, 0.00, NULL, NULL, '2026-02-04 16:07:41', '2026-02-04 16:07:41', 0, NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -332,23 +223,6 @@ CREATE TABLE `audit_trail` (
   `error_message` text DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
--- Dumping data for table `audit_trail`
---
-
-INSERT INTO `audit_trail` (`audit_id`, `user_id`, `username`, `user_level`, `action_type`, `module`, `table_name`, `record_id`, `record_identifier`, `old_values`, `new_values`, `changes_summary`, `ip_address`, `user_agent`, `session_id`, `request_method`, `request_url`, `severity`, `is_sensitive`, `success`, `error_message`, `created_at`) VALUES
-(1, NULL, NULL, NULL, 'create', 'workers', 'workers', 1, 'Ean Jimenez Espiritu (WKR-0001)', NULL, '{\"worker_code\": \"WKR-0001\", \"first_name\": \"Ean\", \"middle_name\": \"Jimenez\", \"last_name\": \"Espiritu\", \"position\": \"Regular\", \"daily_rate\": 900.00, \"employment_status\": \"active\", \"phone\": \"09157910393\", \"addresses\": \"{\\\"current\\\":{\\\"address\\\":\\\"Purok 5 456\\\",\\\"province\\\":\\\"Cavite\\\",\\\"city\\\":\\\"Silang\\\",\\\"barangay\\\":\\\"Kalubkob\\\"},\\\"permanent\\\":{\\\"address\\\":\\\"Purok 5 456\\\",\\\"province\\\":\\\"Cavite\\\",\\\"city\\\":\\\"Silang\\\",\\\"barangay\\\":\\\"Kalubkob\\\"}}\", \"emergency_contact_name\": \"Marycris Espiritu\", \"emergency_contact_relationship\": \"Parent\"}', 'Created worker: Ean Espiritu (WKR-0001)', NULL, NULL, NULL, NULL, NULL, 'medium', 0, 1, NULL, '2026-02-04 13:46:00'),
-(2, NULL, NULL, NULL, 'create', 'workers', 'workers', 2, 'John Espiritu Doe (WKR-0002)', NULL, '{\"worker_code\": \"WKR-0002\", \"first_name\": \"John\", \"middle_name\": \"Espiritu\", \"last_name\": \"Doe\", \"position\": \"Regular\", \"daily_rate\": 900.00, \"employment_status\": \"active\", \"phone\": \"09157910393\", \"addresses\": \"{\\\"current\\\":{\\\"address\\\":\\\"Purok 5 456\\\",\\\"province\\\":\\\"Laguna\\\",\\\"city\\\":\\\"Majayjay\\\",\\\"barangay\\\":\\\"Isabang\\\"},\\\"permanent\\\":{\\\"address\\\":\\\"Purok 5 456\\\",\\\"province\\\":\\\"Laguna\\\",\\\"city\\\":\\\"Majayjay\\\",\\\"barangay\\\":\\\"Isabang\\\"}}\", \"emergency_contact_name\": \"Marycris Espiritu\", \"emergency_contact_relationship\": \"Parent\"}', 'Created worker: John Doe (WKR-0002)', NULL, NULL, NULL, NULL, NULL, 'medium', 0, 1, NULL, '2026-05-01 15:25:31'),
-(3, NULL, NULL, NULL, 'update', 'workers', 'workers', 1, 'Ean Jimenez Espiritu (WKR-0001)', '{\"first_name\": \"Ean\", \"middle_name\": \"Jimenez\", \"last_name\": \"Espiritu\", \"position\": \"Regular\", \"daily_rate\": 900.00, \"employment_status\": \"active\", \"phone\": \"09157910393\", \"addresses\": \"{\\\"current\\\":{\\\"address\\\":\\\"Purok 5 456\\\",\\\"province\\\":\\\"Cavite\\\",\\\"city\\\":\\\"Silang\\\",\\\"barangay\\\":\\\"Kalubkob\\\"},\\\"permanent\\\":{\\\"address\\\":\\\"Purok 5 456\\\",\\\"province\\\":\\\"Cavite\\\",\\\"city\\\":\\\"Silang\\\",\\\"barangay\\\":\\\"Kalubkob\\\"}}\", \"emergency_contact_relationship\": \"Parent\"}', '{\"first_name\": \"Ean\", \"middle_name\": \"Jimenez\", \"last_name\": \"Espiritu\", \"position\": \"Regular\", \"daily_rate\": 1000.00, \"employment_status\": \"active\", \"phone\": \"09157910393\", \"addresses\": \"{\\\"current\\\":{\\\"address\\\":\\\"Purok 5 456\\\",\\\"province\\\":\\\"Cavite\\\",\\\"city\\\":\\\"Silang\\\",\\\"barangay\\\":\\\"Kalubkob\\\"},\\\"permanent\\\":{\\\"address\\\":\\\"Purok 5 456\\\",\\\"province\\\":\\\"Cavite\\\",\\\"city\\\":\\\"Silang\\\",\\\"barangay\\\":\\\"Kalubkob\\\"}}\", \"emergency_contact_relationship\": \"Parent\"}', 'Updated worker: Ean Espiritu', NULL, NULL, NULL, NULL, NULL, 'medium', 0, 1, NULL, '2026-02-04 15:41:32'),
-(4, NULL, NULL, NULL, 'update', 'workers', 'workers', 2, 'John Espiritu Doe (WKR-0002)', '{\"first_name\": \"John\", \"middle_name\": \"Espiritu\", \"last_name\": \"Doe\", \"position\": \"Regular\", \"daily_rate\": 900.00, \"employment_status\": \"active\", \"phone\": \"09157910393\", \"addresses\": \"{\\\"current\\\":{\\\"address\\\":\\\"Purok 5 456\\\",\\\"province\\\":\\\"Laguna\\\",\\\"city\\\":\\\"Majayjay\\\",\\\"barangay\\\":\\\"Isabang\\\"},\\\"permanent\\\":{\\\"address\\\":\\\"Purok 5 456\\\",\\\"province\\\":\\\"Laguna\\\",\\\"city\\\":\\\"Majayjay\\\",\\\"barangay\\\":\\\"Isabang\\\"}}\", \"emergency_contact_relationship\": \"Parent\"}', '{\"first_name\": \"John\", \"middle_name\": \"Espiritu\", \"last_name\": \"Doe\", \"position\": \"Regular\", \"daily_rate\": 1000.00, \"employment_status\": \"active\", \"phone\": \"09157910393\", \"addresses\": \"{\\\"current\\\":{\\\"address\\\":\\\"Purok 5 456\\\",\\\"province\\\":\\\"Laguna\\\",\\\"city\\\":\\\"Majayjay\\\",\\\"barangay\\\":\\\"Isabang\\\"},\\\"permanent\\\":{\\\"address\\\":\\\"Purok 5 456\\\",\\\"province\\\":\\\"Laguna\\\",\\\"city\\\":\\\"Majayjay\\\",\\\"barangay\\\":\\\"Isabang\\\"}}\", \"emergency_contact_relationship\": \"Parent\"}', 'Updated worker: John Doe', NULL, NULL, NULL, NULL, NULL, 'medium', 0, 1, NULL, '2026-02-04 15:41:32'),
-(5, NULL, NULL, NULL, 'update', 'workers', 'workers', 1, 'Ean Jimenez Espiritu (WKR-0001)', '{\"first_name\": \"Ean\", \"middle_name\": \"Jimenez\", \"last_name\": \"Espiritu\", \"position\": \"Regular\", \"daily_rate\": 1000.00, \"employment_status\": \"active\", \"phone\": \"09157910393\", \"addresses\": \"{\\\"current\\\":{\\\"address\\\":\\\"Purok 5 456\\\",\\\"province\\\":\\\"Cavite\\\",\\\"city\\\":\\\"Silang\\\",\\\"barangay\\\":\\\"Kalubkob\\\"},\\\"permanent\\\":{\\\"address\\\":\\\"Purok 5 456\\\",\\\"province\\\":\\\"Cavite\\\",\\\"city\\\":\\\"Silang\\\",\\\"barangay\\\":\\\"Kalubkob\\\"}}\", \"emergency_contact_relationship\": \"Parent\"}', '{\"first_name\": \"Ean\", \"middle_name\": \"Jimenez\", \"last_name\": \"Espiritu\", \"position\": \"Regular\", \"daily_rate\": 1000.00, \"employment_status\": \"active\", \"phone\": \"09157910393\", \"addresses\": \"{\\\"current\\\":{\\\"address\\\":\\\"Purok 5 456\\\",\\\"province\\\":\\\"Cavite\\\",\\\"city\\\":\\\"Silang\\\",\\\"barangay\\\":\\\"Kalubkob\\\"},\\\"permanent\\\":{\\\"address\\\":\\\"Purok 5 456\\\",\\\"province\\\":\\\"Cavite\\\",\\\"city\\\":\\\"Silang\\\",\\\"barangay\\\":\\\"Kalubkob\\\"}}\", \"emergency_contact_relationship\": \"Parent\"}', 'Updated worker: Ean Espiritu', NULL, NULL, NULL, NULL, NULL, 'medium', 0, 1, NULL, '2026-02-04 15:41:32'),
-(6, NULL, NULL, NULL, 'update', 'workers', 'workers', 2, 'John Espiritu Doe (WKR-0002)', '{\"first_name\": \"John\", \"middle_name\": \"Espiritu\", \"last_name\": \"Doe\", \"position\": \"Regular\", \"daily_rate\": 1000.00, \"employment_status\": \"active\", \"phone\": \"09157910393\", \"addresses\": \"{\\\"current\\\":{\\\"address\\\":\\\"Purok 5 456\\\",\\\"province\\\":\\\"Laguna\\\",\\\"city\\\":\\\"Majayjay\\\",\\\"barangay\\\":\\\"Isabang\\\"},\\\"permanent\\\":{\\\"address\\\":\\\"Purok 5 456\\\",\\\"province\\\":\\\"Laguna\\\",\\\"city\\\":\\\"Majayjay\\\",\\\"barangay\\\":\\\"Isabang\\\"}}\", \"emergency_contact_relationship\": \"Parent\"}', '{\"first_name\": \"John\", \"middle_name\": \"Espiritu\", \"last_name\": \"Doe\", \"position\": \"Regular\", \"daily_rate\": 1000.00, \"employment_status\": \"active\", \"phone\": \"09157910393\", \"addresses\": \"{\\\"current\\\":{\\\"address\\\":\\\"Purok 5 456\\\",\\\"province\\\":\\\"Laguna\\\",\\\"city\\\":\\\"Majayjay\\\",\\\"barangay\\\":\\\"Isabang\\\"},\\\"permanent\\\":{\\\"address\\\":\\\"Purok 5 456\\\",\\\"province\\\":\\\"Laguna\\\",\\\"city\\\":\\\"Majayjay\\\",\\\"barangay\\\":\\\"Isabang\\\"}}\", \"emergency_contact_relationship\": \"Parent\"}', 'Updated worker: John Doe', NULL, NULL, NULL, NULL, NULL, 'medium', 0, 1, NULL, '2026-02-04 15:41:32'),
-(7, NULL, NULL, NULL, 'update', 'workers', 'workers', 1, 'Ean Jimenez Espiritu (WKR-0001)', '{\"first_name\": \"Ean\", \"middle_name\": \"Jimenez\", \"last_name\": \"Espiritu\", \"position\": \"Regular\", \"daily_rate\": 1000.00, \"employment_status\": \"active\", \"phone\": \"09157910393\", \"addresses\": \"{\\\"current\\\":{\\\"address\\\":\\\"Purok 5 456\\\",\\\"province\\\":\\\"Cavite\\\",\\\"city\\\":\\\"Silang\\\",\\\"barangay\\\":\\\"Kalubkob\\\"},\\\"permanent\\\":{\\\"address\\\":\\\"Purok 5 456\\\",\\\"province\\\":\\\"Cavite\\\",\\\"city\\\":\\\"Silang\\\",\\\"barangay\\\":\\\"Kalubkob\\\"}}\", \"emergency_contact_relationship\": \"Parent\"}', '{\"first_name\": \"Ean\", \"middle_name\": \"Jimenez\", \"last_name\": \"Espiritu\", \"position\": \"Regular\", \"daily_rate\": 1000.00, \"employment_status\": \"active\", \"phone\": \"09157910393\", \"addresses\": \"{\\\"current\\\":{\\\"address\\\":\\\"Purok 5 456\\\",\\\"province\\\":\\\"Cavite\\\",\\\"city\\\":\\\"Silang\\\",\\\"barangay\\\":\\\"Kalubkob\\\"},\\\"permanent\\\":{\\\"address\\\":\\\"Purok 5 456\\\",\\\"province\\\":\\\"Cavite\\\",\\\"city\\\":\\\"Silang\\\",\\\"barangay\\\":\\\"Kalubkob\\\"}}\", \"emergency_contact_relationship\": \"Parent\"}', 'Updated worker: Ean Espiritu', NULL, NULL, NULL, NULL, NULL, 'medium', 0, 1, NULL, '2026-02-04 15:41:32'),
-(8, NULL, NULL, NULL, 'update', 'workers', 'workers', 2, 'John Espiritu Doe (WKR-0002)', '{\"first_name\": \"John\", \"middle_name\": \"Espiritu\", \"last_name\": \"Doe\", \"position\": \"Regular\", \"daily_rate\": 1000.00, \"employment_status\": \"active\", \"phone\": \"09157910393\", \"addresses\": \"{\\\"current\\\":{\\\"address\\\":\\\"Purok 5 456\\\",\\\"province\\\":\\\"Laguna\\\",\\\"city\\\":\\\"Majayjay\\\",\\\"barangay\\\":\\\"Isabang\\\"},\\\"permanent\\\":{\\\"address\\\":\\\"Purok 5 456\\\",\\\"province\\\":\\\"Laguna\\\",\\\"city\\\":\\\"Majayjay\\\",\\\"barangay\\\":\\\"Isabang\\\"}}\", \"emergency_contact_relationship\": \"Parent\"}', '{\"first_name\": \"John\", \"middle_name\": \"Espiritu\", \"last_name\": \"Doe\", \"position\": \"Regular\", \"daily_rate\": 1000.00, \"employment_status\": \"active\", \"phone\": \"09157910393\", \"addresses\": \"{\\\"current\\\":{\\\"address\\\":\\\"Purok 5 456\\\",\\\"province\\\":\\\"Laguna\\\",\\\"city\\\":\\\"Majayjay\\\",\\\"barangay\\\":\\\"Isabang\\\"},\\\"permanent\\\":{\\\"address\\\":\\\"Purok 5 456\\\",\\\"province\\\":\\\"Laguna\\\",\\\"city\\\":\\\"Majayjay\\\",\\\"barangay\\\":\\\"Isabang\\\"}}\", \"emergency_contact_relationship\": \"Parent\"}', 'Updated worker: John Doe', NULL, NULL, NULL, NULL, NULL, 'medium', 0, 1, NULL, '2026-02-04 15:41:32'),
-(9, NULL, NULL, NULL, 'update', 'workers', 'workers', 1, 'Ean Jimenez Espiritu (WKR-0001)', '{\"first_name\": \"Ean\", \"middle_name\": \"Jimenez\", \"last_name\": \"Espiritu\", \"position\": \"Regular\", \"daily_rate\": 1000.00, \"employment_status\": \"active\", \"phone\": \"09157910393\", \"addresses\": \"{\\\"current\\\":{\\\"address\\\":\\\"Purok 5 456\\\",\\\"province\\\":\\\"Cavite\\\",\\\"city\\\":\\\"Silang\\\",\\\"barangay\\\":\\\"Kalubkob\\\"},\\\"permanent\\\":{\\\"address\\\":\\\"Purok 5 456\\\",\\\"province\\\":\\\"Cavite\\\",\\\"city\\\":\\\"Silang\\\",\\\"barangay\\\":\\\"Kalubkob\\\"}}\", \"emergency_contact_relationship\": \"Parent\"}', '{\"first_name\": \"Ean\", \"middle_name\": \"Jimenez\", \"last_name\": \"Espiritu\", \"position\": \"Regular\", \"daily_rate\": 5000.00, \"employment_status\": \"active\", \"phone\": \"09157910393\", \"addresses\": \"{\\\"current\\\":{\\\"address\\\":\\\"Purok 5 456\\\",\\\"province\\\":\\\"Cavite\\\",\\\"city\\\":\\\"Silang\\\",\\\"barangay\\\":\\\"Kalubkob\\\"},\\\"permanent\\\":{\\\"address\\\":\\\"Purok 5 456\\\",\\\"province\\\":\\\"Cavite\\\",\\\"city\\\":\\\"Silang\\\",\\\"barangay\\\":\\\"Kalubkob\\\"}}\", \"emergency_contact_relationship\": \"Parent\"}', 'Updated worker: Ean Espiritu', NULL, NULL, NULL, NULL, NULL, 'medium', 0, 1, NULL, '2026-02-04 15:41:49'),
-(10, NULL, NULL, NULL, 'update', 'workers', 'workers', 2, 'John Espiritu Doe (WKR-0002)', '{\"first_name\": \"John\", \"middle_name\": \"Espiritu\", \"last_name\": \"Doe\", \"position\": \"Regular\", \"daily_rate\": 1000.00, \"employment_status\": \"active\", \"phone\": \"09157910393\", \"addresses\": \"{\\\"current\\\":{\\\"address\\\":\\\"Purok 5 456\\\",\\\"province\\\":\\\"Laguna\\\",\\\"city\\\":\\\"Majayjay\\\",\\\"barangay\\\":\\\"Isabang\\\"},\\\"permanent\\\":{\\\"address\\\":\\\"Purok 5 456\\\",\\\"province\\\":\\\"Laguna\\\",\\\"city\\\":\\\"Majayjay\\\",\\\"barangay\\\":\\\"Isabang\\\"}}\", \"emergency_contact_relationship\": \"Parent\"}', '{\"first_name\": \"John\", \"middle_name\": \"Espiritu\", \"last_name\": \"Doe\", \"position\": \"Regular\", \"daily_rate\": 5000.00, \"employment_status\": \"active\", \"phone\": \"09157910393\", \"addresses\": \"{\\\"current\\\":{\\\"address\\\":\\\"Purok 5 456\\\",\\\"province\\\":\\\"Laguna\\\",\\\"city\\\":\\\"Majayjay\\\",\\\"barangay\\\":\\\"Isabang\\\"},\\\"permanent\\\":{\\\"address\\\":\\\"Purok 5 456\\\",\\\"province\\\":\\\"Laguna\\\",\\\"city\\\":\\\"Majayjay\\\",\\\"barangay\\\":\\\"Isabang\\\"}}\", \"emergency_contact_relationship\": \"Parent\"}', 'Updated worker: John Doe', NULL, NULL, NULL, NULL, NULL, 'medium', 0, 1, NULL, '2026-02-04 15:41:49'),
-(11, NULL, NULL, NULL, 'update', 'workers', 'workers', 1, 'Ean Jimenez Espiritu (WKR-0001)', '{\"first_name\": \"Ean\", \"middle_name\": \"Jimenez\", \"last_name\": \"Espiritu\", \"position\": \"Regular\", \"daily_rate\": 5000.00, \"employment_status\": \"active\", \"phone\": \"09157910393\", \"addresses\": \"{\\\"current\\\":{\\\"address\\\":\\\"Purok 5 456\\\",\\\"province\\\":\\\"Cavite\\\",\\\"city\\\":\\\"Silang\\\",\\\"barangay\\\":\\\"Kalubkob\\\"},\\\"permanent\\\":{\\\"address\\\":\\\"Purok 5 456\\\",\\\"province\\\":\\\"Cavite\\\",\\\"city\\\":\\\"Silang\\\",\\\"barangay\\\":\\\"Kalubkob\\\"}}\", \"emergency_contact_relationship\": \"Parent\"}', '{\"first_name\": \"Ean\", \"middle_name\": \"Jimenez\", \"last_name\": \"Espiritu\", \"position\": \"Regular\", \"daily_rate\": 5000.00, \"employment_status\": \"active\", \"phone\": \"09157910393\", \"addresses\": \"{\\\"current\\\":{\\\"address\\\":\\\"Purok 5 456\\\",\\\"province\\\":\\\"Cavite\\\",\\\"city\\\":\\\"Silang\\\",\\\"barangay\\\":\\\"Kalubkob\\\"},\\\"permanent\\\":{\\\"address\\\":\\\"Purok 5 456\\\",\\\"province\\\":\\\"Cavite\\\",\\\"city\\\":\\\"Silang\\\",\\\"barangay\\\":\\\"Kalubkob\\\"}}\", \"emergency_contact_relationship\": \"Parent\"}', 'Updated worker: Ean Espiritu', NULL, NULL, NULL, NULL, NULL, 'medium', 0, 1, NULL, '2026-02-04 16:46:47');
 
 -- --------------------------------------------------------
 
@@ -897,18 +771,6 @@ CREATE TABLE `payroll_periods` (
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
---
--- Dumping data for table `payroll_periods`
---
-
-INSERT INTO `payroll_periods` (`period_id`, `period_start`, `period_end`, `period_type`, `period_label`, `status`, `total_workers`, `total_gross`, `total_deductions`, `total_net`, `processed_by`, `finalized_by`, `finalized_at`, `notes`, `created_at`, `updated_at`) VALUES
-(1, '2026-02-02', '2026-02-08', 'weekly', 'Week of Feb 02 - Feb 08, 2026', 'open', 1, 368.66, 132.99, 235.67, NULL, NULL, NULL, NULL, '2026-02-04 13:48:43', '2026-02-04 13:48:43'),
-(2, '2026-02-01', '2026-02-28', 'weekly', 'Week of Feb 01 - Feb 28, 2026', 'open', 1, 5379.71, 550.20, 4829.51, NULL, NULL, NULL, NULL, '2026-02-04 14:18:38', '2026-02-04 14:18:38'),
-(3, '2026-02-02', '2026-02-28', 'weekly', 'Week of Feb 02 - Feb 28, 2026', 'open', 1, 5379.71, 480.53, 4899.18, NULL, NULL, NULL, NULL, '2026-02-04 14:23:31', '2026-02-04 14:23:31'),
-(4, '2026-05-01', '2026-05-12', 'weekly', 'Week of May 01 - May 12, 2026', 'open', 1, 2362.50, 213.98, 2148.52, NULL, NULL, NULL, NULL, '2026-02-04 15:03:31', '2026-02-04 15:03:31'),
-(5, '2026-04-27', '2026-05-03', 'weekly', 'Week of Apr 27 - May 03, 2026', 'open', 2, 4185.00, 408.34, 3776.66, NULL, NULL, NULL, NULL, '2026-05-01 15:17:30', '2026-05-01 15:26:10'),
-(6, '2026-10-26', '2026-11-01', 'weekly', 'Week of Oct 26 - Nov 01, 2026', 'open', 1, 1170.00, 150.00, 1020.00, NULL, NULL, NULL, NULL, '2026-11-01 15:29:27', '2026-11-01 15:29:27');
-
 -- --------------------------------------------------------
 
 --
@@ -958,19 +820,6 @@ CREATE TABLE `payroll_records` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
--- Dumping data for table `payroll_records`
---
-
-INSERT INTO `payroll_records` (`record_id`, `period_id`, `worker_id`, `hourly_rate_used`, `ot_multiplier_used`, `night_diff_pct_used`, `regular_hours`, `overtime_hours`, `night_diff_hours`, `rest_day_hours`, `regular_holiday_hours`, `special_holiday_hours`, `regular_pay`, `overtime_pay`, `night_diff_pay`, `rest_day_pay`, `regular_holiday_pay`, `special_holiday_pay`, `other_earnings`, `gross_pay`, `sss_contribution`, `philhealth_contribution`, `pagibig_contribution`, `tax_withholding`, `other_deductions`, `total_deductions`, `net_pay`, `status`, `payment_method`, `payment_date`, `paid_by`, `payment_reference`, `notes`, `generated_by`, `approved_by`, `approved_at`, `is_archived`, `archived_at`, `archived_by`, `created_at`, `updated_at`) VALUES
-(1, 1, 1, 112.5000, 1.2500, 0.1000, 3.00, 0.00, 2.77, 0.00, 0.00, 0.00, 337.50, 0.00, 31.16, 0.00, 0.00, 0.00, 0.00, 368.66, 62.50, 62.50, 7.99, 0.00, 0.00, 132.99, 235.67, 'draft', NULL, NULL, NULL, NULL, NULL, 1, NULL, NULL, 0, NULL, NULL, '2026-02-04 13:48:43', '2026-02-04 13:48:43'),
-(2, 2, 1, 112.5000, 1.2500, 0.1000, 29.00, 13.95, 13.82, 0.00, 0.00, 0.00, 3262.50, 1961.73, 155.48, 0.00, 0.00, 0.00, 0.00, 5379.71, 293.75, 145.69, 25.00, 85.76, 0.00, 550.20, 4829.51, 'draft', NULL, NULL, NULL, NULL, NULL, 1, NULL, NULL, 0, NULL, NULL, '2026-02-04 14:18:38', '2026-02-04 14:18:38'),
-(3, 3, 1, 112.5000, 1.2500, 0.1000, 29.00, 13.95, 13.82, 0.00, 0.00, 0.00, 3262.50, 1961.73, 155.48, 0.00, 0.00, 0.00, 0.00, 5379.71, 293.75, 145.69, 25.00, 16.09, 0.00, 480.53, 4899.18, 'draft', NULL, NULL, NULL, NULL, NULL, 1, NULL, NULL, 0, NULL, NULL, '2026-02-04 14:23:31', '2026-02-04 14:23:31'),
-(4, 4, 1, 112.5000, 1.2500, 0.1000, 0.00, 2.00, 0.00, 0.00, 8.00, 0.00, 0.00, 562.50, 0.00, 0.00, 1800.00, 0.00, 0.00, 2362.50, 125.00, 63.98, 25.00, 0.00, 0.00, 213.98, 2148.52, 'draft', NULL, NULL, NULL, NULL, NULL, 1, NULL, NULL, 0, NULL, NULL, '2026-02-04 15:03:31', '2026-02-04 15:03:31'),
-(5, 5, 1, 112.5000, 1.2500, 0.1000, 0.00, 2.00, 0.00, 0.00, 8.00, 0.00, 0.00, 585.00, 0.00, 0.00, 1800.00, 0.00, 0.00, 2385.00, 131.25, 64.59, 25.00, 0.00, 0.00, 220.84, 2164.16, 'draft', NULL, NULL, NULL, NULL, NULL, 1, NULL, NULL, 0, NULL, NULL, '2026-05-01 15:17:30', '2026-05-01 15:17:30'),
-(6, 5, 2, 112.5000, 1.2500, 0.1000, 0.00, 0.00, 0.00, 0.00, 8.00, 0.00, 0.00, 0.00, 0.00, 0.00, 1800.00, 0.00, 0.00, 1800.00, 100.00, 62.50, 25.00, 0.00, 0.00, 187.50, 1612.50, 'draft', NULL, NULL, NULL, NULL, NULL, 1, NULL, NULL, 0, NULL, NULL, '2026-05-01 15:26:10', '2026-05-01 15:26:10'),
-(7, 6, 1, 112.5000, 1.2500, 0.1000, 0.00, 0.00, 0.00, 0.00, 0.00, 8.00, 0.00, 0.00, 0.00, 0.00, 0.00, 1170.00, 0.00, 1170.00, 62.50, 62.50, 25.00, 0.00, 0.00, 150.00, 1020.00, 'draft', NULL, NULL, NULL, NULL, NULL, 1, NULL, NULL, 0, NULL, NULL, '2026-11-01 15:29:27', '2026-11-01 15:29:27');
 
 --
 -- Triggers `payroll_records`
@@ -1351,10 +1200,7 @@ CREATE TABLE `users` (
 --
 
 INSERT INTO `users` (`user_id`, `username`, `password`, `email`, `user_level`, `status`, `is_active`, `created_at`, `updated_at`, `last_login`) VALUES
-(1, 'Jeff', '$2y$10$B8lvYta/gmDrb/WppI6rMOog2ZHZS.4gTQ3CUETq/i7K48rFjSmwi', 'superadmin@tracksite.com', 'super_admin', 'active', 1, '2026-02-02 15:01:24', '2026-02-04 17:36:08', '2026-02-04 17:36:08'),
-(17, 'ean0001@tracksite.com', '$2y$10$H2./JIrcG6GUEkialNsNj.zYdv/LpEyfGHcwvrTMufTAK7v12IXY.', 'ean0001@tracksite.com', 'worker', 'active', 1, '2026-02-04 13:46:00', '2026-02-04 17:20:12', '2026-02-04 17:20:12'),
-(18, 'john0002@tracksite.com', '$2y$10$/VFfimRXDbWNfOe1Sy8gNel.oMruobRy/IVFakkqB9Bek/JCvsoDu', 'john0002@tracksite.com', 'worker', 'active', 1, '2026-05-01 15:25:31', '2026-05-01 15:25:31', NULL),
-(19, 'Ms. Cha', '$2y$10$0hkdZG4z3aRD8Kc8Z9DS4OmGXlX86a3AJdHXlTkZSncYx7Z4X3D2W', 'admin@tracksite.com', 'admin', 'active', 1, '2026-02-04 15:36:46', '2026-02-04 17:38:03', '2026-02-04 17:38:03');
+(1, 'Jeff', '$2b$12$602Ug659B1ukImwuN1ZwE.F0B1r85bpC0gBAWbHATMiO5xo7z/mWm', 'superadmin@tracksite.com', 'super_admin', 'active', 1, '2026-02-02 15:01:24', '2026-02-04 18:06:31', '2026-02-04 18:06:31');
 
 -- --------------------------------------------------------
 
@@ -1618,14 +1464,6 @@ CREATE TABLE `workers` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
--- Dumping data for table `workers`
---
-
-INSERT INTO `workers` (`worker_id`, `user_id`, `worker_code`, `first_name`, `middle_name`, `last_name`, `position`, `work_type_id`, `classification_id`, `worker_type`, `phone`, `addresses`, `address`, `date_of_birth`, `gender`, `emergency_contact_name`, `emergency_contact_phone`, `emergency_contact_relationship`, `date_hired`, `employment_status`, `daily_rate`, `hourly_rate`, `experience_years`, `profile_image`, `sss_number`, `philhealth_number`, `pagibig_number`, `tin_number`, `identification_data`, `is_archived`, `archived_at`, `archived_by`, `archive_reason`, `created_at`, `updated_at`) VALUES
-(1, 17, 'WKR-0001', 'Ean', 'Jimenez', 'Espiritu', 'Regular', 1, NULL, 'electrician', '09157910393', '{\"current\":{\"address\":\"Purok 5 456\",\"province\":\"Cavite\",\"city\":\"Silang\",\"barangay\":\"Kalubkob\"},\"permanent\":{\"address\":\"Purok 5 456\",\"province\":\"Cavite\",\"city\":\"Silang\",\"barangay\":\"Kalubkob\"}}', NULL, '2004-02-28', 'male', 'Marycris Espiritu', '09888181818', 'Parent', '2026-02-04', 'active', 5000.00, 112.50, 0, 'worker_1_1770223607.jfif', '', '', '', '', '{\"primary\":{\"type\":\"Driver&#039;s License\",\"number\":\"12121\"},\"additional\":[]}', 0, NULL, NULL, NULL, '2026-02-04 13:46:00', '2026-02-04 16:46:47'),
-(2, 18, 'WKR-0002', 'John', 'Espiritu', 'Doe', 'Regular', 1, NULL, 'electrician', '09157910393', '{\"current\":{\"address\":\"Purok 5 456\",\"province\":\"Laguna\",\"city\":\"Majayjay\",\"barangay\":\"Isabang\"},\"permanent\":{\"address\":\"Purok 5 456\",\"province\":\"Laguna\",\"city\":\"Majayjay\",\"barangay\":\"Isabang\"}}', NULL, '2004-05-02', 'male', 'Marycris Espiritu', '09888181818', 'Parent', '2026-05-01', 'active', 5000.00, 112.50, 0, NULL, '', '', '', '', '{\"primary\":{\"type\":\"Driver&#039;s License\",\"number\":\"1212121\"},\"additional\":[]}', 0, NULL, NULL, NULL, '2026-05-01 15:25:31', '2026-02-04 15:41:49');
-
---
 -- Triggers `workers`
 --
 DELIMITER $$
@@ -1776,13 +1614,6 @@ CREATE TABLE `worker_employment_history` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- Dumping data for table `worker_employment_history`
---
-
-INSERT INTO `worker_employment_history` (`id`, `worker_id`, `from_date`, `to_date`, `company`, `position`, `salary_per_day`, `reason_for_leaving`, `created_at`) VALUES
-(1, 1, '2005-01-21', '0014-07-16', 'Solesagng INC.', 'Senior Electrician', 1300.00, 'New Environment', '2026-02-04 13:46:00');
-
 -- --------------------------------------------------------
 
 --
@@ -1852,13 +1683,6 @@ CREATE TABLE `work_types` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
--- Dumping data for table `work_types`
---
-
-INSERT INTO `work_types` (`work_type_id`, `work_type_code`, `work_type_name`, `classification_id`, `description`, `daily_rate`, `is_active`, `display_order`, `created_by`, `created_at`, `updated_at`) VALUES
-(1, 'ELC', 'Electrician', 2, '', 5000.00, 1, 1, NULL, '2026-02-04 13:44:01', '2026-02-04 15:41:49');
 
 -- --------------------------------------------------------
 
@@ -2298,7 +2122,7 @@ ALTER TABLE `work_type_rate_history`
 -- AUTO_INCREMENT for table `activity_logs`
 --
 ALTER TABLE `activity_logs`
-  MODIFY `log_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=93;
+  MODIFY `log_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT for table `admin_permissions`
@@ -2316,7 +2140,7 @@ ALTER TABLE `admin_profile`
 -- AUTO_INCREMENT for table `attendance`
 --
 ALTER TABLE `attendance`
-  MODIFY `attendance_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
+  MODIFY `attendance_id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `attendance_settings`
@@ -2328,7 +2152,7 @@ ALTER TABLE `attendance_settings`
 -- AUTO_INCREMENT for table `audit_trail`
 --
 ALTER TABLE `audit_trail`
-  MODIFY `audit_id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
+  MODIFY `audit_id` bigint(20) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `bir_tax_brackets`
@@ -2400,13 +2224,13 @@ ALTER TABLE `payroll_earnings`
 -- AUTO_INCREMENT for table `payroll_periods`
 --
 ALTER TABLE `payroll_periods`
-  MODIFY `period_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+  MODIFY `period_id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `payroll_records`
 --
 ALTER TABLE `payroll_records`
-  MODIFY `record_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
+  MODIFY `record_id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `payroll_settings`
@@ -2472,7 +2296,7 @@ ALTER TABLE `users`
 -- AUTO_INCREMENT for table `workers`
 --
 ALTER TABLE `workers`
-  MODIFY `worker_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `worker_id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `worker_classifications`
@@ -2502,7 +2326,7 @@ ALTER TABLE `worker_type_rates`
 -- AUTO_INCREMENT for table `work_types`
 --
 ALTER TABLE `work_types`
-  MODIFY `work_type_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `work_type_id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `work_type_rate_history`
