@@ -147,9 +147,8 @@ class PayrollCalculator {
                     ?? $result['type_hourly_rate'] 
                     ?? ($dailyRate / 8);
                 
-                // Get overtime multiplier from payroll_settings (configurable)
-                $otMultiplier = $result['overtime_multiplier'] 
-                    ?? $this->getRate('overtime_multiplier', 1.25);
+                // Always use global overtime multiplier from payroll_settings
+                $otMultiplier = $this->getRate('overtime_multiplier', 1.25);
                     
                 // Get night diff percentage from payroll_settings
                 $nightDiffPct = $result['night_diff_percentage'] 
