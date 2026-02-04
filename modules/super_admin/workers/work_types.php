@@ -1,3 +1,27 @@
+    <?php
+    // AJAX endpoint for workers by type (must be before any output)
+    if (isset($_GET['action']) && $_GET['action'] === 'get_workers_by_type' && isset($_GET['id'])) {
+        require_once __DIR__ . '/../../../config/database.php';
+        $type_id = intval($_GET['id']);
+        $stmt = $db->prepare("SELECT worker_code, first_name, last_name, position, daily_rate FROM workers WHERE work_type_id = ? AND is_archived = 0 ORDER BY last_name, first_name");
+        $stmt->execute([$type_id]);
+        header('Content-Type: application/json');
+        echo json_encode($stmt->fetchAll(PDO::FETCH_ASSOC));
+        exit;
+    }
+    ?>
+    <script>
+    function openModal(id) {
+        var m = document.getElementById(id);
+        if (m) m.style.display = 'block';
+        document.body.style.overflow = 'hidden';
+    }
+    function closeModal(id) {
+        var m = document.getElementById(id);
+        if (m) m.style.display = 'none';
+        document.body.style.overflow = '';
+    }
+    </script>
 <?php
 /**
  * Worker Types Management - Workers Module
@@ -107,8 +131,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $can_manage) {
                 // Log rate change if different
                 if ($old_rate != $daily_rate) {
                     $stmt = $db->prepare("
-                        INSERT INTO work_type_rate_history (work_type_id, old_daily_rate, new_daily_rate, effective_date, changed_by, reason)
-                        VALUES (?, ?, ?, CURDATE(), ?, 'Rate adjustment')
+                        INSERT INTO work_type_rate_history (work_type_id, old_daily_rate, new_daily_rate, effective_date, changed_by)
+                        VALUES (?, ?, ?, CURDATE(), ?)
                     ");
                     $stmt->execute([$work_type_id, $old_rate, $daily_rate, $user_id]);
                     
@@ -936,9 +960,12 @@ $skill_levels = ['entry' => 'Entry Level', 'skilled' => 'Skilled', 'senior' => '
                                     <h3><?php echo htmlspecialchars($wt['work_type_name']); ?></h3>
                                     <span class="work-type-code"><?php echo htmlspecialchars($wt['work_type_code']); ?></span>
                                 </div>
-                                <div class="work-type-rate">
-                                    <div class="daily-rate">₱<?php echo number_format($wt['daily_rate'], 2); ?></div>
-                                    <div class="hourly-rate">₱<?php echo number_format($wt['hourly_rate'] ?? ($wt['daily_rate'] / 8), 2); ?>/hr</div>
+                                <div class="work-type-rate" style="display:flex;align-items:center;gap:10px;">
+                                    <div>
+                                        <div class="daily-rate">₱<?php echo number_format($wt['daily_rate'], 2); ?></div>
+                                        <div class="hourly-rate">₱<?php echo number_format($wt['hourly_rate'] ?? ($wt['daily_rate'] / 8), 2); ?>/hr</div>
+                                    </div>
+
                                 </div>
                             </div>
                             
@@ -958,6 +985,38 @@ $skill_levels = ['entry' => 'Entry Level', 'skilled' => 'Skilled', 'senior' => '
                                     <i class="fas fa-users"></i>
                                     <?php echo $wt['worker_count']; ?> worker<?php echo $wt['worker_count'] != 1 ? 's' : ''; ?>
                                 </div>
+                                        document.getElementById('workersByTypeBody').innerHTML = '<div style="text-align:center;color:#888;">Loading...</div>';
+                                        openModal('workersByTypeModal');
+                                        fetch('work_types.php?action=get_workers_by_type&id=' + workTypeId)
+                                            .then(r => r.json())
+                                            .then(data => {
+                                                if (data.length === 0) {
+                                                    document.getElementById('workersByTypeBody').innerHTML = '<div style="text-align:center;color:#888;">No workers assigned to this type.</div>';
+                                                } else {
+                                                    let html = '<table class="workers-table" style="width:100%;margin-top:10px;"><thead><tr><th>Code</th><th>Name</th><th>Position</th><th>Daily Rate</th></tr></thead><tbody>';
+                                                    data.forEach(w => {
+                                                        html += `<tr><td>${w.worker_code}</td><td>${w.first_name} ${w.last_name}</td><td>${w.position}</td><td>₱${parseFloat(w.daily_rate).toFixed(2)}</td></tr>`;
+                                                    });
+                                                    html += '</tbody></table>';
+                                                    document.getElementById('workersByTypeBody').innerHTML = html;
+                                                }
+                                            })
+                                            .catch(() => {
+                                                document.getElementById('workersByTypeBody').innerHTML = '<div style="color:red;">Error loading workers.</div>';
+                                            });
+                                    }
+                                    </script>
+                                <?php
+                                // AJAX endpoint for workers by type
+                                if (isset($_GET['action']) && $_GET['action'] === 'get_workers_by_type' && isset($_GET['id'])) {
+                                    header('Content-Type: application/json');
+                                    $type_id = intval($_GET['id']);
+                                    $stmt = $db->prepare("SELECT worker_code, first_name, last_name, position, daily_rate FROM workers WHERE work_type_id = ? AND is_archived = 0 ORDER BY last_name, first_name");
+                                    $stmt->execute([$type_id]);
+                                    echo json_encode($stmt->fetchAll(PDO::FETCH_ASSOC));
+                                    exit;
+                                }
+                                ?>
                                 <?php if (!$wt['is_active']): ?>
                                 <div class="meta-item" style="color: #e74c3c;">
                                     <i class="fas fa-ban"></i> Inactive

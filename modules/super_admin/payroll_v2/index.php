@@ -785,7 +785,7 @@ $pageTitle = 'Payroll Management';
                 <!-- Page Header -->
                 <div class="page-header-flex">
                     <div class="page-title-section">
-                        <h1><i class="fas fa-money-check-alt"></i> Payroll Management</h1>
+                        <h1></i> Payroll Management</h1>
                         <p>Generate weekly payroll with transparent calculations. All rates are configurable.</p>
                     </div>
                     <div class="header-actions">
