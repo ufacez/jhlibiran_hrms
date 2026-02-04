@@ -514,9 +514,11 @@ $skill_levels = ['entry' => 'Entry Level', 'skilled' => 'Skilled', 'senior' => '
             display: flex;
             align-items: center;
             gap: 6px;
-            font-size: 12px;
-            color: #666;
         }
+        
+        /* clickable meta (e.g. worker count) */
+        .work-type-meta .meta-item.meta-clickable { cursor: pointer; color: inherit; transition: color 0.15s ease; }
+        .work-type-meta .meta-item.meta-clickable:hover { color: #2b6cb0; text-decoration: none; }
         
         .meta-item i {
             color: #DAA520;
@@ -605,6 +607,10 @@ $skill_levels = ['entry' => 'Entry Level', 'skilled' => 'Skilled', 'senior' => '
             animation: modalSlide 0.3s ease;
         }
         
+        .modal-medium {
+            max-width: 650px;
+        }
+        
         @keyframes modalSlide {
             from {
                 opacity: 0;
@@ -622,12 +628,14 @@ $skill_levels = ['entry' => 'Entry Level', 'skilled' => 'Skilled', 'senior' => '
             display: flex;
             justify-content: space-between;
             align-items: center;
+            background: linear-gradient(135deg, #1a1a1a, #2d2d2d);
+            color: #fff;
         }
         
         .modal-header h2 {
             font-size: 18px;
             font-weight: 600;
-            color: #1a1a1a;
+            color: #fff;
             display: flex;
             align-items: center;
             gap: 10px;
@@ -641,7 +649,7 @@ $skill_levels = ['entry' => 'Entry Level', 'skilled' => 'Skilled', 'senior' => '
             background: none;
             border: none;
             font-size: 24px;
-            color: #999;
+            color: #fff;
             cursor: pointer;
             transition: color 0.2s;
         }
@@ -981,42 +989,10 @@ $skill_levels = ['entry' => 'Entry Level', 'skilled' => 'Skilled', 'senior' => '
                                     </span>
                                 </div>
                                 <?php endif; ?>
-                                <div class="meta-item">
+                                <div class="meta-item meta-clickable" onclick="showWorkersByType(<?php echo $wt['work_type_id']; ?>)" title="View workers">
                                     <i class="fas fa-users"></i>
                                     <?php echo $wt['worker_count']; ?> worker<?php echo $wt['worker_count'] != 1 ? 's' : ''; ?>
                                 </div>
-                                        document.getElementById('workersByTypeBody').innerHTML = '<div style="text-align:center;color:#888;">Loading...</div>';
-                                        openModal('workersByTypeModal');
-                                        fetch('work_types.php?action=get_workers_by_type&id=' + workTypeId)
-                                            .then(r => r.json())
-                                            .then(data => {
-                                                if (data.length === 0) {
-                                                    document.getElementById('workersByTypeBody').innerHTML = '<div style="text-align:center;color:#888;">No workers assigned to this type.</div>';
-                                                } else {
-                                                    let html = '<table class="workers-table" style="width:100%;margin-top:10px;"><thead><tr><th>Code</th><th>Name</th><th>Position</th><th>Daily Rate</th></tr></thead><tbody>';
-                                                    data.forEach(w => {
-                                                        html += `<tr><td>${w.worker_code}</td><td>${w.first_name} ${w.last_name}</td><td>${w.position}</td><td>₱${parseFloat(w.daily_rate).toFixed(2)}</td></tr>`;
-                                                    });
-                                                    html += '</tbody></table>';
-                                                    document.getElementById('workersByTypeBody').innerHTML = html;
-                                                }
-                                            })
-                                            .catch(() => {
-                                                document.getElementById('workersByTypeBody').innerHTML = '<div style="color:red;">Error loading workers.</div>';
-                                            });
-                                    }
-                                    </script>
-                                <?php
-                                // AJAX endpoint for workers by type
-                                if (isset($_GET['action']) && $_GET['action'] === 'get_workers_by_type' && isset($_GET['id'])) {
-                                    header('Content-Type: application/json');
-                                    $type_id = intval($_GET['id']);
-                                    $stmt = $db->prepare("SELECT worker_code, first_name, last_name, position, daily_rate FROM workers WHERE work_type_id = ? AND is_archived = 0 ORDER BY last_name, first_name");
-                                    $stmt->execute([$type_id]);
-                                    echo json_encode($stmt->fetchAll(PDO::FETCH_ASSOC));
-                                    exit;
-                                }
-                                ?>
                                 <?php if (!$wt['is_active']): ?>
                                 <div class="meta-item" style="color: #e74c3c;">
                                     <i class="fas fa-ban"></i> Inactive
@@ -1026,7 +1002,7 @@ $skill_levels = ['entry' => 'Entry Level', 'skilled' => 'Skilled', 'senior' => '
                             
                             <?php if ($can_manage): ?>
                             <div class="work-type-actions">
-                                <button class="btn-sm btn-edit" onclick="editWorkType(<?php echo htmlspecialchars(json_encode($wt)); ?>)">
+                                <button class="btn-sm btn-edit" data-work-type="<?php echo base64_encode(json_encode($wt)); ?>" onclick="editWorkType(this)">
                                     <i class="fas fa-edit"></i> Edit
                                 </button>
                                 <?php if ($wt['worker_count'] == 0): ?>
@@ -1279,6 +1255,22 @@ $skill_levels = ['entry' => 'Entry Level', 'skilled' => 'Skilled', 'senior' => '
             </form>
         </div>
     </div>
+
+    <!-- Workers by Type Modal -->
+    <div class="modal" id="workersByTypeModal" aria-hidden="true">
+        <div class="modal-content modal-medium">
+            <div class="modal-header">
+                <h2><i class="fas fa-users"></i> Workers</h2>
+                <button class="modal-close" onclick="closeModal('workersByTypeModal')">&times;</button>
+            </div>
+            <div class="modal-body" id="workersByTypeBody" style="min-height:120px;display:flex;align-items:center;justify-content:center;color:#888;">
+                <div>No data</div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary" onclick="closeModal('workersByTypeModal')">Close</button>
+            </div>
+        </div>
+    </div>
     
     <!-- Delete Form (Hidden) -->
     <form id="deleteForm" method="POST" action="" style="display: none;">
@@ -1329,8 +1321,41 @@ $skill_levels = ['entry' => 'Entry Level', 'skilled' => 'Skilled', 'senior' => '
             }
         });
         
+        // Helper: escape HTML to avoid injection when inserting fetched values
+        function escapeHtml(str) {
+            return String(str || '').replace(/[&<>"']/g, function(s){
+                return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]);
+            });
+        }
+
+        // Load & show workers for a given work type (used by the worker-count meta item)
+        function showWorkersByType(workTypeId) {
+            var body = document.getElementById('workersByTypeBody');
+            if (!body) return;
+            body.innerHTML = '<div style="text-align:center;color:#888;">Loading...</div>';
+            openModal('workersByTypeModal');
+            fetch('work_types.php?action=get_workers_by_type&id=' + encodeURIComponent(workTypeId))
+                .then(function(r){ return r.json(); })
+                .then(function(data){
+                    if (!Array.isArray(data) || data.length === 0) {
+                        body.innerHTML = '<div style="text-align:center;color:#888;">No workers assigned to this type.</div>';
+                        return;
+                    }
+                    var html = '<table class="workers-table" style="width:100%;margin-top:10px;"><thead><tr><th>Code</th><th>Name</th><th>Position</th><th>Daily Rate</th></tr></thead><tbody>';
+                    data.forEach(function(w){
+                        html += '<tr><td>' + escapeHtml(w.worker_code) + '</td><td>' + escapeHtml(w.first_name) + ' ' + escapeHtml(w.last_name) + '</td><td>' + escapeHtml(w.position) + '</td><td>₱' + parseFloat(w.daily_rate).toFixed(2) + '</td></tr>';
+                    });
+                    html += '</tbody></table>';
+                    body.innerHTML = html;
+                })
+                .catch(function(){
+                    body.innerHTML = '<div style="color:red;">Error loading workers.</div>';
+                });
+        }
+        
         // Edit work type
-        function editWorkType(wt) {
+        function editWorkType(button) {
+            const wt = JSON.parse(atob(button.getAttribute('data-work-type')));
             document.getElementById('edit_work_type_id').value = wt.work_type_id;
             document.getElementById('edit_work_type_code').value = wt.work_type_code;
             document.getElementById('edit_work_type_name').value = wt.work_type_name;
