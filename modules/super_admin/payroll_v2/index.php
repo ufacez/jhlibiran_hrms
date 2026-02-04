@@ -1457,8 +1457,14 @@ $pageTitle = 'Payroll Management';
         
         // Save payroll
         async function savePayroll() {
-            if (!currentPayroll) return;
-            
+            if (!currentPayroll) {
+                showToast('No payroll data to save.', 'error');
+                return;
+            }
+            if (!selectedWorker || !selectedPeriod || !selectedPeriod.start || !selectedPeriod.end) {
+                showToast('Missing worker or period information.', 'error');
+                return;
+            }
             try {
                 const response = await fetch(`${API_URL}?action=generate_payroll`, {
                     method: 'POST',
@@ -1470,14 +1476,20 @@ $pageTitle = 'Payroll Management';
                         user_id: <?php echo $_SESSION['user_id'] ?? 'null'; ?>
                     })
                 });
-                
-                const data = await response.json();
-                
+                const text = await response.text();
+                let data;
+                try {
+                    data = JSON.parse(text);
+                } catch (jsonError) {
+                    showToast('Server error: ' + text.substring(0, 120), 'error');
+                    console.error('Server returned non-JSON:', text);
+                    return;
+                }
                 if (data.success) {
                     showToast('Payroll saved successfully!', 'success');
                     setTimeout(() => location.reload(), 1500);
                 } else {
-                    showToast('Error: ' + data.error, 'error');
+                    showToast('Error: ' + (data.error || 'Unknown error'), 'error');
                 }
             } catch (error) {
                 showToast('Error saving payroll', 'error');

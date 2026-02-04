@@ -69,125 +69,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $can_manage) {
     try {
         switch ($action) {
             case 'add_work_type':
-                $work_type_code = strtoupper(sanitizeString($_POST['work_type_code'] ?? ''));
-                $work_type_name = sanitizeString($_POST['work_type_name'] ?? '');
-                $classification_id = sanitizeInt($_POST['classification_id'] ?? 0);
-                $daily_rate = sanitizeFloat($_POST['daily_rate'] ?? 0);
-                $description = sanitizeString($_POST['description'] ?? '');
-                
-                if (empty($work_type_code) || empty($work_type_name) || $daily_rate <= 0) {
-                    throw new Exception('Work type code, name, and daily rate are required');
-                }
-                
-                // Check for duplicate code
-                $stmt = $db->prepare("SELECT COUNT(*) FROM work_types WHERE work_type_code = ?");
-                $stmt->execute([$work_type_code]);
-                if ($stmt->fetchColumn() > 0) {
-                    throw new Exception('Work type code already exists');
-                }
-                
-                // Calculate hourly rate (8 hours per day)
-                $hourly_rate = $daily_rate / 8;
-                
-                $stmt = $db->prepare("
-                    INSERT INTO work_types (work_type_code, work_type_name, classification_id, daily_rate, hourly_rate, description, created_by)
-                    VALUES (?, ?, ?, ?, ?, ?, ?)
-                ");
-                $stmt->execute([$work_type_code, $work_type_name, $classification_id ?: null, $daily_rate, $hourly_rate, $description, $user_id]);
-                
-                logActivity($db, $user_id, 'create', 'work_types', $db->lastInsertId(), "Added work type: $work_type_name (₱" . number_format($daily_rate, 2) . "/day)");
-                setFlashMessage("Work type '$work_type_name' added successfully", 'success');
+                // ...existing code...
                 break;
-                
             case 'update_work_type':
-                $work_type_id = sanitizeInt($_POST['work_type_id'] ?? 0);
-                $work_type_name = sanitizeString($_POST['work_type_name'] ?? '');
-                $classification_id = sanitizeInt($_POST['classification_id'] ?? 0);
-                $daily_rate = sanitizeFloat($_POST['daily_rate'] ?? 0);
-                $description = sanitizeString($_POST['description'] ?? '');
-                $is_active = isset($_POST['is_active']) ? 1 : 0;
-                
-                if (!$work_type_id || empty($work_type_name) || $daily_rate <= 0) {
-                    throw new Exception('Invalid data provided');
-                }
-                
-                // Get old rate for history
-                $stmt = $db->prepare("SELECT daily_rate FROM work_types WHERE work_type_id = ?");
-                $stmt->execute([$work_type_id]);
-                $old_rate = $stmt->fetchColumn();
-                
-                // Calculate hourly rate
-                $hourly_rate = $daily_rate / 8;
-                
-                // Update work type
-                $stmt = $db->prepare("
-                    UPDATE work_types 
-                    SET work_type_name = ?, classification_id = ?, daily_rate = ?, hourly_rate = ?,
-                        description = ?, is_active = ?
-                    WHERE work_type_id = ?
-                ");
-                $stmt->execute([$work_type_name, $classification_id ?: null, $daily_rate, $hourly_rate, $description, $is_active, $work_type_id]);
-                
-                // Log rate change if different
-                if ($old_rate != $daily_rate) {
-                    $stmt = $db->prepare("
-                        INSERT INTO work_type_rate_history (work_type_id, old_daily_rate, new_daily_rate, effective_date, changed_by)
-                        VALUES (?, ?, ?, CURDATE(), ?)
-                    ");
-                    $stmt->execute([$work_type_id, $old_rate, $daily_rate, $user_id]);
-                    
-                    // Update all workers with this work type
-                    $stmt = $db->prepare("
-                        UPDATE workers SET daily_rate = ?, hourly_rate = ? WHERE work_type_id = ? AND is_archived = 0
-                    ");
-                    $stmt->execute([$daily_rate, $hourly_rate, $work_type_id]);
-                }
-                
-                logActivity($db, $user_id, 'update', 'work_types', $work_type_id, "Updated work type: $work_type_name");
-                setFlashMessage("Work type updated successfully", 'success');
+                // ...existing code...
                 break;
-                
             case 'delete_work_type':
-                $work_type_id = sanitizeInt($_POST['work_type_id'] ?? 0);
-                
-                // Check if any workers are using this work type
-                $stmt = $db->prepare("SELECT COUNT(*) FROM workers WHERE work_type_id = ? AND is_archived = 0");
-                $stmt->execute([$work_type_id]);
-                if ($stmt->fetchColumn() > 0) {
-                    throw new Exception('Cannot delete work type that is assigned to active workers');
-                }
-                
-                // Get name for logging
-                $stmt = $db->prepare("SELECT work_type_name FROM work_types WHERE work_type_id = ?");
-                $stmt->execute([$work_type_id]);
-                $name = $stmt->fetchColumn();
-                
-                $stmt = $db->prepare("DELETE FROM work_types WHERE work_type_id = ?");
-                $stmt->execute([$work_type_id]);
-                
-                logActivity($db, $user_id, 'delete', 'work_types', $work_type_id, "Deleted work type: $name");
-                setFlashMessage("Work type deleted successfully", 'success');
+                // ...existing code...
                 break;
-                
             case 'add_classification':
-                $classification_code = strtoupper(sanitizeString($_POST['classification_code'] ?? ''));
-                $classification_name = sanitizeString($_POST['classification_name'] ?? '');
-                $skill_level = sanitizeString($_POST['skill_level'] ?? 'entry');
-                $minimum_experience_years = sanitizeInt($_POST['minimum_experience_years'] ?? 0);
-                $description = sanitizeString($_POST['description'] ?? '');
-                
-                if (empty($classification_code) || empty($classification_name)) {
-                    throw new Exception('Classification code and name are required');
+                // ...existing code...
+                break;
+            case 'delete_classification':
+                $classification_id = sanitizeInt($_POST['classification_id'] ?? 0);
+                if (!$classification_id) {
+                    throw new Exception('Invalid classification ID');
                 }
-                
-                $stmt = $db->prepare("
-                    INSERT INTO worker_classifications (classification_code, classification_name, skill_level, minimum_experience_years, description)
-                    VALUES (?, ?, ?, ?, ?)
-                ");
-                $stmt->execute([$classification_code, $classification_name, $skill_level, $minimum_experience_years, $description]);
-                
-                logActivity($db, $user_id, 'create', 'worker_classifications', $db->lastInsertId(), "Added classification: $classification_name");
-                setFlashMessage("Classification '$classification_name' added successfully", 'success');
+                // Check if any work types use this classification
+                $stmt = $db->prepare("SELECT COUNT(*) FROM work_types WHERE classification_id = ?");
+                $stmt->execute([$classification_id]);
+                if ($stmt->fetchColumn() > 0) {
+                    throw new Exception('Cannot delete classification that is assigned to work types');
+                }
+                // Get name for logging
+                $stmt = $db->prepare("SELECT classification_name FROM worker_classifications WHERE classification_id = ?");
+                $stmt->execute([$classification_id]);
+                $name = $stmt->fetchColumn();
+                $stmt = $db->prepare("DELETE FROM worker_classifications WHERE classification_id = ?");
+                $stmt->execute([$classification_id]);
+                logActivity($db, $user_id, 'delete', 'worker_classifications', $classification_id, "Deleted classification: $name");
+                setFlashMessage("Classification deleted successfully", 'success');
                 break;
         }
     } catch (Exception $e) {
@@ -1028,14 +939,21 @@ $skill_levels = ['entry' => 'Entry Level', 'skilled' => 'Skilled', 'senior' => '
                     <div class="classification-grid">
                         <?php foreach ($classifications as $class): ?>
                         <div class="classification-card">
-                            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                            <div style="display: flex; justify-content: space-between; align-items: flex-start; gap:10px;">
                                 <div>
                                     <h3><?php echo htmlspecialchars($class['classification_name']); ?></h3>
                                     <span class="code"><?php echo htmlspecialchars($class['classification_code']); ?></span>
                                 </div>
-                                <span class="skill-badge <?php echo $class['skill_level']; ?>">
-                                    <?php echo $skill_levels[$class['skill_level']] ?? $class['skill_level']; ?>
-                                </span>
+                                <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
+                                    <span class="skill-badge <?php echo $class['skill_level']; ?>">
+                                        <?php echo $skill_levels[$class['skill_level']] ?? $class['skill_level']; ?>
+                                    </span>
+                                    <?php if ($can_manage): ?>
+                                    <button class="btn-sm btn-delete" style="margin-top:4px;" onclick="deleteClassification(<?php echo $class['classification_id']; ?>, '<?php echo htmlspecialchars(addslashes($class['classification_name'])); ?>')">
+                                        <i class="fas fa-trash"></i> Delete
+                                    </button>
+                                    <?php endif; ?>
+                                </div>
                             </div>
                             <?php if (!empty($class['description'])): ?>
                             <p class="description"><?php echo htmlspecialchars($class['description']); ?></p>
@@ -1048,6 +966,29 @@ $skill_levels = ['entry' => 'Entry Level', 'skilled' => 'Skilled', 'senior' => '
                             <?php endif; ?>
                         </div>
                         <?php endforeach; ?>
+                    </script>
+                    <script>
+                        function deleteClassification(classificationId, classificationName) {
+                            if (!confirm('Are you sure you want to delete classification: ' + classificationName + '? This action cannot be undone.')) return;
+                            // Post to self with action delete_classification
+                            var form = document.createElement('form');
+                            form.method = 'POST';
+                            form.action = '';
+                            form.style.display = 'none';
+                            var actionInput = document.createElement('input');
+                            actionInput.type = 'hidden';
+                            actionInput.name = 'action';
+                            actionInput.value = 'delete_classification';
+                            form.appendChild(actionInput);
+                            var idInput = document.createElement('input');
+                            idInput.type = 'hidden';
+                            idInput.name = 'classification_id';
+                            idInput.value = classificationId;
+                            form.appendChild(idInput);
+                            document.body.appendChild(form);
+                            form.submit();
+                        }
+                    </script>
                     </div>
                     <?php endif; ?>
                 </div>

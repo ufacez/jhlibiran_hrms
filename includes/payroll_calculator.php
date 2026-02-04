@@ -1169,15 +1169,16 @@ class PayrollCalculator {
                 // Regular Holiday
                 $regularHours = $this->calculateRegularHours($totalHours);
                 $overtimeHours = $this->calculateOvertimeHours($totalHours);
-                
                 if ($regularHours > 0) {
-                    $earnings[] = $this->calculateRegularHolidayPay($regularHours, $hourlyRate, $isRestDay);
+                    $earning = $this->calculateRegularHolidayPay($regularHours, $hourlyRate, $isRestDay);
+                    if (!isset($earning['multiplier'])) $earning['multiplier'] = 1.0;
+                    $earnings[] = $earning;
                 }
                 if ($overtimeHours > 0) {
                     $otMultiplier = $isRestDay 
                         ? $this->getRate('regular_holiday_restday_multiplier', 2.60) * 1.30
                         : $this->getRate('regular_holiday_ot_multiplier', 2.60);
-                    $earnings[] = [
+                    $earning = [
                         'hours' => $overtimeHours,
                         'rate' => $hourlyRate,
                         'multiplier' => $otMultiplier,
@@ -1187,20 +1188,23 @@ class PayrollCalculator {
                             round($overtimeHours * $hourlyRate * $otMultiplier, 2)),
                         'type' => 'regular_holiday_overtime'
                     ];
+                    if (!isset($earning['multiplier'])) $earning['multiplier'] = 1.0;
+                    $earnings[] = $earning;
                 }
             } else {
                 // Special Holiday
                 $regularHours = $this->calculateRegularHours($totalHours);
                 $overtimeHours = $this->calculateOvertimeHours($totalHours);
-                
                 if ($regularHours > 0) {
-                    $earnings[] = $this->calculateSpecialHolidayPay($regularHours, $hourlyRate, $isRestDay);
+                    $earning = $this->calculateSpecialHolidayPay($regularHours, $hourlyRate, $isRestDay);
+                    if (!isset($earning['multiplier'])) $earning['multiplier'] = 1.0;
+                    $earnings[] = $earning;
                 }
                 if ($overtimeHours > 0) {
                     $otMultiplier = $isRestDay 
                         ? $this->getRate('special_holiday_restday_multiplier', 1.50) * 1.30
                         : $this->getRate('special_holiday_ot_multiplier', 1.69);
-                    $earnings[] = [
+                    $earning = [
                         'hours' => $overtimeHours,
                         'rate' => $hourlyRate,
                         'multiplier' => $otMultiplier,
@@ -1210,36 +1214,45 @@ class PayrollCalculator {
                             round($overtimeHours * $hourlyRate * $otMultiplier, 2)),
                         'type' => 'special_holiday_overtime'
                     ];
+                    if (!isset($earning['multiplier'])) $earning['multiplier'] = 1.0;
+                    $earnings[] = $earning;
                 }
             }
         } elseif ($isRestDay) {
             // Rest Day (no holiday)
             $regularHours = $this->calculateRegularHours($totalHours);
             $overtimeHours = $this->calculateOvertimeHours($totalHours);
-            
             if ($regularHours > 0) {
-                $earnings[] = $this->calculateRestDayPay($regularHours, $hourlyRate);
+                $earning = $this->calculateRestDayPay($regularHours, $hourlyRate);
+                if (!isset($earning['multiplier'])) $earning['multiplier'] = 1.0;
+                $earnings[] = $earning;
             }
             if ($overtimeHours > 0) {
-                $earnings[] = $this->calculateOvertimePay($overtimeHours, $hourlyRate, true);
+                $earning = $this->calculateOvertimePay($overtimeHours, $hourlyRate, true);
+                if (!isset($earning['multiplier'])) $earning['multiplier'] = 1.0;
+                $earnings[] = $earning;
             }
         } else {
             // Regular Work Day
             $regularHours = $this->calculateRegularHours($totalHours);
             $overtimeHours = $this->calculateOvertimeHours($totalHours);
-            
             if ($regularHours > 0) {
-                $earnings[] = $this->calculateRegularPay($regularHours, $hourlyRate);
+                $earning = $this->calculateRegularPay($regularHours, $hourlyRate);
+                if (!isset($earning['multiplier'])) $earning['multiplier'] = 1.0;
+                $earnings[] = $earning;
             }
             if ($overtimeHours > 0) {
-                $earnings[] = $this->calculateOvertimePay($overtimeHours, $hourlyRate);
+                $earning = $this->calculateOvertimePay($overtimeHours, $hourlyRate);
+                if (!isset($earning['multiplier'])) $earning['multiplier'] = 1.0;
+                $earnings[] = $earning;
             }
         }
-        
         // Calculate night differential (applies to all day types)
         $nightDiffHours = $this->calculateNightDiffHours($timeIn, $timeOut, $date);
         if ($nightDiffHours > 0) {
-            $earnings[] = $this->calculateNightDiffPay($nightDiffHours, $hourlyRate);
+            $earning = $this->calculateNightDiffPay($nightDiffHours, $hourlyRate);
+            if (!isset($earning['multiplier'])) $earning['multiplier'] = 1.0;
+            $earnings[] = $earning;
         }
         
         // Calculate total
@@ -1460,42 +1473,58 @@ class PayrollCalculator {
         // Check if it's a holiday
         $holiday = $this->getHoliday($date);
         $isRestDay = $this->isRestDay($workerId, $date);
-        
         if ($holiday) {
             // Holiday calculations with worker-specific rates
             if ($holiday['type'] === 'regular') {
-                $earnings[] = $this->calculateRegularHolidayPay($regularHours, $hourlyRate, $isRestDay);
+                $earning = $this->calculateRegularHolidayPay($regularHours, $hourlyRate, $isRestDay);
+                if (!isset($earning['multiplier'])) $earning['multiplier'] = 1.0;
+                $earnings[] = $earning;
                 if ($overtimeHours > 0) {
-                    $earnings[] = $this->calculateRegularHolidayOvertimePay($overtimeHours, $hourlyRate, $isRestDay);
+                    $earning = $this->calculateRegularHolidayOvertimePay($overtimeHours, $hourlyRate, $isRestDay);
+                    if (!isset($earning['multiplier'])) $earning['multiplier'] = 1.0;
+                    $earnings[] = $earning;
                 }
             } else {
-                $earnings[] = $this->calculateSpecialHolidayPay($regularHours, $hourlyRate, $isRestDay);
+                $earning = $this->calculateSpecialHolidayPay($regularHours, $hourlyRate, $isRestDay);
+                if (!isset($earning['multiplier'])) $earning['multiplier'] = 1.0;
+                $earnings[] = $earning;
                 if ($overtimeHours > 0) {
-                    $earnings[] = $this->calculateSpecialHolidayOvertimePay($overtimeHours, $hourlyRate, $isRestDay);
+                    $earning = $this->calculateSpecialHolidayOvertimePay($overtimeHours, $hourlyRate, $isRestDay);
+                    if (!isset($earning['multiplier'])) $earning['multiplier'] = 1.0;
+                    $earnings[] = $earning;
                 }
             }
         } elseif ($isRestDay) {
             // Rest Day calculations
             if ($regularHours > 0) {
-                $earnings[] = $this->calculateRestDayPay($regularHours, $hourlyRate);
+                $earning = $this->calculateRestDayPay($regularHours, $hourlyRate);
+                if (!isset($earning['multiplier'])) $earning['multiplier'] = 1.0;
+                $earnings[] = $earning;
             }
             if ($overtimeHours > 0) {
-                $earnings[] = $this->calculateOvertimePay($overtimeHours, $hourlyRate, true);
+                $earning = $this->calculateOvertimePay($overtimeHours, $hourlyRate, true);
+                if (!isset($earning['multiplier'])) $earning['multiplier'] = 1.0;
+                $earnings[] = $earning;
             }
         } else {
             // Regular Work Day
             if ($regularHours > 0) {
-                $earnings[] = $this->calculateRegularPay($regularHours, $hourlyRate);
+                $earning = $this->calculateRegularPay($regularHours, $hourlyRate);
+                if (!isset($earning['multiplier'])) $earning['multiplier'] = 1.0;
+                $earnings[] = $earning;
             }
             if ($overtimeHours > 0) {
-                $earnings[] = $this->calculateOvertimePay($overtimeHours, $hourlyRate, false);
+                $earning = $this->calculateOvertimePay($overtimeHours, $hourlyRate, false);
+                if (!isset($earning['multiplier'])) $earning['multiplier'] = 1.0;
+                $earnings[] = $earning;
             }
         }
-        
         // Calculate night differential with worker-specific percentage
         $nightDiffHours = $this->calculateNightDiffHours($timeIn, $timeOut, $date);
         if ($nightDiffHours > 0) {
-            $earnings[] = $this->calculateNightDiffPayWithRate($nightDiffHours, $hourlyRate, $workerRates['night_diff_percentage']);
+            $earning = $this->calculateNightDiffPayWithRate($nightDiffHours, $hourlyRate, $workerRates['night_diff_percentage']);
+            if (!isset($earning['multiplier'])) $earning['multiplier'] = 1.0;
+            $earnings[] = $earning;
         }
         
         // Calculate total
