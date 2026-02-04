@@ -16,6 +16,8 @@ require_once __DIR__ . '/../../../includes/admin_functions.php';
 // Allow both super_admin and admin with attendance view permission
 requireAdminWithPermission($db, 'can_view_attendance', 'You do not have permission to view attendance');
 
+$permissions = getAdminPermissions($db);
+
 $full_name = $_SESSION['full_name'] ?? 'Administrator';
 $flash = getFlashMessage();
 
@@ -280,11 +282,13 @@ try {
                                                         title="View Details">
                                                     <i class="fas fa-eye"></i>
                                                 </button>
+                                                <?php if ($permissions['can_delete_attendance'] ?? false): ?>
                                                 <button class="action-btn btn-delete" 
-                                                        onclick="archiveAttendance(<?php echo $record['attendance_id']; ?>, '<?php echo htmlspecialchars(addslashes($record['first_name'] . ' ' . $record['last_name'])); ?>')"
+                                                        onclick="archiveAttendance(this, <?php echo $record['attendance_id']; ?>, '<?php echo htmlspecialchars(addslashes($record['first_name'] . ' ' . $record['last_name'])); ?>')"
                                                         title="Archive">
                                                     <i class="fas fa-archive"></i>
                                                 </button>
+                                                <?php endif; ?>
                                             </div>
                                         </td>
                                     </tr>
@@ -320,12 +324,10 @@ try {
     <script src="<?php echo JS_URL; ?>/dashboard.js"></script>
     <script>
     // Archive Attendance Function with improved error handling
-    function archiveAttendance(id, workerName) {
+    function archiveAttendance(clickedBtn, id, workerName) {
         if (confirm(`Archive attendance record for ${workerName}?\n\nThis will move the record to the archive. You can restore it later if needed.`)) {
-            // Get the button that was clicked
-            const clickedBtn = event.target.closest('button');
             const originalHTML = clickedBtn.innerHTML;
-            
+
             // Show loading state
             clickedBtn.disabled = true;
             clickedBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
@@ -519,6 +521,10 @@ try {
             setTimeout(() => alert.remove(), 300);
         }
     }
+
+    // Expose functions to global scope so inline onclick handlers work reliably
+    window.archiveAttendance = archiveAttendance;
+    window.viewAttendance = viewAttendance;
     
     // Add CSS animations
     const style = document.createElement('style');

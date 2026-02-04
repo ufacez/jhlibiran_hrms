@@ -345,6 +345,17 @@ $current_dir = basename(dirname($_SERVER['PHP_SELF']));
             </a>
         </li>
         
+        <!-- Payroll Slips (show if user can view payroll) -->
+        <?php if (getCurrentUserLevel() === 'super_admin' || (function_exists('hasPermission') && hasPermission($db, 'can_view_payroll'))): ?>
+        <li>
+            <a href="<?php echo BASE_URL; ?>/modules/super_admin/payroll_v2/payroll_slips.php"
+               class="<?php echo ($current_dir === 'payroll_v2' && $current_page === 'payroll_slips.php') ? 'active' : ''; ?>">
+                <i class="fas fa-receipt"></i>
+                <div class="title">Payroll Slips</div>
+            </a>
+        </li>
+        <?php endif; ?>
+        
         <!-- Payroll Settings -->
         <li>
             <a href="<?php echo BASE_URL; ?>/modules/super_admin/payroll_v2/configure.php"

@@ -11,6 +11,8 @@ define('TRACKSITE_INCLUDED', true);
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../config/session.php';
 require_once __DIR__ . '/../includes/auth.php';
+require_once __DIR__ . '/../includes/functions.php';
+require_once __DIR__ . '/../includes/admin_functions.php';
 
 // Check authentication
 if (!isLoggedIn()) {
@@ -18,7 +20,19 @@ if (!isLoggedIn()) {
     exit;
 }
 
-$action = $_GET['action'] ?? '';
+$action = $_GET['action'] ?? $_POST['action'] ?? '';
+
+// If this is a POST request, parse incoming form data if necessary
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && empty($_POST)) {
+    // For raw input (already application/x-www-form-urlencoded) PHP populates $_POST,
+    // but in some contexts it may be empty. Try parsing raw input as fallback.
+    parse_str(file_get_contents('php://input'), $parsed);
+    if (!empty($parsed)) {
+        foreach ($parsed as $k => $v) {
+            if (!isset($_POST[$k])) $_POST[$k] = $v;
+        }
+    }
+}
 
 if ($action === 'view' && isset($_GET['id'])) {
     $worker_id = intval($_GET['id']);
@@ -92,6 +106,79 @@ if ($action === 'view' && isset($_GET['id'])) {
         ]);
     }
 } else {
+    // Handle POST actions like delete
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'archive' && isset($_POST['id'])) {
+        // Permission check (reuse delete permission for archive)
+        $permissions = getAdminPermissions($db);
+        if (!($permissions['can_delete_workers'] ?? false)) {
+            echo json_encode(['success' => false, 'message' => 'Permission denied']);
+            exit;
+        }
+
+        $worker_id = intval($_POST['id']);
+        $archive_reason = isset($_POST['reason']) ? trim($_POST['reason']) : null;
+
+        try {
+            $stmt = $db->prepare("SELECT first_name, last_name, worker_code FROM workers WHERE worker_id = ?");
+            $stmt->execute([$worker_id]);
+            $worker = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$worker) {
+                echo json_encode(['success' => false, 'message' => 'Worker not found']);
+                exit;
+            }
+
+            $stmt = $db->prepare("UPDATE workers SET is_archived = TRUE, archived_at = NOW(), archived_by = ?, archive_reason = ?, updated_at = NOW() WHERE worker_id = ?");
+            $stmt->execute([getCurrentUserId(), $archive_reason, $worker_id]);
+
+            logActivity($db, getCurrentUserId(), 'archive_worker', 'workers', $worker_id,
+                       "Archived worker: {$worker['first_name']} {$worker['last_name']} ({$worker['worker_code']})");
+
+            echo json_encode(['success' => true, 'message' => 'Worker archived successfully']);
+            exit;
+        } catch (PDOException $e) {
+            error_log('Worker API Archive Error: ' . $e->getMessage());
+            echo json_encode(['success' => false, 'message' => 'Failed to archive worker']);
+            exit;
+        }
+    }
+
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'delete' && isset($_POST['id'])) {
+        // Treat delete as soft-archive to prevent accidental data loss
+        $permissions = getAdminPermissions($db);
+        if (!($permissions['can_delete_workers'] ?? false)) {
+            echo json_encode(['success' => false, 'message' => 'Permission denied']);
+            exit;
+        }
+
+        $worker_id = intval($_POST['id']);
+        $archive_reason = isset($_POST['reason']) ? trim($_POST['reason']) : null;
+
+        try {
+            $stmt = $db->prepare("SELECT first_name, last_name, worker_code FROM workers WHERE worker_id = ?");
+            $stmt->execute([$worker_id]);
+            $worker = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$worker) {
+                echo json_encode(['success' => false, 'message' => 'Worker not found']);
+                exit;
+            }
+
+            $stmt = $db->prepare("UPDATE workers SET is_archived = TRUE, archived_at = NOW(), archived_by = ?, archive_reason = ?, updated_at = NOW() WHERE worker_id = ?");
+            $stmt->execute([getCurrentUserId(), $archive_reason, $worker_id]);
+
+            logActivity($db, getCurrentUserId(), 'archive_worker', 'workers', $worker_id,
+                       "Archived worker (via delete): {$worker['first_name']} {$worker['last_name']} ({$worker['worker_code']})");
+
+            echo json_encode(['success' => true, 'message' => 'Worker archived (soft-deleted) successfully']);
+            exit;
+        } catch (PDOException $e) {
+            error_log('Worker API Delete(Archive) Error: ' . $e->getMessage());
+            echo json_encode(['success' => false, 'message' => 'Failed to archive worker']);
+            exit;
+        }
+    }
+
     echo json_encode([
         'success' => false,
         'message' => 'Invalid request'

@@ -54,12 +54,12 @@ try {
     $pdfContent = $generator->generatePayrollSlip($recordId);
     
     if (!$pdfContent) {
-        // Fallback: Generate HTML version for download
+        // Fallback: Generate HTML version for download using the view template
         header('Content-Type: text/html; charset=utf-8');
         $filename = 'payslip_' . $record['worker_code'] . '_' . date('Ymd', strtotime($record['period_end'])) . '.html';
         header('Content-Disposition: attachment; filename="' . $filename . '"');
-        
-        echo generateHTMLPayslip($pdo, $recordId);
+
+        echo renderViewPayslipHTML($recordId);
     } else {
         // Send PDF
         header('Content-Type: application/pdf');
@@ -72,12 +72,33 @@ try {
 } catch (Exception $e) {
     error_log('Payroll PDF Generation Error: ' . $e->getMessage());
     
-    // Fallback to HTML
+    // Fallback to HTML using the view template
     header('Content-Type: text/html; charset=utf-8');
     $filename = 'payslip_' . $record['worker_code'] . '_' . date('Ymd', strtotime($record['period_end'])) . '.html';
     header('Content-Disposition: attachment; filename="' . $filename . '"');
-    
-    echo generateHTMLPayslip($pdo, $recordId);
+
+    echo renderViewPayslipHTML($recordId);
+}
+
+/**
+ * Render the payslip HTML using the view template and capture its output.
+ * This ensures the downloaded HTML/PDF matches the on-screen `view_slip.php` layout.
+ */
+function renderViewPayslipHTML($recordId) {
+    // Provide the expected GET param for the view script
+    $_GET['id'] = $recordId;
+
+    // Ensure the view has a DB connection variable in scope when included inside this function
+    $db = getDBConnection();
+
+    ob_start();
+    include __DIR__ . '/view_slip.php';
+    $html = ob_get_clean();
+
+    // Cleanup
+    unset($_GET['id']);
+
+    return $html;
 }
 
 /**

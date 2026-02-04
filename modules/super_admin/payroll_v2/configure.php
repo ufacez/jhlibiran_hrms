@@ -73,10 +73,10 @@ $pageTitle = 'Payroll Settings';
         
         .page-header { 
             display: flex; 
-            flex-direction: column; 
-            gap: 6px; 
-            align-items: flex-start; 
+            justify-content: space-between; 
+            align-items: center; 
             margin-bottom: 32px; 
+            gap: 12px;
         }
         .page-subtitle { margin: 0; }
         .page-title { font-size: 26px; font-weight: 700; color: #1a1a1a; letter-spacing: 0.2px; }

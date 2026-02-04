@@ -647,6 +647,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             transform: translateY(-2px);
         }
         
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
         .page-header .header-left {
             display: flex;
             align-items: center;
@@ -707,13 +713,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <div class="workers-content">
                 <div class="page-header">
                     <div class="header-left">
-                        <button class="btn-back" onclick="window.location.href='index.php'">
-                            <i class="fas fa-arrow-left"></i> Back
-                        </button>
                         <div>
                             <h1>Edit Worker</h1>
                             <p class="subtitle">Update worker information</p>
                         </div>
+                    </div>
+                    <div class="header-right">
+                        <button class="btn-back" onclick="window.location.href='index.php'">
+                            <i class="fas fa-arrow-left"></i> Back
+                        </button>
                     </div>
                 </div>
                 

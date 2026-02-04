@@ -196,33 +196,32 @@ window.onclick = function(event) {
 }
 
 /**
- * Confirm delete worker
+ * Confirm archive worker
  */
-function confirmDelete(workerId, workerName) {
-    if (confirm(`Are you sure you want to delete ${workerName}?\n\nThis action cannot be undone.`)) {
-        deleteWorker(workerId);
+function confirmArchive(workerId, workerName) {
+    if (confirm(`Are you sure you want to archive ${workerName}?\n\nYou can restore archived workers from the Archive Center.`)) {
+        archiveWorker(workerId);
     }
 }
 
 /**
  * Delete worker
  */
-function deleteWorker(workerId) {
-    showLoading('Deleting worker...');
-    
+function archiveWorker(workerId) {
+    showLoading('Archiving worker...');
+
     fetch('../../../api/workers.php', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
         },
-        body: `action=delete&id=${workerId}`
+        body: `action=archive&id=${workerId}`
     })
     .then(response => response.json())
     .then(data => {
         hideLoading();
-        
+
         if (data.success) {
-            // Show success message and reload
             alert(data.message);
             window.location.reload();
         } else {
@@ -232,9 +231,11 @@ function deleteWorker(workerId) {
     .catch(error => {
         hideLoading();
         console.error('Error:', error);
-        alert('Failed to delete worker');
+        alert('Failed to archive worker');
     });
 }
+
+// remove hard-delete alias; use archiveWorker/confirmArchive
 
 /**
  * Show loading overlay
@@ -316,6 +317,6 @@ function closeAlert(alertId) {
 window.submitFilter = submitFilter;
 window.viewWorker = viewWorker;
 window.closeModal = closeModal;
-window.confirmDelete = confirmDelete;
+window.confirmArchive = confirmArchive;
 window.showModal = showModal;
 window.closeAlert = closeAlert;

@@ -404,16 +404,18 @@ function toggleNotifications() {
 document.addEventListener('click', function(event) {
     const notificationBtn = document.getElementById('notificationBtn');
     const dropdown = document.getElementById('notificationDropdown');
-    
-    if (!notificationBtn.contains(event.target) && !dropdown.contains(event.target)) {
-        dropdown.classList.remove('show');
+    // Guard when elements are not present on the current page
+    if (notificationBtn && dropdown) {
+        if (!notificationBtn.contains(event.target) && !dropdown.contains(event.target)) {
+            dropdown.classList.remove('show');
+        }
     }
 });
 
 // Load notifications from server
 async function loadNotifications() {
     try {
-        const response = await fetch('../../includes/ajax/get_notifications.php?action=get&limit=10');
+        const response = await fetch('../../../includes/ajax/get_notifications.php?action=get&limit=10');
         const data = await response.json();
         
         if (data.success) {
@@ -485,7 +487,7 @@ async function handleNotificationClick(notificationId, link) {
         const formData = new FormData();
         formData.append('notification_id', notificationId);
         
-        await fetch('../../includes/ajax/get_notifications.php?action=mark_read', {
+        await fetch('../../../includes/ajax/get_notifications.php?action=mark_read', {
             method: 'POST',
             body: formData
         });
@@ -505,7 +507,7 @@ async function handleNotificationClick(notificationId, link) {
 // Mark all notifications as read
 async function markAllRead() {
     try {
-        const response = await fetch('../../includes/ajax/get_notifications.php?action=mark_all_read', {
+        const response = await fetch('../../../includes/ajax/get_notifications.php?action=mark_all_read', {
             method: 'POST'
         });
         const data = await response.json();
@@ -522,7 +524,7 @@ async function markAllRead() {
 // Update unread count
 async function updateUnreadCount() {
     try {
-        const response = await fetch('../../includes/ajax/get_notifications.php?action=count');
+        const response = await fetch('../../../includes/ajax/get_notifications.php?action=count');
         const data = await response.json();
         
         if (data.success) {

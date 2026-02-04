@@ -88,17 +88,22 @@ $experience_filter = isset($_GET['experience']) ? sanitizeString($_GET['experien
 $search_query = isset($_GET['search']) ? sanitizeString($_GET['search']) : '';
 
 // Build query
-$sql = "SELECT w.*, u.email, u.status as user_status, wc.classification_name, wt.work_type_name 
+$sql = "SELECT w.*, u.email, u.status as user_status, 
+           COALESCE(wcw.classification_name, wct.classification_name) AS classification_name, 
+           wt.work_type_name 
     FROM workers w 
     JOIN users u ON w.user_id = u.user_id 
-    LEFT JOIN worker_classifications wc ON w.classification_id = wc.classification_id 
+    LEFT JOIN worker_classifications wcw ON w.classification_id = wcw.classification_id 
     LEFT JOIN work_types wt ON w.work_type_id = wt.work_type_id 
+    LEFT JOIN worker_classifications wct ON wt.classification_id = wct.classification_id 
     WHERE w.is_archived = FALSE";
 $params = [];
 
 
 if (!empty($classification_filter)) {
-    $sql .= " AND w.classification_id = ?";
+    // Match worker's classification OR the classification assigned to their work type
+    $sql .= " AND (w.classification_id = ? OR wt.classification_id = ?)";
+    $params[] = $classification_filter;
     $params[] = $classification_filter;
 }
 if (!empty($work_type_filter)) {
@@ -129,7 +134,7 @@ if (!empty($experience_filter)) {
 }
 
 if (!empty($search_query)) {
-    $sql .= " AND (w.first_name LIKE ? OR w.last_name LIKE ? OR w.worker_code LIKE ? OR wt.work_type_name LIKE ? OR wc.classification_name LIKE ?)";
+    $sql .= " AND (w.first_name LIKE ? OR w.last_name LIKE ? OR w.worker_code LIKE ? OR wt.work_type_name LIKE ? OR COALESCE(wcw.classification_name, wct.classification_name) LIKE ?)";
     $search_param = '%' . $search_query . '%';
     $params[] = $search_param;
     $params[] = $search_param;
@@ -439,10 +444,10 @@ try {
                                                 </button>
                                                 <?php endif; ?>
                                                 <?php if ($permissions['can_delete_workers']): ?>
-                                                <button class="action-btn btn-delete" 
-                                                        onclick="confirmDelete(<?php echo $worker['worker_id']; ?>, '<?php echo htmlspecialchars($worker['first_name'] . ' ' . $worker['last_name']); ?>')"
-                                                        title="Delete">
-                                                    <i class="fas fa-trash-alt"></i>
+                                                <button class="action-btn btn-archive" 
+                                                    onclick="confirmArchive(<?php echo $worker['worker_id']; ?>, '<?php echo htmlspecialchars($worker['first_name'] . ' ' . $worker['last_name']); ?>')"
+                                                        title="Archive">
+                                                    <i class="fas fa-archive"></i>
                                                 </button>
                                                 <?php endif; ?>
                                             </div>
