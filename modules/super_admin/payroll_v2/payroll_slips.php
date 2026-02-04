@@ -116,9 +116,10 @@ $pageTitle = 'Payroll Slips';
         .page-header {
             margin-bottom: 30px;
             display: flex;
-            flex-direction: column;
-            gap: 6px;
-            align-items: flex-start;
+            flex-direction: row;
+            gap: 12px;
+            align-items: center;
+            justify-content: space-between;
         }
         .page-subtitle { margin: 0; }
         
@@ -555,14 +556,7 @@ $pageTitle = 'Payroll Slips';
                     </select>
                 </div>
                 
-                <div class="filter-actions">
-                    <button type="submit" class="btn-filter">
-                        <i class="fas fa-filter"></i> Filter
-                    </button>
-                    <a href="payroll_slips.php" class="btn-clear">
-                        <i class="fas fa-times"></i> Clear
-                    </a>
-                </div>
+                <!-- Filter controls removed: filters auto-apply on change -->
             </form>
             
             <!-- Results Count -->
@@ -697,6 +691,20 @@ $pageTitle = 'Payroll Slips';
                 alert('An error occurred while updating the payroll status.');
             });
         }
+    </script>
+    <script>
+        // Auto-submit filters when changed (debounced)
+        (function(){
+            const form = document.querySelector('.filter-bar');
+            if (!form) return;
+            const inputs = form.querySelectorAll('select, input');
+            let t;
+            function submitDebounced(){
+                clearTimeout(t);
+                t = setTimeout(()=> form.submit(), 250);
+            }
+            inputs.forEach(el => el.addEventListener('change', submitDebounced));
+        })();
     </script>
     </div>
 </div>

@@ -244,6 +244,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_admin'])) {
     <link rel="stylesheet" href="<?php echo CSS_URL; ?>/dashboard.css">
     <link rel="stylesheet" href="<?php echo CSS_URL; ?>/forms.css">
     <style>
+          /* Prevent layout shift when alerts appear by keeping vertical scrollbar always visible */
+          html { overflow-y: scroll; }
+
+          /* Alert overlay: show alerts without pushing page content
+              .workers-content reserves space when an alert is present via the .has-alert class */
+          .workers-content { position: relative; }
+          .workers-content .alert { position: absolute; top: 0; left: 0; right: 0; z-index: 60; }
+          .workers-content.has-alert { padding-top: 84px; }
+
         .workers-content {
             padding: 30px;
             max-width: 1200px;
@@ -327,6 +336,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_admin'])) {
             font-size: 14px;
             transition: all 0.3s ease;
         }
+
+        /* Password input with inside toggle */
+        .input-with-icon {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+        .input-with-icon input { padding-right: 44px; width:100%; box-sizing: border-box; }
+        .input-with-icon .toggle-password {
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            color: #666;
+            font-size: 16px;
+            padding: 6px;
+            border-radius: 6px;
+            width: 36px;
+            height: 36px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .input-with-icon .toggle-password:focus { outline: none; box-shadow: 0 0 0 3px rgba(218,165,32,0.12); }
         
         .form-group input:focus,
         .form-group select:focus,
@@ -576,7 +612,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_admin'])) {
                                 <input type="text" id="username" name="username" required minlength="4"
                                        placeholder="Minimum 4 characters"
                                        value="<?php echo isset($_POST['username']) ? htmlspecialchars($_POST['username']) : ''; ?>">
-                                <small>Will be used for login</small>
+                                
                             </div>
                             
                             <div class="form-group">
@@ -584,23 +620,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_admin'])) {
                                 <input type="email" id="email" name="email" required 
                                        placeholder="admin@example.com"
                                        value="<?php echo isset($_POST['email']) ? htmlspecialchars($_POST['email']) : ''; ?>">
-                                <small>Used for notifications and password recovery</small>
+                                
                             </div>
                         </div>
                         
                         <div class="form-row">
                             <div class="form-group">
                                 <label for="password">Password <span class="required">*</span></label>
-                                <input type="password" id="password" name="password" required minlength="8"
-                                       placeholder="Minimum 8 characters">
+                                <div class="input-with-icon">
+                                    <input type="password" id="password" name="password" required minlength="8"
+                                           placeholder="Minimum 8 characters">
+                                    <button type="button" class="toggle-password" data-target="password" aria-label="Show password">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                </div>
                                 <small>Must be at least 8 characters and contains at least one symbol</small>
                             </div>
                             
                             <div class="form-group">
                                 <label for="confirm_password">Confirm Password <span class="required">*</span></label>
-                                <input type="password" id="confirm_password" name="confirm_password" required minlength="6"
-                                       placeholder="Re-enter password">
-                                <small>Must match the password above</small>
+                                <div class="input-with-icon">
+                                    <input type="password" id="confirm_password" name="confirm_password" required minlength="6"
+                                           placeholder="Re-enter password">
+                                    <button type="button" class="toggle-password" data-target="confirm_password" aria-label="Show confirm password">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                </div>
+                                <small>Must match the password</small>
                             </div>
                         </div>
                     </div>
@@ -658,9 +704,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_admin'])) {
                         <div class="form-row">
                             <div class="form-group">
                                 <label for="phone">Phone Number <span class="required">*</span></label>
-                                <input type="text" id="phone" name="phone" required 
-                                       placeholder="09123456789 or +639123456789"
-                                       maxlength="13"
+                                    <input type="text" id="phone" name="phone" required 
+                                        placeholder="09123456789"
+                                        maxlength="11"
                                        value="<?php echo isset($_POST['phone']) ? htmlspecialchars($_POST['phone']) : ''; ?>">
                                 <small class="phone-hint">Must be exactly 11 digits (e.g., 09123456789)</small>
                             </div>
@@ -767,9 +813,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_admin'])) {
                             
                             <div class="form-group">
                                 <label for="emergency_contact_phone">Contact Phone <span class="required">*</span></label>
-                                <input type="text" id="emergency_contact_phone" name="emergency_contact_phone" required
-                                       placeholder="09123456789 or +639123456789"
-                                       maxlength="13"
+                                    <input type="text" id="emergency_contact_phone" name="emergency_contact_phone" required
+                                        placeholder="09123456789"
+                                        maxlength="11"
                                        value="<?php echo isset($_POST['emergency_contact_phone']) ? htmlspecialchars($_POST['emergency_contact_phone']) : ''; ?>">
                                 <small class="phone-hint">Must be exactly 11 digits</small>
                             </div>
@@ -818,6 +864,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_admin'])) {
             loadProvinces();
             setupPhoneValidation();
             setupPasswordValidation();
+            initPasswordToggles();
+            // If there's an alert initially rendered, mark container to reserve space
+            const workersContent = document.querySelector('.workers-content');
+            if (workersContent && workersContent.querySelector('.alert')) {
+                workersContent.classList.add('has-alert');
+            }
         });
         
         // Load provinces from Philippines address API
@@ -946,17 +998,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_admin'])) {
             phoneInputs.forEach(id => {
                 const input = document.getElementById(id);
                 if (input) {
+                    // enforce digits only and cap to 11 characters
                     input.addEventListener('input', function() {
+                        // remove any non-digit characters
+                        let cleaned = this.value.replace(/\D/g, '');
+                        if (cleaned.length > 11) cleaned = cleaned.slice(0, 11);
+                        if (this.value !== cleaned) this.value = cleaned;
+                        validatePhone(this);
+                    });
+
+                    // prevent pasting non-digit content beyond 11 digits
+                    input.addEventListener('paste', function(e) {
+                        e.preventDefault();
+                        const paste = (e.clipboardData || window.clipboardData).getData('text') || '';
+                        const cleaned = paste.replace(/\D/g, '').slice(0, 11);
+                        // insert cleaned at cursor position
+                        const start = this.selectionStart || 0;
+                        const end = this.selectionEnd || 0;
+                        const newVal = (this.value.slice(0, start) + cleaned + this.value.slice(end)).replace(/\D/g, '').slice(0, 11);
+                        this.value = newVal;
                         validatePhone(this);
                     });
                 }
             });
         }
-        
+
         function validatePhone(input) {
-            const value = input.value.replace(/[\s\-]/g, '');
-            const isValid = /^(\+63\d{10}|0\d{10}|\d{11})$/.test(value);
-            
+            const value = input.value.replace(/\s|\-/g, '');
+            const isValid = /^\d{11}$/.test(value);
+
             if (value.length > 0) {
                 input.classList.toggle('valid', isValid);
                 input.classList.toggle('invalid', !isValid);
@@ -987,25 +1057,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_admin'])) {
                     message = 'Must contain at least one symbol (!@#$%^&*...)';
                 }
                 
-                if (value.length > 0) {
-                    this.classList.toggle('valid', isValid);
-                    this.classList.toggle('invalid', !isValid);
-                    
-                    // Show/update hint
-                    let hint = this.parentNode.querySelector('.password-hint');
-                    if (!hint) {
-                        hint = document.createElement('small');
-                        hint.className = 'password-hint';
-                        hint.style.cssText = 'display: block; margin-top: 5px; font-size: 11px;';
-                        this.parentNode.appendChild(hint);
+                    if (value.length > 0) {
+                        this.classList.toggle('valid', isValid);
+                        this.classList.toggle('invalid', !isValid);
+
+                        // Show/update hint — append to the form-group (not inside .input-with-icon)
+                        const group = this.closest('.form-group') || this.parentNode;
+                        let hint = group.querySelector('.password-hint');
+                        if (!hint) {
+                            hint = document.createElement('small');
+                            hint.className = 'password-hint';
+                            hint.style.cssText = 'display: block; margin-top: 5px; font-size: 11px;';
+                            group.appendChild(hint);
+                        }
+                        hint.textContent = isValid ? '✓ Password meets requirements' : message;
+                        hint.style.color = isValid ? '#10b981' : '#ef4444';
+                    } else {
+                        this.classList.remove('valid', 'invalid');
+                        const group = this.closest('.form-group') || this.parentNode;
+                        const hint = group.querySelector('.password-hint');
+                        if (hint) hint.remove();
                     }
-                    hint.textContent = isValid ? '✓ Password meets requirements' : message;
-                    hint.style.color = isValid ? '#10b981' : '#ef4444';
-                } else {
-                    this.classList.remove('valid', 'invalid');
-                    const hint = this.parentNode.querySelector('.password-hint');
-                    if (hint) hint.remove();
-                }
                 
                 // Re-validate confirm password if it has value
                 if (confirm.value) {
@@ -1025,11 +1097,44 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_admin'])) {
                 }
             });
         }
+
+        // Initialize inside-button password toggles
+        function initPasswordToggles() {
+            const buttons = document.querySelectorAll('.toggle-password');
+                buttons.forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const targetId = this.getAttribute('data-target');
+                        const input = document.getElementById(targetId);
+                        if (!input) return;
+                        const icon = this.querySelector('i');
+                        if (input.type === 'password') {
+                            input.type = 'text';
+                            if (icon) {
+                                icon.classList.remove('fa-eye');
+                                icon.classList.add('fa-eye-slash');
+                            }
+                            this.setAttribute('aria-label', 'Hide password');
+                        } else {
+                            input.type = 'password';
+                            if (icon) {
+                                icon.classList.remove('fa-eye-slash');
+                                icon.classList.add('fa-eye');
+                            }
+                            this.setAttribute('aria-label', 'Show password');
+                        }
+                    });
+                });
+        }
         
         // Close alert
         function closeAlert(id) {
             const el = document.getElementById(id);
-            if (el) el.remove();
+            if (el) {
+                el.remove();
+                // remove reserved space
+                const workersContent = document.querySelector('.workers-content');
+                if (workersContent) workersContent.classList.remove('has-alert');
+            }
         }
         
         // Form validation before submit
