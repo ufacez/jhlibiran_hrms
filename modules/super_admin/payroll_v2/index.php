@@ -833,10 +833,10 @@ $pageTitle = 'Payroll Management';
             <!-- Dashboard Content -->
             <div class="dashboard-content">
                 <!-- Page Header -->
-                <div class="page-header-flex">
-                    <div class="page-title-section">
-                        <h1><i class="fas fa-money-check-alt"></i> Payroll Management</h1>
-                        <p>Generate weekly payroll with transparent calculations. All rates are configurable.</p>
+                <div class="page-header">
+                    <div class="header-left">
+                        <h1>Payroll Management</h1>
+                        <p class="subtitle">Generate weekly payroll with transparent calculations. All rates are configurable.</p>
                     </div>
                     <div class="header-actions">
                         <a href="<?php echo BASE_URL; ?>/modules/super_admin/payroll_v2/payroll_slips.php" class="action-btn">
