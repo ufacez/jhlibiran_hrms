@@ -79,6 +79,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_permissions'])
             'can_view_schedule', 'can_manage_schedule',
             'can_view_payroll', 'can_generate_payroll', 'can_approve_payroll', 'can_mark_paid', 'can_edit_payroll', 'can_delete_payroll',
             'can_view_payroll_settings', 'can_edit_payroll_settings',
+            // Government contribution toggles
+            'can_view_bir', 'can_edit_bir', 'can_view_sss', 'can_edit_sss', 'can_view_philhealth', 'can_edit_philhealth', 'can_view_pagibig', 'can_edit_pagibig',
             'can_view_deductions', 'can_manage_deductions',
             'can_view_cashadvance', 'can_approve_cashadvance',
             'can_access_settings', 'can_access_audit', 'can_access_archive', 'can_manage_admins'
@@ -322,10 +324,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_permissions'])
                                        <?php echo ($permissions['can_view_attendance'] ?? 0) ? 'checked' : ''; ?>>
                                 <label for="can_view_attendance">View Attendance</label>
                             </div>
-                            <div class="permission-item" onclick="toggleCheckbox('can_add_attendance')">
-                                <input type="checkbox" name="can_add_attendance" id="can_add_attendance" value="1"
-                                       <?php echo ($permissions['can_add_attendance'] ?? 0) ? 'checked' : ''; ?>>
-                                <label for="can_add_attendance">Mark Attendance</label>
+                            <div class="permission-item" onclick="toggleCheckbox('can_mark_attendance')">
+                                <input type="checkbox" name="can_mark_attendance" id="can_mark_attendance" value="1"
+                                       <?php echo ($permissions['can_mark_attendance'] ?? $permissions['can_add_attendance'] ?? 0) ? 'checked' : ''; ?>>
+                                <label for="can_mark_attendance">Mark Attendance</label>
                             </div>
                             <div class="permission-item" onclick="toggleCheckbox('can_edit_attendance')">
                                 <input type="checkbox" name="can_edit_attendance" id="can_edit_attendance" value="1"
@@ -432,6 +434,60 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_permissions'])
                         </div>
                     </div>
                     
+                    <!-- Government Contributions Permissions -->
+                    <div class="form-card">
+                        <div class="section-header">
+                            <h3 class="section-title">
+                                <i class="fas fa-landmark"></i> Government Contributions
+                            </h3>
+                            <button type="button" class="select-all-btn" onclick="toggleSection('government')">
+                                Toggle All
+                            </button>
+                        </div>
+                        <div class="permissions-grid">
+                            <div class="permission-item" onclick="toggleCheckbox('can_view_bir')">
+                                <input type="checkbox" name="can_view_bir" id="can_view_bir" value="1"
+                                       <?php echo ($permissions['can_view_bir'] ?? 0) ? 'checked' : ''; ?>>
+                                <label for="can_view_bir">View BIR (Tax) Settings</label>
+                            </div>
+                            <div class="permission-item" onclick="toggleCheckbox('can_edit_bir')">
+                                <input type="checkbox" name="can_edit_bir" id="can_edit_bir" value="1"
+                                       <?php echo ($permissions['can_edit_bir'] ?? 0) ? 'checked' : ''; ?>>
+                                <label for="can_edit_bir">Edit BIR Settings</label>
+                            </div>
+                            <div class="permission-item" onclick="toggleCheckbox('can_view_sss')">
+                                <input type="checkbox" name="can_view_sss" id="can_view_sss" value="1"
+                                       <?php echo ($permissions['can_view_sss'] ?? 0) ? 'checked' : ''; ?>>
+                                <label for="can_view_sss">View SSS Settings</label>
+                            </div>
+                            <div class="permission-item" onclick="toggleCheckbox('can_edit_sss')">
+                                <input type="checkbox" name="can_edit_sss" id="can_edit_sss" value="1"
+                                       <?php echo ($permissions['can_edit_sss'] ?? 0) ? 'checked' : ''; ?>>
+                                <label for="can_edit_sss">Edit SSS Settings</label>
+                            </div>
+                            <div class="permission-item" onclick="toggleCheckbox('can_view_philhealth')">
+                                <input type="checkbox" name="can_view_philhealth" id="can_view_philhealth" value="1"
+                                       <?php echo ($permissions['can_view_philhealth'] ?? 0) ? 'checked' : ''; ?>>
+                                <label for="can_view_philhealth">View PhilHealth Settings</label>
+                            </div>
+                            <div class="permission-item" onclick="toggleCheckbox('can_edit_philhealth')">
+                                <input type="checkbox" name="can_edit_philhealth" id="can_edit_philhealth" value="1"
+                                       <?php echo ($permissions['can_edit_philhealth'] ?? 0) ? 'checked' : ''; ?>>
+                                <label for="can_edit_philhealth">Edit PhilHealth Settings</label>
+                            </div>
+                            <div class="permission-item" onclick="toggleCheckbox('can_view_pagibig')">
+                                <input type="checkbox" name="can_view_pagibig" id="can_view_pagibig" value="1"
+                                       <?php echo ($permissions['can_view_pagibig'] ?? 0) ? 'checked' : ''; ?>>
+                                <label for="can_view_pagibig">View Pag-IBIG Settings</label>
+                            </div>
+                            <div class="permission-item" onclick="toggleCheckbox('can_edit_pagibig')">
+                                <input type="checkbox" name="can_edit_pagibig" id="can_edit_pagibig" value="1"
+                                       <?php echo ($permissions['can_edit_pagibig'] ?? 0) ? 'checked' : ''; ?>>
+                                <label for="can_edit_pagibig">Edit Pag-IBIG Settings</label>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Cash Advance Permissions -->
                     <div class="form-card">
                         <div class="section-header">
@@ -550,7 +606,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_permissions'])
         function toggleSection(section) {
             const sections = {
                 'workers': ['can_view_workers', 'can_add_workers', 'can_edit_workers', 'can_delete_workers', 'can_manage_work_types'],
-                'attendance': ['can_view_attendance', 'can_add_attendance', 'can_edit_attendance', 'can_delete_attendance'],
+                'attendance': ['can_view_attendance', 'can_mark_attendance', 'can_edit_attendance', 'can_delete_attendance'],
                 'schedule': ['can_view_schedule', 'can_manage_schedule'],
                 'payroll': ['can_view_payroll', 'can_generate_payroll', 'can_edit_payroll', 'can_delete_payroll'],
                 'deductions': ['can_view_deductions', 'can_manage_deductions'],

@@ -16,6 +16,43 @@ $user_level = getCurrentUserLevel();
 
 // Generate avatar URL
 $avatar_url = "https://ui-avatars.com/api/?name=" . urlencode($full_name) . "&background=f39c12&color=fff";
+
+// Prefer user's uploaded profile image when available
+try {
+    if (!defined('UPLOADS_URL')) {
+        require_once __DIR__ . '/../config/settings.php';
+    }
+
+    if (!isset($db)) {
+        require_once __DIR__ . '/../config/database.php';
+    }
+
+    // Determine which table/column to check for profile image
+    $profileImage = null;
+    if ($user_level === USER_LEVEL_WORKER) {
+        $worker_id = $_SESSION['worker_id'] ?? null;
+        if ($worker_id) {
+            $stmt = $db->prepare("SELECT profile_image FROM workers WHERE worker_id = ?");
+            $stmt->execute([$worker_id]);
+            $profileImage = $stmt->fetchColumn();
+        }
+    } elseif ($user_level === USER_LEVEL_SUPER_ADMIN) {
+        $stmt = $db->prepare("SELECT profile_image FROM super_admin_profile WHERE user_id = ?");
+        $stmt->execute([$user_id]);
+        $profileImage = $stmt->fetchColumn();
+    } else {
+        $stmt = $db->prepare("SELECT profile_image FROM admin_profile WHERE user_id = ?");
+        $stmt->execute([$user_id]);
+        $profileImage = $stmt->fetchColumn();
+    }
+
+    if (!empty($profileImage) && file_exists(UPLOADS_PATH . '/' . $profileImage)) {
+        // Add file modification time to force cache refresh when image changes
+        $avatar_url = UPLOADS_URL . '/' . $profileImage . '?v=' . filemtime(UPLOADS_PATH . '/' . $profileImage);
+    }
+} catch (Exception $e) {
+    // On any error, fall back to generated avatar (no-op)
+}
 ?>
 <div class="top-bar">
     <!-- Search Bar -->

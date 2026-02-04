@@ -15,12 +15,12 @@ require_once __DIR__ . '/../../../includes/functions.php';
 require_once __DIR__ . '/../../../includes/auth.php';
 require_once __DIR__ . '/../../../includes/admin_functions.php';
 
-// Allow admin with payroll view permission to see this page
-requireAdminWithPermission($db, 'can_view_payroll', 'You do not have permission to view payroll settings');
+// Allow admin with PhilHealth view permission to see this page
+requireAdminWithPermission($db, 'can_view_philhealth', 'You do not have permission to view PhilHealth settings');
 
-// Check if user can edit (super_admin or has can_edit_payroll_settings permission)
+// Check if user can edit (super_admin or has can_edit_philhealth permission)
 $user_level = getCurrentUserLevel();
-$can_edit = ($user_level === 'super_admin') || hasPermission($db, 'can_edit_payroll_settings');
+$can_edit = ($user_level === 'super_admin') || hasPermission($db, 'can_edit_philhealth');
 
 $pdo = getDBConnection();
 

@@ -32,6 +32,8 @@ function getAdminPermissions($db, $user_id = null) {
             'can_edit_workers' => true,
             'can_delete_workers' => true,
             'can_view_attendance' => true,
+            'can_mark_attendance' => true,
+            // backward-compatibility alias
             'can_add_attendance' => true,
             'can_edit_attendance' => true,
             'can_delete_attendance' => true,
@@ -43,6 +45,15 @@ function getAdminPermissions($db, $user_id = null) {
             'can_delete_payroll' => true,
             'can_view_payroll_settings' => true,
             'can_edit_payroll_settings' => true,
+            // Government contributions
+            'can_view_bir' => true,
+            'can_edit_bir' => true,
+            'can_view_sss' => true,
+            'can_edit_sss' => true,
+            'can_view_philhealth' => true,
+            'can_edit_philhealth' => true,
+            'can_view_pagibig' => true,
+            'can_edit_pagibig' => true,
             'can_view_deductions' => true,
             'can_manage_deductions' => true,
             'can_view_reports' => true,
@@ -77,6 +88,8 @@ function getAdminPermissions($db, $user_id = null) {
                 'can_edit_workers' => false,
                 'can_delete_workers' => false,
                 'can_view_attendance' => false,
+                'can_mark_attendance' => false,
+                // alias for older code
                 'can_add_attendance' => false,
                 'can_edit_attendance' => false,
                 'can_delete_attendance' => false,
@@ -88,6 +101,15 @@ function getAdminPermissions($db, $user_id = null) {
                 'can_delete_payroll' => false,
                 'can_view_deductions' => false,
                 'can_manage_deductions' => false,
+                // Government contributions
+                'can_view_bir' => false,
+                'can_edit_bir' => false,
+                'can_view_sss' => false,
+                'can_edit_sss' => false,
+                'can_view_philhealth' => false,
+                'can_edit_philhealth' => false,
+                'can_view_pagibig' => false,
+                'can_edit_pagibig' => false,
                 'can_view_reports' => false,
                 'can_export_data' => false,
                 'can_manage_admins' => false,
@@ -130,7 +152,10 @@ function getAdminPermissions($db, $user_id = null) {
             'can_edit_workers' => (bool)($permissions['can_edit_workers'] ?? 0),
             'can_delete_workers' => (bool)($permissions['can_delete_workers'] ?? 0),
             'can_view_attendance' => (bool)($permissions['can_view_attendance'] ?? 0),
-            'can_add_attendance' => (bool)($permissions['can_add_attendance'] ?? 0),
+            // Read canonical DB column if present, fall back to legacy key
+            'can_mark_attendance' => (bool)($permissions['can_mark_attendance'] ?? $permissions['can_add_attendance'] ?? 0),
+            // alias for backward compatibility
+            'can_add_attendance' => (bool)($permissions['can_mark_attendance'] ?? $permissions['can_add_attendance'] ?? 0),
             'can_edit_attendance' => (bool)($permissions['can_edit_attendance'] ?? 0),
             'can_delete_attendance' => (bool)($permissions['can_delete_attendance'] ?? 0),
             'can_view_payroll' => (bool)($permissions['can_view_payroll'] ?? 0),
@@ -141,6 +166,15 @@ function getAdminPermissions($db, $user_id = null) {
             'can_delete_payroll' => (bool)($permissions['can_delete_payroll'] ?? 0),
             'can_view_payroll_settings' => (bool)($permissions['can_view_payroll_settings'] ?? 1),
             'can_edit_payroll_settings' => (bool)($permissions['can_edit_payroll_settings'] ?? 0),
+            // Government contributions
+            'can_view_bir' => (bool)($permissions['can_view_bir'] ?? 0),
+            'can_edit_bir' => (bool)($permissions['can_edit_bir'] ?? 0),
+            'can_view_sss' => (bool)($permissions['can_view_sss'] ?? 0),
+            'can_edit_sss' => (bool)($permissions['can_edit_sss'] ?? 0),
+            'can_view_philhealth' => (bool)($permissions['can_view_philhealth'] ?? 0),
+            'can_edit_philhealth' => (bool)($permissions['can_edit_philhealth'] ?? 0),
+            'can_view_pagibig' => (bool)($permissions['can_view_pagibig'] ?? 0),
+            'can_edit_pagibig' => (bool)($permissions['can_edit_pagibig'] ?? 0),
             'can_view_deductions' => (bool)($permissions['can_view_deductions'] ?? 0),
             'can_manage_deductions' => (bool)($permissions['can_manage_deductions'] ?? 0),
             'can_view_reports' => (bool)($permissions['can_view_reports'] ?? 0),
@@ -164,7 +198,7 @@ function getAdminPermissions($db, $user_id = null) {
         // Return no permissions on error
         return array_fill_keys([
             'can_view_workers', 'can_add_workers', 'can_edit_workers', 'can_delete_workers',
-            'can_view_attendance', 'can_add_attendance', 'can_edit_attendance', 'can_delete_attendance',
+            'can_view_attendance', 'can_mark_attendance', 'can_add_attendance', 'can_edit_attendance', 'can_delete_attendance',
             'can_view_payroll', 'can_generate_payroll', 'can_approve_payroll', 'can_mark_paid', 'can_edit_payroll', 'can_delete_payroll',
             'can_view_deductions', 'can_manage_deductions', 'can_view_reports', 'can_export_data',
             'can_manage_admins', 'can_view_settings', 'can_edit_settings', 'can_view_logs',
@@ -493,6 +527,11 @@ function checkPermissionTableStructure($db) {
             'can_edit_payroll',
             'can_delete_payroll'
         ];
+        // government contribution permission columns
+        $required_columns = array_merge($required_columns, [
+            'can_view_bir','can_edit_bir','can_view_sss','can_edit_sss',
+            'can_view_philhealth','can_edit_philhealth','can_view_pagibig','can_edit_pagibig'
+        ]);
         
         foreach ($required_columns as $col) {
             if (!in_array($col, $columns)) {
