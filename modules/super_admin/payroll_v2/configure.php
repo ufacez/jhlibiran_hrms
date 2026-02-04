@@ -456,6 +456,15 @@ $pageTitle = 'Payroll Settings';
                                     <div class="setting-label">Hourly Rate</div>
                                     <div class="setting-value highlight">₱<?php echo number_format($holidaySettings['regular_holiday_rate'] ?? 150, 2); ?></div>
                                 </div>
+                                <div class="setting-row">
+                                    <div class="setting-label">Holiday OT Multiplier</div>
+                                    <div class="input-group">
+                                        <input type="number" class="setting-input" name="regular_holiday_ot_multiplier"
+                                               value="<?php echo number_format($holidaySettings['regular_holiday_ot_multiplier'] ?? 2.60, 2, '.', ''); ?>"
+                                               step="0.01" min="1.00" data-key="regular_holiday_ot_multiplier">
+                                        <span class="input-suffix">×</span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                         
@@ -480,6 +489,15 @@ $pageTitle = 'Payroll Settings';
                                 <div class="setting-row">
                                     <div class="setting-label">Hourly Rate</div>
                                     <div class="setting-value highlight">₱<?php echo number_format($holidaySettings['special_holiday_rate'] ?? 97.50, 2); ?></div>
+                                </div>
+                                <div class="setting-row">
+                                    <div class="setting-label">Holiday OT Multiplier</div>
+                                    <div class="input-group">
+                                        <input type="number" class="setting-input" name="special_holiday_ot_multiplier"
+                                               value="<?php echo number_format($holidaySettings['special_holiday_ot_multiplier'] ?? 1.69, 2, '.', ''); ?>"
+                                               step="0.01" min="1.00" data-key="special_holiday_ot_multiplier">
+                                        <span class="input-suffix">×</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -749,43 +767,56 @@ $pageTitle = 'Payroll Settings';
         
         async function saveSettings() {
             if (getTotalChanges() === 0) return;
-            
+
             let hasError = false;
             let savedCount = 0;
-            
+
             // Save payroll settings if changed
             if (Object.keys(changedSettings).length > 0) {
-                const settingsToSave = {...changedSettings};
-                
+                const settingsToSave = { ...changedSettings };
+
                 // Convert daily_rate to hourly_rate (system calculates daily from hourly)
                 if (settingsToSave.daily_rate) {
                     settingsToSave.hourly_rate = parseFloat(settingsToSave.daily_rate) / <?php echo $basicSettings['standard_hours_per_day'] ?? 8; ?>;
                     delete settingsToSave.daily_rate;
                 }
-                
+
                 if (settingsToSave.regular_holiday_percentage) {
                     settingsToSave.regular_holiday_multiplier = parseFloat(settingsToSave.regular_holiday_percentage) / 100;
                     delete settingsToSave.regular_holiday_percentage;
                 }
+
                 if (settingsToSave.special_holiday_percentage) {
                     settingsToSave.special_holiday_multiplier = parseFloat(settingsToSave.special_holiday_percentage) / 100;
                     delete settingsToSave.special_holiday_percentage;
                 }
+
                 if (settingsToSave.overtime_percentage) {
                     settingsToSave.overtime_multiplier = parseFloat(settingsToSave.overtime_percentage) / 100;
                     delete settingsToSave.overtime_percentage;
                 }
-                
+
+                // Ensure OT multipliers are numbers if present
+                if (settingsToSave.regular_holiday_ot_multiplier) {
+                    settingsToSave.regular_holiday_ot_multiplier = parseFloat(settingsToSave.regular_holiday_ot_multiplier);
+                }
+                if (settingsToSave.special_holiday_ot_multiplier) {
+                    settingsToSave.special_holiday_ot_multiplier = parseFloat(settingsToSave.special_holiday_ot_multiplier);
+                }
+
                 try {
                     const response = await fetch(`${API_URL}?action=update_settings`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ settings: settingsToSave, user_id: userId })
                     });
+
                     const result = await response.json();
                     if (result.success) savedCount++;
                     else hasError = true;
-                } catch (e) { hasError = true; }
+                } catch (e) {
+                    hasError = true;
+                }
             }
             
             // Save SSS if changed

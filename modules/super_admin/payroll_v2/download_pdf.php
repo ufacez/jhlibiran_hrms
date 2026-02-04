@@ -48,36 +48,59 @@ try {
     die('Error retrieving record');
 }
 
-// Generate PDF
+// Generate PDF using the same HTML as the on-screen view to ensure identical output
 try {
-    $generator = new PayrollPDFGenerator($pdo);
-    $pdfContent = $generator->generatePayrollSlip($recordId);
-    
-    if (!$pdfContent) {
-        // Fallback: Generate HTML version for download using the view template
-        header('Content-Type: text/html; charset=utf-8');
-        $filename = 'payslip_' . $record['worker_code'] . '_' . date('Ymd', strtotime($record['period_end'])) . '.html';
-        header('Content-Disposition: attachment; filename="' . $filename . '"');
+    // Render the HTML from view_slip.php
+    $html = renderViewPayslipHTML($recordId);
 
-        echo renderViewPayslipHTML($recordId);
+    // Try to load TCPDF (vendor path from project root)
+    $tcpdfPath = __DIR__ . '/../../../vendor/tcpdf/tcpdf.php';
+    if (file_exists($tcpdfPath)) {
+        require_once $tcpdfPath;
     } else {
-        // Send PDF
+        // Try composer autoload (if tcpdf installed via composer)
+        $autoloadPath = __DIR__ . '/../../../vendor/autoload.php';
+        if (file_exists($autoloadPath)) {
+            require_once $autoloadPath;
+        }
+    }
+
+    if (class_exists('TCPDF')) {
+        // Create PDF from rendered HTML
+        $pdf = new TCPDF('L', 'mm', 'A4', true, 'UTF-8', false);
+        $pdf->setPrintHeader(false);
+        $pdf->setPrintFooter(false);
+        $pdf->SetMargins(6, 6, 6);
+        $pdf->SetAutoPageBreak(true, 6);
+        $pdf->AddPage();
+        // Use a readable sans font; DejaVu recommended for UTF-8
+        if (method_exists($pdf, 'SetFont')) $pdf->SetFont('dejavusans', '', 9);
+        $pdf->writeHTML($html, true, false, true, false, '');
+
+        $pdfContent = $pdf->Output('', 'S');
+
         header('Content-Type: application/pdf');
         $filename = 'payslip_' . $record['worker_code'] . '_' . date('Ymd', strtotime($record['period_end'])) . '.pdf';
         header('Content-Disposition: attachment; filename="' . $filename . '"');
         header('Content-Length: ' . strlen($pdfContent));
         echo $pdfContent;
+        exit;
     }
-    
-} catch (Exception $e) {
-    error_log('Payroll PDF Generation Error: ' . $e->getMessage());
-    
-    // Fallback to HTML using the view template
+
+    // If TCPDF is not available, fall back to delivering the HTML file
     header('Content-Type: text/html; charset=utf-8');
     $filename = 'payslip_' . $record['worker_code'] . '_' . date('Ymd', strtotime($record['period_end'])) . '.html';
     header('Content-Disposition: attachment; filename="' . $filename . '"');
+    echo $html;
+    exit;
 
+} catch (Exception $e) {
+    error_log('Payroll PDF Generation Error: ' . $e->getMessage());
+    header('Content-Type: text/html; charset=utf-8');
+    $filename = 'payslip_' . $record['worker_code'] . '_' . date('Ymd', strtotime($record['period_end'])) . '.html';
+    header('Content-Disposition: attachment; filename="' . $filename . '"');
     echo renderViewPayslipHTML($recordId);
+    exit;
 }
 
 /**
@@ -171,6 +194,15 @@ function generateHTMLPayslip($pdo, $recordId) {
     
     $totalDeductions = floatval($record['total_deductions']);
     $netPay = floatval($record['net_pay']);
+    // Attempt to generate a fresh payroll calculation for accurate rates and earnings
+    $calcPayroll = null;
+    try {
+        require_once __DIR__ . '/../../../includes/payroll_calculator.php';
+        $pc = new PayrollCalculator($pdo);
+        $calcPayroll = $pc->generatePayroll($record['worker_id'], $record['period_start'], $record['period_end']);
+    } catch (Exception $e) {
+        $calcPayroll = null;
+    }
     
     $html = '<!DOCTYPE html>
 <html lang="en">
@@ -392,15 +424,37 @@ function generateHTMLPayslip($pdo, $recordId) {
     
     // Overtime Pay
     if ($record['overtime_pay'] > 0) {
+        // Determine display multiplier (prefer holiday-specific OT multipliers from recalculation)
+        $displayOtMultiplier = $record['overtime_multiplier'] ?? $otRate;
+        if (!empty($calcPayroll) && is_array($calcPayroll)) {
+            $hasRegularHolidayOt = false;
+            $hasSpecialHolidayOt = false;
+            if (!empty($calcPayroll['earnings']) && is_array($calcPayroll['earnings'])) {
+                foreach ($calcPayroll['earnings'] as $e) {
+                    if (!empty($e['type'])) {
+                        $t = strtolower($e['type']);
+                        if ($t === 'regular_holiday_overtime') $hasRegularHolidayOt = true;
+                        if ($t === 'special_holiday_overtime') $hasSpecialHolidayOt = true;
+                    }
+                }
+            }
+            $ratesUsed = $calcPayroll['rates_used'] ?? [];
+            if ($hasRegularHolidayOt && isset($ratesUsed['regular_holiday_ot_multiplier'])) {
+                $displayOtMultiplier = $ratesUsed['regular_holiday_ot_multiplier'];
+            } elseif ($hasSpecialHolidayOt && isset($ratesUsed['special_holiday_ot_multiplier'])) {
+                $displayOtMultiplier = $ratesUsed['special_holiday_ot_multiplier'];
+            }
+        }
+        $displayOtRate = $hourlyRate * floatval($displayOtMultiplier);
         $html .= '
                         <tr>
                             <td>
                                 <strong>Overtime Pay</strong>
-                                <div class="computation">' . number_format($record['overtime_hours'], 2) . ' OT hours @ ' . ($otRate * 100) . '%</div>
+                                <div class="computation">' . number_format($record['overtime_hours'], 2) . ' OT hours @ ' . (floatval($displayOtMultiplier) * 100) . '%</div>
                             </td>
                             <td>
                                 <div class="computation">
-                                    ' . number_format($record['overtime_hours'], 2) . ' hrs × ₱' . number_format($hourlyRate, 2) . ' × ' . $otRate . '
+                                    ' . number_format($record['overtime_hours'], 2) . ' hrs × ₱' . number_format($hourlyRate, 2) . ' × ' . number_format($displayOtMultiplier, 2) . '
                                 </div>
                             </td>
                             <td>₱' . number_format($record['overtime_pay'], 2) . '</td>
@@ -426,15 +480,19 @@ function generateHTMLPayslip($pdo, $recordId) {
     
     // Special Holiday
     if ($record['special_holiday_pay'] > 0) {
+        $specialHours = floatval($record['special_holiday_hours'] ?? 0);
+        if ($specialHours <= 0 && !empty($calcPayroll) && isset($calcPayroll['totals']['special_holiday_hours'])) {
+            $specialHours = floatval($calcPayroll['totals']['special_holiday_hours']);
+        }
         $html .= '
                         <tr>
                             <td>
                                 <strong>Special Holiday Pay</strong>
-                                <div class="computation">' . number_format($record['special_holiday_hours'], 2) . ' hours @ 130%</div>
+                                <div class="computation">' . number_format($specialHours, 2) . ' hours @ ' . ($specialHolidayRate * 100) . '%</div>
                             </td>
                             <td>
                                 <div class="computation">
-                                    ' . number_format($record['special_holiday_hours'], 2) . ' hrs × ₱' . number_format($hourlyRate, 2) . ' × ' . $specialHolidayRate . '
+                                    ' . number_format($specialHours, 2) . ' hrs × ₱' . number_format($hourlyRate, 2) . ' × ' . $specialHolidayRate . '
                                 </div>
                             </td>
                             <td>₱' . number_format($record['special_holiday_pay'], 2) . '</td>
@@ -443,15 +501,19 @@ function generateHTMLPayslip($pdo, $recordId) {
     
     // Regular Holiday
     if ($record['regular_holiday_pay'] > 0) {
+        $regularHours = floatval($record['regular_holiday_hours'] ?? 0);
+        if ($regularHours <= 0 && !empty($calcPayroll) && isset($calcPayroll['totals']['regular_holiday_hours'])) {
+            $regularHours = floatval($calcPayroll['totals']['regular_holiday_hours']);
+        }
         $html .= '
                         <tr>
                             <td>
                                 <strong>Regular Holiday Pay</strong>
-                                <div class="computation">' . number_format($record['regular_holiday_hours'], 2) . ' hours @ 200%</div>
+                                <div class="computation">' . number_format($regularHours, 2) . ' hours @ ' . ($regularHolidayRate * 100) . '%</div>
                             </td>
                             <td>
                                 <div class="computation">
-                                    ' . number_format($record['regular_holiday_hours'], 2) . ' hrs × ₱' . number_format($hourlyRate, 2) . ' × ' . $regularHolidayRate . '
+                                    ' . number_format($regularHours, 2) . ' hrs × ₱' . number_format($hourlyRate, 2) . ' × ' . $regularHolidayRate . '
                                 </div>
                             </td>
                             <td>₱' . number_format($record['regular_holiday_pay'], 2) . '</td>

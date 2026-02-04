@@ -213,6 +213,12 @@ $pageTitle = 'Payroll Management';
             border-color: #DAA520;
             background: rgba(218, 165, 32, 0.1);
         }
+
+            /* Custom period active state (match period-btn.active) */
+            .custom-period.active {
+                border-color: #DAA520;
+                background: rgba(218, 165, 32, 0.08);
+            }
         
         .period-btn .dates {
             font-weight: 600;
@@ -864,8 +870,7 @@ $pageTitle = 'Payroll Management';
                             <div class="dates"><?php echo date('M d', strtotime($previousPeriod['start'])); ?> - <?php echo date('M d, Y', strtotime($previousPeriod['end'])); ?></div>
                             <div class="label">Previous Week</div>
                         </button>
-                        <div class="custom-period">
-                            <span>Custom:</span>
+                        <div class="custom-period" onclick="selectCustomPeriodContainer(this)">
                             <input type="date" id="customStart">
                             <span>to</span>
                             <input type="date" id="customEnd">
@@ -997,7 +1002,10 @@ $pageTitle = 'Payroll Management';
                         <div id="payrollResults" style="display: none;">
                             <div class="results-header">
                                 <h3 id="resultWorkerName">Worker Name</h3>
-                                <div class="period" id="resultPeriod">Pay Period</div>
+                                    <div>
+                                        <div class="period" id="resultPeriod">Pay Period</div>
+                                        <div class="period" id="resultDailyRef" style="font-size:13px;color:#666;margin-top:6px;">Daily: ₱0.00 (8.00 hrs)</div>
+                                    </div>
                             </div>
                             
                             <div class="payroll-breakdown">
@@ -1160,6 +1168,9 @@ $pageTitle = 'Payroll Management';
         function selectPeriod(type, btn) {
             document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
+            // Clear active state from custom period when selecting a preset period
+            const customEl = document.querySelector('.custom-period');
+            if (customEl) customEl.classList.remove('active');
             
             selectedPeriod.start = btn.dataset.start;
             selectedPeriod.end = btn.dataset.end;
@@ -1186,6 +1197,9 @@ $pageTitle = 'Payroll Management';
             document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
             selectedPeriod.start = start;
             selectedPeriod.end = end;
+            // Mark custom period as active (yellow)
+            const customEl = document.querySelector('.custom-period');
+            if (customEl) customEl.classList.add('active');
             
             showToast(`Custom period set: ${formatDate(start)} - ${formatDate(end)}`, 'success');
             
@@ -1209,7 +1223,28 @@ $pageTitle = 'Payroll Management';
 
             cs.addEventListener('change', tryApply);
             ce.addEventListener('change', tryApply);
+            // If user clicks into the custom fields, visually mark the custom selector active
+            cs.addEventListener('focus', () => {
+                const el = document.querySelector('.custom-period'); if (el) el.classList.add('active');
+                document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+            });
+            ce.addEventListener('focus', () => {
+                const el = document.querySelector('.custom-period'); if (el) el.classList.add('active');
+                document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+            });
         });
+
+        // Called when clicking the custom-period container
+        function selectCustomPeriodContainer(el) {
+            // Toggle active on the custom container
+            if (!el) el = document.querySelector('.custom-period');
+            if (!el) return;
+            document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+            el.classList.add('active');
+            // Focus first date input to encourage selection
+            const cs = document.getElementById('customStart');
+            if (cs) cs.focus();
+        }
         
         // Select worker (toggle)
         function selectWorker(workerId, element) {
@@ -1307,6 +1342,16 @@ $pageTitle = 'Payroll Management';
                     payroll.worker.first_name + ' ' + payroll.worker.last_name;
                 document.getElementById('resultPeriod').textContent = 
                     `${formatDate(payroll.period.start)} - ${formatDate(payroll.period.end)} (${payroll.period.days} days worked)`;
+
+                // Daily reference: compute daily rate from hourly_rate and standard_hours_per_day if available
+                try {
+                    const hrs = payroll.rates_used && payroll.rates_used.standard_hours_per_day ? parseFloat(payroll.rates_used.standard_hours_per_day) : 8.0;
+                    const hourly = payroll.rates_used && payroll.rates_used.hourly_rate ? parseFloat(payroll.rates_used.hourly_rate) : 0.0;
+                    const daily = (hourly * hrs) || 0;
+                    document.getElementById('resultDailyRef').textContent = `Daily: ₱${formatNum(daily)} (${formatNum(hrs, 2)} hrs)`;
+                } catch (e) {
+                    // ignore
+                }
                 
                 // Hours breakdown
                 const hoursHtml = `
@@ -1353,11 +1398,39 @@ $pageTitle = 'Payroll Management';
                         </div>`;
                 }
                 if (payroll.totals.overtime_pay > 0) {
+                    // Prefer to display the actual overtime earning formula if available (handles holiday OT multipliers)
+                    let otFormula = `${formatNum(payroll.totals.overtime_hours)}hrs × ₱${formatNum(payroll.rates_used.hourly_rate)} × ${payroll.rates_used.overtime_multiplier}`;
+                    if (payroll.earnings && Array.isArray(payroll.earnings)) {
+                        const otE = payroll.earnings.find(e => e.type && e.type.toLowerCase().indexOf('overtime') !== -1);
+                        if (otE) {
+                            if (otE.formula) {
+                                otFormula = otE.formula;
+                            } else {
+                                // Determine multiplier priority: earning-level, holiday-specific (user-configured), default overtime
+                                let displayMultiplier = payroll.rates_used.overtime_multiplier;
+
+                                if (typeof otE.multiplier !== 'undefined' && otE.multiplier !== null) {
+                                    displayMultiplier = otE.multiplier;
+                                } else if (otE.type.toLowerCase().indexOf('regular_holiday') !== -1) {
+                                    // Prefer explicit OT multiplier for regular holiday, fall back to related settings keys
+                                    displayMultiplier = payroll.rates_used.regular_holiday_ot_multiplier ?? payroll.rates_used.regular_holiday_multiplier ?? displayMultiplier;
+                                } else if (otE.type.toLowerCase().indexOf('special_holiday') !== -1 || otE.type.toLowerCase().indexOf('non_working') !== -1) {
+                                    displayMultiplier = payroll.rates_used.special_holiday_ot_multiplier ?? payroll.rates_used.special_holiday_multiplier ?? displayMultiplier;
+                                }
+
+                                // Normalize to number when possible and format with two decimals
+                                let multiplierValue = displayMultiplier;
+                                if (typeof multiplierValue === 'string') multiplierValue = parseFloat(multiplierValue);
+                                const multText = (!isNaN(parseFloat(multiplierValue))) ? `${formatNum(multiplierValue, 2)}×` : multiplierValue;
+                                otFormula = `${formatNum(otE.hours || payroll.totals.overtime_hours)}hrs × ₱${formatNum(payroll.rates_used.hourly_rate)} × ${multText}`;
+                            }
+                        }
+                    }
                     earningsHtml += `
                         <div class="breakdown-row">
                             <span class="label">
                                 Overtime Pay
-                                <span class="formula">${formatNum(payroll.totals.overtime_hours)}hrs × ₱${formatNum(payroll.rates_used.hourly_rate)} × ${payroll.rates_used.overtime_multiplier} (${(parseFloat(payroll.rates_used.overtime_multiplier) * 100).toFixed(0)}%)</span>
+                                <span class="formula">${otFormula}</span>
                             </span>
                             <span class="amount">₱${formatNum(payroll.totals.overtime_pay)}</span>
                         </div>`;

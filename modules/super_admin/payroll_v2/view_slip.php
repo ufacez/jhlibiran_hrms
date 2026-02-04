@@ -119,9 +119,16 @@ try {
   $taxableIncome = max(0, floatval($record['gross_pay']) - ($sssWeekly + $philhealthWeekly + $pagibigWeekly));
   $taxCalc = $pc->calculateWithholdingTax($taxableIncome);
   $taxCalculated = floatval($taxCalc['tax_amount'] ?? 0);
+  // Also generate a fresh payroll calculation for display accuracy (rates, earnings, formulas)
+  try {
+      $calcPayroll = $pc->generatePayroll($record['worker_id'], $record['period_start'], $record['period_end']);
+  } catch (Exception $e) {
+      $calcPayroll = null;
+  }
 } catch (Exception $e) {
   $taxableIncome = max(0, floatval($record['gross_pay']) - ($sssWeekly + $philhealthWeekly + $pagibigWeekly));
   $taxCalculated = $taxWeekly; // fallback to stored value
+  $calcPayroll = null;
 }
 ?>
 <!doctype html>
@@ -251,7 +258,33 @@ try {
                 <tr>
                   <td>Overtime</td>
                   <td class="col-calc"><?php echo number_format($record['overtime_hours'],2); ?>h</td>
-                  <td class="col-rate">₱<?php echo number_format($hourlyRate * ($record['overtime_multiplier'] ?? $otRate),2); ?></td>
+                  <?php
+                    // Default overtime display multiplier (from stored record or settings)
+                    $displayOtMultiplier = $record['overtime_multiplier'] ?? $otRate;
+                    // If we have a freshly calculated payroll, prefer holiday-specific OT multipliers
+                    if (!empty($calcPayroll) && is_array($calcPayroll)) {
+                        // Search calculated earnings for holiday overtime types
+                        $hasRegularHolidayOt = false;
+                        $hasSpecialHolidayOt = false;
+                        if (!empty($calcPayroll['earnings']) && is_array($calcPayroll['earnings'])) {
+                            foreach ($calcPayroll['earnings'] as $e) {
+                                if (!empty($e['type'])) {
+                                    $t = strtolower($e['type']);
+                                    if ($t === 'regular_holiday_overtime') $hasRegularHolidayOt = true;
+                                    if ($t === 'special_holiday_overtime') $hasSpecialHolidayOt = true;
+                                }
+                            }
+                        }
+                        $ratesUsed = $calcPayroll['rates_used'] ?? [];
+                        if ($hasRegularHolidayOt && isset($ratesUsed['regular_holiday_ot_multiplier'])) {
+                            $displayOtMultiplier = $ratesUsed['regular_holiday_ot_multiplier'];
+                        } elseif ($hasSpecialHolidayOt && isset($ratesUsed['special_holiday_ot_multiplier'])) {
+                            $displayOtMultiplier = $ratesUsed['special_holiday_ot_multiplier'];
+                        }
+                    }
+                    $displayOtRate = $hourlyRate * floatval($displayOtMultiplier);
+                  ?>
+                  <td class="col-rate">₱<?php echo number_format($displayOtRate,2); ?></td>
                   <td class="col-amount">₱<?php echo number_format($record['overtime_pay'],2); ?></td>
                 </tr>
                 <?php endif; ?>
@@ -266,7 +299,13 @@ try {
                 <?php if ($record['special_holiday_pay'] > 0): ?>
                 <tr>
                   <td>Special Holiday</td>
-                  <td class="col-calc">&mdash;</td>
+                  <?php
+                    $specialHours = floatval($record['special_holiday_hours'] ?? 0);
+                    if ($specialHours <= 0 && !empty($calcPayroll) && isset($calcPayroll['totals']['special_holiday_hours'])) {
+                        $specialHours = floatval($calcPayroll['totals']['special_holiday_hours']);
+                    }
+                  ?>
+                  <td class="col-calc"><?php echo $specialHours > 0 ? number_format($specialHours,2) . 'h' : '&mdash;'; ?></td>
                   <td class="col-rate">₱<?php echo number_format($hourlyRate * $specialHolidayRate,2); ?></td>
                   <td class="col-amount">₱<?php echo number_format($record['special_holiday_pay'],2); ?></td>
                 </tr>
@@ -274,7 +313,13 @@ try {
                 <?php if ($record['regular_holiday_pay'] > 0): ?>
                 <tr>
                   <td>Regular Holiday</td>
-                  <td class="col-calc">&mdash;</td>
+                  <?php
+                    $regularHours = floatval($record['regular_holiday_hours'] ?? 0);
+                    if ($regularHours <= 0 && !empty($calcPayroll) && isset($calcPayroll['totals']['regular_holiday_hours'])) {
+                        $regularHours = floatval($calcPayroll['totals']['regular_holiday_hours']);
+                    }
+                  ?>
+                  <td class="col-calc"><?php echo $regularHours > 0 ? number_format($regularHours,2) . 'h' : '&mdash;'; ?></td>
                   <td class="col-rate">₱<?php echo number_format($hourlyRate * $regularHolidayRate,2); ?></td>
                   <td class="col-amount">₱<?php echo number_format($record['regular_holiday_pay'],2); ?></td>
                 </tr>

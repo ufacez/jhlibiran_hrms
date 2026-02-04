@@ -1385,7 +1385,11 @@ class PayrollCalculator {
                 'night_diff_percentage' => $workerRates['night_diff_percentage'],
                 'regular_holiday_multiplier' => $this->getRate('regular_holiday_multiplier', 2.0),
                 'special_holiday_multiplier' => $this->getRate('special_holiday_multiplier', 1.3),
+                // Explicit OT multipliers (can be configured separately). Fall back to base * overtime if not set.
+                'regular_holiday_ot_multiplier' => $this->getRate('regular_holiday_ot_multiplier', $this->getRate('regular_holiday_multiplier', 2.0) * $this->getRate('overtime_multiplier', 1.25)),
+                'special_holiday_ot_multiplier' => $this->getRate('special_holiday_ot_multiplier', $this->getRate('special_holiday_multiplier', 1.3) * $this->getRate('overtime_multiplier', 1.25)),
                 'rest_day_multiplier' => $this->getRate('rest_day_multiplier', 1.3),
+                'standard_hours_per_day' => $this->getRate('standard_hours_per_day', 8),
                 'rate_source' => $workerRates['rate_source']
             ],
             'attendance' => $dailyBreakdown,
@@ -1571,12 +1575,21 @@ class PayrollCalculator {
      * Calculate regular holiday overtime pay
      */
     public function calculateRegularHolidayOvertimePay($hours, $hourlyRate, $isRestDay = false) {
-        $baseMultiplier = $this->getRate('regular_holiday_multiplier', 2.0);
-        $otMultiplier = $this->getRate('overtime_multiplier', 1.25);
-        $multiplier = $baseMultiplier * $otMultiplier;
-        
+        // Prefer explicit configured OT multiplier for regular holidays; otherwise compute base * overtime
+        $multiplier = $this->getRate('regular_holiday_ot_multiplier', null);
+        if ($multiplier === null) {
+            $baseMultiplier = $this->getRate('regular_holiday_multiplier', 2.0);
+            $otMultiplier = $this->getRate('overtime_multiplier', 1.25);
+            $multiplier = $baseMultiplier * $otMultiplier;
+        }
+
         if ($isRestDay) {
-            $multiplier = $this->getRate('regular_holiday_rest_day_overtime_multiplier', 3.38); // 2.6 x 1.3
+            // Prefer explicit rest-day overtime multiplier if set, otherwise fallback
+            $multiplier = $this->getRate('regular_holiday_rest_day_overtime_multiplier', $this->getRate('regular_holiday_rest_day_overtime_multiplier', null) ?? $this->getRate('regular_holiday_restday_multiplier', 2.60) * $this->getRate('rest_day_multiplier', 1.30));
+            // If still null, leave multiplier as computed
+            if ($multiplier === null) {
+                $multiplier = $this->getRate('regular_holiday_rest_day_overtime_multiplier', 3.38);
+            }
         }
         
         $amount = $hours * $hourlyRate * $multiplier;
@@ -1596,12 +1609,19 @@ class PayrollCalculator {
      * Calculate special holiday overtime pay
      */
     public function calculateSpecialHolidayOvertimePay($hours, $hourlyRate, $isRestDay = false) {
-        $baseMultiplier = $this->getRate('special_holiday_multiplier', 1.3);
-        $otMultiplier = $this->getRate('overtime_multiplier', 1.25);
-        $multiplier = $baseMultiplier * $otMultiplier;
-        
+        // Prefer explicit configured OT multiplier for special holidays; otherwise compute base * overtime
+        $multiplier = $this->getRate('special_holiday_ot_multiplier', null);
+        if ($multiplier === null) {
+            $baseMultiplier = $this->getRate('special_holiday_multiplier', 1.3);
+            $otMultiplier = $this->getRate('overtime_multiplier', 1.25);
+            $multiplier = $baseMultiplier * $otMultiplier;
+        }
+
         if ($isRestDay) {
-            $multiplier = $this->getRate('special_holiday_rest_day_overtime_multiplier', 2.19); // 1.69 x 1.3
+            $multiplier = $this->getRate('special_holiday_rest_day_overtime_multiplier', null);
+            if ($multiplier === null) {
+                $multiplier = $this->getRate('special_holiday_rest_day_overtime_multiplier', 2.19);
+            }
         }
         
         $amount = $hours * $hourlyRate * $multiplier;

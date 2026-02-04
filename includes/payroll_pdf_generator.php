@@ -352,20 +352,52 @@ class PayrollPDFGenerator {
 
         // Earnings rows
         $this->pdf->SetFont('dejavusans', '', 9);
-        if (!empty($earnings)) {
-            foreach ($earnings as $earning) {
-                $desc = $this->formatEarningType($earning['earning_type']);
-                if ($earning['description']) {
-                    $desc .= ' - ' . $earning['description'];
-                }
-                if ($earning['earning_type'] === 'overtime' && isset($earning['multiplier_used'])) {
-                    $desc .= ' (' . ($earning['multiplier_used'] * 100) . '%)';
-                }
-                $this->pdf->Cell(100, 6, substr($desc, 0, 60), 1, 0, 'L');
-                $this->pdf->Cell(30, 6, ($earning['hours'] > 0 ? number_format($earning['hours'], 2) . 'h' : '-'), 1, 0, 'R');
-                $this->pdf->Cell(35, 6, '₱' . number_format($earning['rate_used'], 2), 1, 0, 'R');
-                $this->pdf->Cell(0, 6, '₱' . number_format($earning['amount'], 2), 1, 1, 'R');
+        $rows = [];
+        // Prefer a fresh calculation (to reflect current configured multipliers and rates) when possible
+        try {
+            require_once __DIR__ . '/../includes/payroll_calculator.php';
+            $pc = new PayrollCalculator($this->pdo);
+            $calcPayroll = $pc->generatePayroll($record['worker_id'], $record['period_start'], $record['period_end']);
+            if (!empty($calcPayroll['earnings'])) {
+                $rows = $calcPayroll['earnings'];
+                $ratesUsed = $calcPayroll['rates_used'] ?? [];
             }
+        } catch (Exception $e) {
+            // ignore and fall back to stored earnings
+            $rows = [];
+        }
+
+        if (empty($rows)) {
+            // fallback to stored earnings from DB
+            $rows = $earnings;
+        }
+
+        foreach ($rows as $earning) {
+            // Normalize fields from either stored earnings or calculated earnings
+            $etype = $earning['earning_type'] ?? ($earning['type'] ?? ($earning['type'] ?? 'other'));
+            $desc = $this->formatEarningType($etype);
+            if (!empty($earning['description'])) {
+                $desc .= ' - ' . $earning['description'];
+            }
+            $hours = isset($earning['hours']) ? floatval($earning['hours']) : 0;
+            // rate_used: prefer explicit field, otherwise compute from hourly_rate and multiplier
+            if (isset($earning['rate_used'])) {
+                $rateUsed = floatval($earning['rate_used']);
+            } else {
+                $baseHourly = $ratesUsed['hourly_rate'] ?? ($record['hourly_rate_used'] ?? 0);
+                $mult = $earning['multiplier_used'] ?? ($earning['multiplier'] ?? 1);
+                $rateUsed = floatval($baseHourly) * floatval($mult);
+            }
+            $amount = isset($earning['amount']) ? floatval($earning['amount']) : 0;
+            if ((isset($earning['multiplier_used']) && $earning['multiplier_used'] != 1) || (isset($earning['multiplier']) && $earning['multiplier'] != 1)) {
+                $multDisplay = (isset($earning['multiplier_used']) ? $earning['multiplier_used'] : $earning['multiplier']);
+                $desc .= ' (' . ($multDisplay * 100) . '%)';
+            }
+
+            $this->pdf->Cell(100, 6, substr($desc, 0, 60), 1, 0, 'L');
+            $this->pdf->Cell(30, 6, ($hours > 0 ? number_format($hours, 2) . 'h' : '-'), 1, 0, 'R');
+            $this->pdf->Cell(35, 6, '₱' . number_format($rateUsed, 2), 1, 0, 'R');
+            $this->pdf->Cell(0, 6, '₱' . number_format($amount, 2), 1, 1, 'R');
         }
 
         // Gross pay row
