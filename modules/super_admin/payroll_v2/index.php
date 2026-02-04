@@ -869,9 +869,6 @@ $pageTitle = 'Payroll Management';
                             <input type="date" id="customStart">
                             <span>to</span>
                             <input type="date" id="customEnd">
-                            <button type="button" class="btn-apply-custom" onclick="applyCustomPeriod()" style="padding: 6px 12px; background: var(--gold); color: #000; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; margin-left: 8px;">
-                                <i class="fas fa-check"></i> Apply
-                            </button>
                         </div>
                     </div>
                 </div>
@@ -1196,6 +1193,23 @@ $pageTitle = 'Payroll Management';
                 generatePayroll();
             }
         }
+        
+        // Auto-apply custom period when both dates are selected
+        document.addEventListener('DOMContentLoaded', function() {
+            const cs = document.getElementById('customStart');
+            const ce = document.getElementById('customEnd');
+            if (!cs || !ce) return;
+
+            const tryApply = () => {
+                if (cs.value && ce.value) {
+                    // Only call applyCustomPeriod when both dates present
+                    applyCustomPeriod();
+                }
+            };
+
+            cs.addEventListener('change', tryApply);
+            ce.addEventListener('change', tryApply);
+        });
         
         // Select worker (toggle)
         function selectWorker(workerId, element) {

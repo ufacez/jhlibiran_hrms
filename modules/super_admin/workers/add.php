@@ -104,6 +104,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
     }
+
+    // Employment history entries (multiple rows)
+    $employment_history = [];
+    if (isset($_POST['emp_company']) && is_array($_POST['emp_company'])) {
+        $countEmp = count($_POST['emp_company']);
+        for ($i = 0; $i < $countEmp; $i++) {
+            $company = trim($_POST['emp_company'][$i] ?? '');
+            $from = trim($_POST['emp_from'][$i] ?? '');
+            $to = trim($_POST['emp_to'][$i] ?? '');
+            $pos = trim($_POST['emp_position'][$i] ?? '');
+            $salary = trim($_POST['emp_salary'][$i] ?? '');
+            $reason = trim($_POST['emp_reason'][$i] ?? '');
+
+            if ($company === '' && $from === '' && $to === '' && $pos === '' && $salary === '' && $reason === '') continue;
+
+            $employment_history[] = [
+                'company' => sanitizeString($company),
+                'from' => $from ? date('Y-m-d', strtotime($from)) : null,
+                'to' => $to ? date('Y-m-d', strtotime($to)) : null,
+                'position' => sanitizeString($pos),
+                'salary' => $salary !== '' ? floatval(str_replace(',', '', $salary)) : null,
+                'reason' => sanitizeString($reason)
+            ];
+        }
+    }
     
     
     // Validate required fields
@@ -279,6 +304,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Log activity
             logActivity($db, getCurrentUserId(), 'add_worker', 'workers', $worker_id,
                        "Added new worker: $first_name $last_name ($worker_code)");
+
+            // Insert employment history rows if any
+            if (!empty($employment_history)) {
+                $histStmt = $db->prepare("INSERT INTO worker_employment_history (worker_id, from_date, to_date, company, position, salary_per_day, reason_for_leaving) VALUES (?, ?, ?, ?, ?, ?, ?)");
+                foreach ($employment_history as $eh) {
+                    $histStmt->execute([
+                        $worker_id,
+                        $eh['from'] ?: null,
+                        $eh['to'] ?: null,
+                        $eh['company'] ?: null,
+                        $eh['position'] ?: null,
+                        $eh['salary'] !== null ? $eh['salary'] : null,
+                        $eh['reason'] ?: null
+                    ]);
+                }
+            }
             
             $db->commit();
             
@@ -306,9 +347,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Add Worker - <?php echo SYSTEM_NAME; ?></title>
-    <link rel="stylesheet" href="https://pro.fontawesome.com/releases/v5.10.0/css/all.css" 
-          integrity="sha384-AYmEC3Yw5cVb3ZcuHtOA93w35dYTsvhLPVnYs9eStHfGJvOvKxVfELGroGkvsg+p" 
-          crossorigin="anonymous" />
+    <link rel="stylesheet" href="https://pro.fontawesome.com/releases/v5.10.0/css/all.css">
     <link rel="stylesheet" href="<?php echo CSS_URL; ?>/dashboard.css">
     <link rel="stylesheet" href="<?php echo CSS_URL; ?>/workers.css">
     <link rel="stylesheet" href="<?php echo CSS_URL; ?>/forms.css">
@@ -497,6 +536,76 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             margin-top: 5px;
             display: block;
         }
+
+        /* Employment history table styles */
+        .employment-history-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 6px;
+        }
+        .employment-history-table thead th {
+            border-bottom: 1px solid #e0e0e0;
+            padding: 10px 8px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 13px;
+            color: #333;
+        }
+        .employment-history-table tbody td {
+            padding: 8px;
+            vertical-align: middle;
+        }
+        .employment-history-table input[type="date"] {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 8px 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            background: #fff;
+            font-size: 14px;
+            color: #111;
+        }
+        .employment-history-table .action-cell { text-align: center; width: 80px; }
+        .employment-history .btn { padding: 8px 12px; font-size: 13px; }
+
+        /* Responsive: stack table rows on small screens */
+        @media (max-width: 720px) {
+            .employment-history-table thead { display: none; }
+            .employment-history-table, .employment-history-table tbody, .employment-history-table tr, .employment-history-table td { display: block; width: 100%; }
+            .employment-history-table tr { margin-bottom: 12px; border: 1px solid #f0f0f0; padding: 8px; border-radius: 6px; }
+            .employment-history-table td { padding: 6px 8px; position: relative; }
+            .employment-history-table td:before { content: attr(data-label); font-weight: 600; display: block; margin-bottom: 4px; color: #555; }
+            .employment-history .btn { width: 100%; }
+        }
+        
+        /* Rounded inputs inside employment table */
+        .employment-history-table input.form-control {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 8px 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            background: #fff;
+        }
+        .employment-history-table input[type="number"] {
+            text-align: right;
+        }
+        .employment-history .employment-actions { text-align: left; margin-top: 12px; }
+        .employment-history .action-cell .btn { border-radius: 8px; }
+        .employment-history { width: 100%; overflow-x: auto; }
+        .employment-history-table { table-layout: fixed; }
+        .employment-history-table thead th:nth-child(1),
+        .employment-history-table tbody td:nth-child(1) { width: 10%; }
+        .employment-history-table thead th:nth-child(2),
+        .employment-history-table tbody td:nth-child(2) { width: 10%; }
+        .employment-history-table thead th:nth-child(3),
+        .employment-history-table tbody td:nth-child(3) { width: 25%; }
+        .employment-history-table thead th:nth-child(4),
+        .employment-history-table tbody td:nth-child(4) { width: 20%; }
+        .employment-history-table thead th:nth-child(5),
+        .employment-history-table tbody td:nth-child(5) { width: 12%; }
+        .employment-history-table thead th:nth-child(6),
+        .employment-history-table tbody td:nth-child(6) { width: 20%; }
         
         /* ==========================================
         REAL-TIME VALIDATION STYLES
@@ -952,6 +1061,44 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </div>
                     </div>
                     
+                    <!-- Employment History -->
+                    <div class="form-card">
+                        <h3 class="form-section-title">
+                            <i class="fas fa-briefcase"></i> Previous Employment
+                        </h3>
+
+                        <div class="employment-history">
+                            <table class="employment-history-table">
+                                <thead>
+                                    <tr>
+                                        <th>From</th>
+                                        <th>To</th>
+                                        <th>Company</th>
+                                        <th>Position</th>
+                                        <th>Salary (Per Day)</th>
+                                        <th>Reason for leaving</th>
+                                        <th class="action-cell"></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="employmentRows">
+                                    <tr>
+                                        <td data-label="From"><input type="date" name="emp_from[]" class="form-control"></td>
+                                        <td data-label="To"><input type="date" name="emp_to[]" class="form-control"></td>
+                                        <td data-label="Company"><input type="text" name="emp_company[]" class="form-control" placeholder="Company name"></td>
+                                        <td data-label="Position"><input type="text" name="emp_position[]" class="form-control" placeholder="Position"></td>
+                                        <td data-label="Salary"><input type="number" step="0.01" min="0" name="emp_salary[]" class="form-control" placeholder="0.00"></td>
+                                        <td data-label="Reason"><input type="text" name="emp_reason[]" class="form-control" placeholder="Reason for leaving"></td>
+                                        <td class="action-cell"><button type="button" class="btn btn-secondary" onclick="removeEmploymentRow(this)"><i class="fas fa-trash"></i></button></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+
+                            <div class="employment-actions">
+                                <button type="button" class="btn btn-primary" onclick="addEmploymentRow()"><i class="fas fa-plus"></i> Add Row</button>
+                            </div>
+                        </div>
+                    </div>
+                    
                     <!-- Identification -->
                     <div class="form-card">
                         <h3 class="form-section-title">
@@ -991,7 +1138,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <!-- Additional ID entries will be added here dynamically -->
                         </div>
                         
-                        <button type="button" class="btn-add-id" onclick="addAdditionalId()">
+                        <button type="button" class="btn btn-primary btn-add-id" onclick="addAdditionalId()">
                             <i class="fas fa-plus"></i> Add Additional ID
                         </button>
                     </div>
@@ -1474,6 +1621,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             
             input.value = value;
+        }
+
+        
+
+        // Employment history row handling
+        function addEmploymentRow() {
+            const tbody = document.getElementById('employmentRows');
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td data-label="From"><input type="date" name="emp_from[]" class="form-control"></td>
+                <td data-label="To"><input type="date" name="emp_to[]" class="form-control"></td>
+                <td data-label="Company"><input type="text" name="emp_company[]" class="form-control" placeholder="Company name"></td>
+                <td data-label="Position"><input type="text" name="emp_position[]" class="form-control" placeholder="Position"></td>
+                <td data-label="Salary"><input type="number" step="0.01" min="0" name="emp_salary[]" class="form-control" placeholder="0.00"></td>
+                <td data-label="Reason"><input type="text" name="emp_reason[]" class="form-control" placeholder="Reason for leaving"></td>
+                <td class="action-cell"><button type="button" class="btn btn-secondary" onclick="removeEmploymentRow(this)"><i class="fas fa-trash"></i></button></td>
+            `;
+            tbody.appendChild(tr);
+        }
+
+        function removeEmploymentRow(btn) {
+            const tr = btn.closest('tr');
+            if (!tr) return;
+            const tbody = document.getElementById('employmentRows');
+            if (tbody.rows.length > 1) {
+                tr.remove();
+            } else {
+                // clear inputs instead of removing last row
+                tr.querySelectorAll('input').forEach(i => i.value = '');
+            }
         }
         
         // Form submission validation

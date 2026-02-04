@@ -29,16 +29,18 @@ if (!$recordId || !is_numeric($recordId)) {
 
 // Get record with worker details
 try {
-    $stmt = $pdo->prepare("
-         SELECT pr.*, 
-           p.period_start, p.period_end,
-           w.first_name, w.middle_name, w.last_name, w.worker_code, w.position, w.daily_rate,
-           w.sss_number, w.philhealth_number, w.pagibig_number, w.tin_number AS tin
-        FROM payroll_records pr
-        JOIN payroll_periods p ON pr.period_id = p.period_id
-        JOIN workers w ON pr.worker_id = w.worker_id
-        WHERE pr.record_id = ?
-    ");
+    $sql = "SELECT pr.*, 
+         p.period_start, p.period_end,
+         w.first_name, w.middle_name, w.last_name, w.worker_code, w.position, w.daily_rate,
+           w.sss_number, w.philhealth_number, w.pagibig_number, w.tin_number AS tin, w.worker_type,
+           wt.work_type_name, wc.classification_name, wc.skill_level
+      FROM payroll_records pr
+      JOIN payroll_periods p ON pr.period_id = p.period_id
+      JOIN workers w ON pr.worker_id = w.worker_id
+      LEFT JOIN work_types wt ON w.work_type_id = wt.work_type_id
+      LEFT JOIN worker_classifications wc ON wt.classification_id = wc.classification_id
+      WHERE pr.record_id = ?";
+    $stmt = $pdo->prepare($sql);
     $stmt->execute([$recordId]);
     $record = $stmt->fetch(PDO::FETCH_ASSOC);
     
@@ -110,6 +112,17 @@ $taxMonthly = $taxWeekly * 4;
 
 $totalDeductions = floatval($record['total_deductions']);
 $netPay = floatval($record['net_pay']);
+// Recompute taxable income (gross minus statutory contributions) and calculate tax using PayrollCalculator
+try {
+  require_once __DIR__ . '/../../../includes/payroll_calculator.php';
+  $pc = new PayrollCalculator($pdo);
+  $taxableIncome = max(0, floatval($record['gross_pay']) - ($sssWeekly + $philhealthWeekly + $pagibigWeekly));
+  $taxCalc = $pc->calculateWithholdingTax($taxableIncome);
+  $taxCalculated = floatval($taxCalc['tax_amount'] ?? 0);
+} catch (Exception $e) {
+  $taxableIncome = max(0, floatval($record['gross_pay']) - ($sssWeekly + $philhealthWeekly + $pagibigWeekly));
+  $taxCalculated = $taxWeekly; // fallback to stored value
+}
 ?>
 <!doctype html>
 <html lang="en">
@@ -188,9 +201,17 @@ $netPay = floatval($record['net_pay']);
                   <div style="font-size:12px;font-weight:700"><?php echo htmlspecialchars($record['first_name'] . ' ' . $record['last_name']); ?></div>
                   <div style="font-size:10px;color:#444">ID: <?php echo htmlspecialchars($record['worker_code']); ?> &nbsp;&nbsp;
                   <div class="role-badges">
-                    <span class="badge">Trainee</span>
-                    <span class="badge">Mason</span>
-                    <span class="badge">Laborer</span>
+                    <?php
+                          if (!empty($record['classification_name'])) {
+                            echo '<span class="badge">' . htmlspecialchars($record['classification_name']) . '</span>';
+                          }
+                          if (!empty($record['work_type_name'])) {
+                            echo '<span class="badge">' . htmlspecialchars($record['work_type_name']) . '</span>';
+                          }
+                          if (!empty($record['position'])) {
+                            echo '<span class="badge">' . htmlspecialchars($record['position']) . '</span>';
+                          }
+                    ?>
                   </div>
                 </div>
             </td>

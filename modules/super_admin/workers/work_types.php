@@ -69,7 +69,53 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $can_manage) {
     try {
         switch ($action) {
             case 'add_work_type':
-                // ...existing code...
+                $work_type_code = strtoupper(sanitizeString($_POST['work_type_code'] ?? ''));
+                $work_type_name = sanitizeString($_POST['work_type_name'] ?? '');
+                $daily_rate = (float) sanitizeFloat($_POST['daily_rate'] ?? 0);
+                $classification_id = sanitizeInt($_POST['classification_id'] ?? 0);
+                $classification_id = $classification_id > 0 ? $classification_id : null;
+                $description = sanitizeString($_POST['description'] ?? '');
+
+                if (empty($work_type_code) || empty($work_type_name) || $daily_rate <= 0) {
+                    throw new Exception('Please provide valid type code, name and a daily rate');
+                }
+
+                if (!preg_match('/^[A-Z0-9_]+$/', $work_type_code)) {
+                    throw new Exception('Type code may only contain letters, numbers and underscores');
+                }
+
+                // Ensure unique code
+                $stmt = $db->prepare("SELECT COUNT(*) FROM work_types WHERE work_type_code = ?");
+                $stmt->execute([$work_type_code]);
+                if ($stmt->fetchColumn() > 0) {
+                    throw new Exception('Type code already exists');
+                }
+
+                // Determine display order (append)
+                $stmt = $db->query("SELECT COALESCE(MAX(display_order), 0) + 1 FROM work_types");
+                $display_order = $stmt ? (int) $stmt->fetchColumn() : 1;
+
+                $hourly_rate = round($daily_rate / 8, 2);
+
+                $sql = "INSERT INTO work_types (work_type_code, work_type_name, daily_rate, hourly_rate, classification_id, description, is_active, display_order, created_at)
+                        VALUES (?, ?, ?, ?, ?, ?, 1, ?, NOW())";
+                $params = [$work_type_code, $work_type_name, $daily_rate, $hourly_rate, $classification_id, $description, $display_order];
+                $res = executeQuery($db, $sql, $params);
+                if (!$res) throw new Exception('Failed to add work type');
+
+                $new_id = $db->lastInsertId();
+
+                // Log initial rate history
+                try {
+                    $hsql = "INSERT INTO work_type_rate_history (work_type_id, old_daily_rate, new_daily_rate, effective_date, changed_by, created_at)
+                             VALUES (?, NULL, ?, NOW(), ?, NOW())";
+                    executeQuery($db, $hsql, [$new_id, $daily_rate, $user_id]);
+                } catch (Exception $e) {
+                    // Non-fatal
+                }
+
+                logActivity($db, $user_id, 'create', 'work_types', $new_id, "Added work type: $work_type_name ($work_type_code)");
+                setFlashMessage('Worker type added successfully', 'success');
                 break;
             case 'update_work_type':
                 // ...existing code...

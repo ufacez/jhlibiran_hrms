@@ -703,10 +703,14 @@ class PayrollCalculator {
         $manualDeductions = $this->getWorkerDeductions($workerId);
         
         // Calculate automatic deductions
-        $taxCalculation = $this->calculateWithholdingTax($grossPay);
-        $sssCalculation = $this->calculateSSSContribution($grossPay, $periodEnd);
-        $philhealthCalculation = $this->calculatePhilHealthContribution($grossPay);
-        $pagibigCalculation = $this->calculatePagIBIGContribution($grossPay);
+            // Calculate automatic deductions: contributions first, then tax on (gross - contributions)
+            $sssCalculation = $this->calculateSSSContribution($grossPay, $periodEnd);
+            $philhealthCalculation = $this->calculatePhilHealthContribution($grossPay);
+            $pagibigCalculation = $this->calculatePagIBIGContribution($grossPay);
+
+            // Taxable income is gross minus employee statutory contributions
+            $taxableIncome = max(0, $grossPay - ($sssCalculation['employee_contribution'] + $philhealthCalculation['employee_contribution'] + $pagibigCalculation['employee_contribution']));
+            $taxCalculation = $this->calculateWithholdingTax($taxableIncome);
         
         // Organize deductions by type
         $deductions = [
@@ -812,22 +816,14 @@ class PayrollCalculator {
      * @return array All settings
      */
     public function getAllSettings() {
-        return $this->settings;
-    }
-    
-    /**
-     * Get all rates for display/transparency
-     * 
-     * @return array All rates with formatted display
-     */
-    public function getRatesForDisplay() {
-        $stmt = $this->pdo->query("
-            SELECT setting_key, setting_value, setting_type, category, label, description, formula_display
-            FROM payroll_settings 
-            WHERE is_active = 1 
-            ORDER BY category, display_order
-        ");
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        try {
+            $stmt = $this->pdo->prepare("SELECT setting_key, setting_value, setting_type, category, label, description FROM payroll_settings WHERE is_active = 1 ORDER BY category, display_order");
+            $stmt->execute();
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            error_log('PayrollCalculator::getAllSettings failed: ' . $e->getMessage());
+            return [];
+        }
     }
     
     /**
