@@ -857,7 +857,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     }
                                     ?>
                                 </select>
-                                <small class="form-text">The work type determines the daily rate. <a href="../settings/work_types.php" target="_blank">Manage work types</a></small>
+                                
                             </div>
                             
                             <div class="form-group">
