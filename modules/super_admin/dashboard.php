@@ -125,11 +125,11 @@ try {
     $stmt = $db->query($sql);
     $recent_activities = $stmt->fetchAll();
     
-    // Weekly Payroll Notification - Calculate next payroll date (next Sunday)
-    $nextPayrollDate = date('M d, Y', strtotime('sunday this week'));
-    if (date('N') == 7) {
-        // If today is Sunday, next payroll is next Sunday
-        $nextPayrollDate = date('M d, Y', strtotime('next sunday'));
+    // Weekly Payroll Notification - Company week is Monday->Saturday, payroll release on Saturday
+    $nextPayrollDate = date('M d, Y', strtotime('saturday this week'));
+    if (date('N') == 6) {
+        // If today is Saturday, next payroll is next Saturday
+        $nextPayrollDate = date('M d, Y', strtotime('next saturday'));
     }
     
 } catch (PDOException $e) {
@@ -143,7 +143,7 @@ try {
     $today_schedules = [];
     $attendance_trend = [];
     $recent_activities = [];
-    $nextPayrollDate = date('M d, Y', strtotime('sunday this week'));
+    $nextPayrollDate = date('M d, Y', strtotime('saturday this week'));
 }
 
 // Enhanced activity description function
@@ -438,7 +438,7 @@ function getEnhancedActivityDescription($activity) {
                                 <div class="quick-action-desc">Process payments</div>
                             </div>
                         </a>
-                        <a href="<?php echo BASE_URL; ?>/modules/super_admin/audit/index.php" class="quick-action-btn">
+                        <a href="<?php echo BASE_URL; ?>/modules/super_admin/analytics/index.php" class="quick-action-btn">
                             <div class="quick-action-icon" style="background: rgba(243, 156, 18, 0.1); color: #f39c12;">
                                 <i class="fas fa-file-alt"></i>
                             </div>

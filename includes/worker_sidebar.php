@@ -37,12 +37,12 @@ $current_page = basename($_SERVER['PHP_SELF']);
             </a>
         </li>
         
-        <!-- My Schedule -->
+        <!-- Classifications and Roles -->
         <li>
             <a href="<?php echo BASE_URL; ?>/modules/worker/schedule.php"
                class="<?php echo ($current_page === 'schedule.php') ? 'active' : ''; ?>">
-                <i class="fas fa-calendar-alt"></i>
-                <div class="title">My Schedule</div>
+                <i class="fas fa-layer-group"></i>
+                <div class="title">Classifications and Roles</div>
             </a>
         </li>
         

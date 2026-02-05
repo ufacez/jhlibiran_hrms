@@ -134,7 +134,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Validate required fields
     if (empty($first_name)) $errors[] = 'First name is required';
     if (empty($last_name)) $errors[] = 'Last name is required';
-    if (empty($position)) $errors[] = 'Position is required';
+    // Removed: Position is required
     if (empty($worker_type)) $errors[] = 'Worker type is required';
     if (empty($phone)) $errors[] = 'Phone number is required';
     if (empty($email)) $errors[] = 'Email is required';
@@ -932,7 +932,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         
                         <div class="form-row">
                             <div class="form-group">
-                                <label for="work_type_id">Work Type / Role <span class="required">*</span></label>
+                                <label for="work_type_id">Role<span class="required">*</span></label>
                                 <select id="work_type_id" name="work_type_id" required onchange="updateRateDisplay()">
                                     <option value="">Select work type</option>
                                     <?php
@@ -966,14 +966,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     }
                                     ?>
                                 </select>
-                                
-                            </div>
-                            
-                            <div class="form-group">
-                                <label for="position">Position / Title <span class="optional">Optional</span></label>
-                                <input type="text" id="position" name="position" placeholder="e.g., Lead, Senior, Trainee"
-                                       value="<?php echo isset($_POST['position']) ? htmlspecialchars($_POST['position']) : ''; ?>">
-                                <small class="form-text">Additional position title or seniority level</small>
                             </div>
                         </div>
                         
@@ -1074,7 +1066,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                         <th>From</th>
                                         <th>To</th>
                                         <th>Company</th>
-                                        <th>Position</th>
+                                        <th>Role</th>
                                         <th>Salary (Per Day)</th>
                                         <th>Reason for leaving</th>
                                         <th class="action-cell"></th>

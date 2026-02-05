@@ -318,12 +318,12 @@ if (!isset($db) || !$db) {
             </a>
         </li>
         
-        <!-- Worker Types -->
+        <!-- Classifications and Roles -->
         <li>
             <a href="<?php echo BASE_URL; ?>/modules/super_admin/workers/work_types.php"
                class="<?php echo ($current_dir === 'workers' && $current_page === 'work_types.php') ? 'active' : ''; ?>">
-                <i class="fas fa-hard-hat"></i>
-                <div class="title">Worker Types</div>
+                <i class="fas fa-layer-group"></i>
+                <div class="title">Classifications and Roles</div>
             </a>
         </li>
         

@@ -1701,7 +1701,8 @@ class PayrollCalculator {
         $dayOfWeek = date('N', $date); // 1 = Monday, 7 = Sunday
         
         $weekStart = date('Y-m-d', strtotime('-' . ($dayOfWeek - 1) . ' days', $date));
-        $weekEnd = date('Y-m-d', strtotime('+' . (7 - $dayOfWeek) . ' days', $date));
+        // Company week runs Monday -> Saturday, so week end is 5 days after Monday
+        $weekEnd = date('Y-m-d', strtotime($weekStart . ' +5 days'));
         
         return [
             'start' => $weekStart,

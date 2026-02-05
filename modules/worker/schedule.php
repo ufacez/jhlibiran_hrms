@@ -54,7 +54,7 @@ try {
     
     // Get this week's attendance vs schedule
     $week_start = date('Y-m-d', strtotime('monday this week'));
-    $week_end = date('Y-m-d', strtotime('sunday this week'));
+    $week_end = date('Y-m-d', strtotime('saturday this week'));
     
     $stmt = $db->prepare("SELECT 
         COUNT(DISTINCT attendance_date) as days_present,

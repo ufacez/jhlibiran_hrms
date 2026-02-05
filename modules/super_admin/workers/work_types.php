@@ -77,18 +77,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $can_manage) {
                 $description = sanitizeString($_POST['description'] ?? '');
 
                 if (empty($work_type_code) || empty($work_type_name) || $daily_rate <= 0) {
-                    throw new Exception('Please provide valid type code, name and a daily rate');
+                    throw new Exception('Please provide valid role code, name and a daily rate');
                 }
 
                 if (!preg_match('/^[A-Z0-9_]+$/', $work_type_code)) {
-                    throw new Exception('Type code may only contain letters, numbers and underscores');
+                    throw new Exception('Role code may only contain letters, numbers and underscores');
                 }
 
                 // Ensure unique code
                 $stmt = $db->prepare("SELECT COUNT(*) FROM work_types WHERE work_type_code = ?");
                 $stmt->execute([$work_type_code]);
                 if ($stmt->fetchColumn() > 0) {
-                    throw new Exception('Type code already exists');
+                    throw new Exception('Role code already exists');
                 }
 
                 // Determine display order (append)
@@ -115,7 +115,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $can_manage) {
                 }
 
                 logActivity($db, $user_id, 'create', 'work_types', $new_id, "Added work type: $work_type_name ($work_type_code)");
-                setFlashMessage('Worker type added successfully', 'success');
+                setFlashMessage('Role added successfully', 'success');
                 break;
             case 'update_work_type':
                 $work_type_id = sanitizeInt($_POST['work_type_id'] ?? 0);
@@ -308,7 +308,7 @@ $skill_levels = ['entry' => 'Entry Level', 'skilled' => 'Skilled', 'senior' => '
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Worker Types - <?php echo SYSTEM_NAME; ?></title>
+    <title>Classifications and Roles - <?php echo SYSTEM_NAME; ?></title>
     <link rel="stylesheet" href="https://pro.fontawesome.com/releases/v5.10.0/css/all.css"/>
     <link rel="stylesheet" href="<?php echo CSS_URL; ?>/dashboard.css">
     <link rel="stylesheet" href="<?php echo CSS_URL; ?>/workers.css">
@@ -976,8 +976,8 @@ $skill_levels = ['entry' => 'Entry Level', 'skilled' => 'Skilled', 'senior' => '
                 <!-- Page Header -->
                 <div class="page-header">
                     <div class="header-left">
-                        <h1></i> Worker Types</h1>
-                        <p class="subtitle">Manage job roles and daily rates for workers</p>
+                        <h1></i> Classifications and Roles</h1>
+                        <p class="subtitle">Manage worker classifications and roles, and their daily rates</p>
                     </div>
                     <?php if ($can_manage): ?>
                     <div class="header-actions">
@@ -985,7 +985,7 @@ $skill_levels = ['entry' => 'Entry Level', 'skilled' => 'Skilled', 'senior' => '
                             <i class="fas fa-layer-group"></i> Add Classification
                         </button>
                         <button class="btn-primary" onclick="openModal('addWorkTypeModal')">
-                            <i class="fas fa-plus"></i> Add Worker Type
+                            <i class="fas fa-plus"></i> Add Role
                         </button>
                     </div>
                     <?php endif; ?>
@@ -993,8 +993,8 @@ $skill_levels = ['entry' => 'Entry Level', 'skilled' => 'Skilled', 'senior' => '
                 
                 <!-- Tabs -->
                 <div class="tabs">
-                    <button class="tab active" data-tab="work-types">
-                        <i class="fas fa-briefcase"></i> Work Types
+                    <button class="tab active" data-tab="roles">
+                        <i class="fas fa-briefcase"></i> Roles
                     </button>
                     <button class="tab" data-tab="classifications">
                         <i class="fas fa-layer-group"></i> Classifications
@@ -1184,7 +1184,7 @@ $skill_levels = ['entry' => 'Entry Level', 'skilled' => 'Skilled', 'senior' => '
     <div class="modal" id="addWorkTypeModal">
         <div class="modal-content">
             <div class="modal-header">
-                <h2><i class="fas fa-plus-circle"></i> Add Worker Type</h2>
+                <h2><i class="fas fa-plus-circle"></i> Add Role</h2>
                 <button class="modal-close" onclick="closeModal('addWorkTypeModal')">&times;</button>
             </div>
             <form method="POST" action="">
@@ -1192,10 +1192,10 @@ $skill_levels = ['entry' => 'Entry Level', 'skilled' => 'Skilled', 'senior' => '
                 <div class="modal-body">
                     <div class="form-row">
                         <div class="form-group">
-                            <label>Type Code <span class="required">*</span></label>
+                            <label>Role Code <span class="required">*</span></label>
                             <input type="text" name="work_type_code" class="form-control" placeholder="e.g., MASON" required 
-                                   pattern="[A-Za-z0-9_]+" style="text-transform: uppercase;">
-                            <p class="form-hint">Unique identifier (letters, numbers, underscores)</p>
+                                pattern="[A-Za-z0-9_]+" style="text-transform: uppercase;">
+                            <p class="form-hint">Unique identifier for this role (letters, numbers, underscores)</p>
                         </div>
                         <div class="form-group">
                             <label>Daily Rate (₱) <span class="required">*</span></label>
@@ -1205,7 +1205,7 @@ $skill_levels = ['entry' => 'Entry Level', 'skilled' => 'Skilled', 'senior' => '
                         </div>
                     </div>
                     <div class="form-group">
-                        <label>Type Name <span class="required">*</span></label>
+                        <label>Role Name <span class="required">*</span></label>
                         <input type="text" name="work_type_name" class="form-control" placeholder="e.g., Mason" required>
                     </div>
                     <div class="form-group">
@@ -1222,12 +1222,12 @@ $skill_levels = ['entry' => 'Entry Level', 'skilled' => 'Skilled', 'senior' => '
                     </div>
                     <div class="form-group">
                         <label>Description</label>
-                        <textarea name="description" class="form-control" rows="2" placeholder="Brief description of this work type"></textarea>
+                        <textarea name="description" class="form-control" rows="2" placeholder="Brief description of this role (e.g., tasks, skills, or responsibilities)"></textarea>
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn-cancel" onclick="closeModal('addWorkTypeModal')">Cancel</button>
-                    <button type="submit" class="btn-submit">Add Worker Type</button>
+                    <button type="submit" class="btn-submit">Add Role</button>
                 </div>
             </form>
         </div>
@@ -1237,7 +1237,7 @@ $skill_levels = ['entry' => 'Entry Level', 'skilled' => 'Skilled', 'senior' => '
     <div class="modal" id="editWorkTypeModal">
         <div class="modal-content">
             <div class="modal-header">
-                <h2><i class="fas fa-edit"></i> Edit Worker Type</h2>
+                <h2><i class="fas fa-edit"></i> Edit Role</h2>
                 <button class="modal-close" onclick="closeModal('editWorkTypeModal')">&times;</button>
             </div>
             <form method="POST" action="">
@@ -1246,9 +1246,9 @@ $skill_levels = ['entry' => 'Entry Level', 'skilled' => 'Skilled', 'senior' => '
                 <div class="modal-body">
                     <div class="form-row">
                         <div class="form-group">
-                            <label>Type Code</label>
+                            <label>Role Code</label>
                             <input type="text" id="edit_work_type_code" class="form-control" disabled 
-                                   style="background: #f5f5f5; cursor: not-allowed;">
+                                style="background: #f5f5f5; cursor: not-allowed;">
                         </div>
                         <div class="form-group">
                             <label>Daily Rate (₱) <span class="required">*</span></label>
@@ -1258,7 +1258,7 @@ $skill_levels = ['entry' => 'Entry Level', 'skilled' => 'Skilled', 'senior' => '
                         </div>
                     </div>
                     <div class="form-group">
-                        <label>Type Name <span class="required">*</span></label>
+                        <label>Role Name <span class="required">*</span></label>
                         <input type="text" name="work_type_name" id="edit_work_type_name" class="form-control" required>
                     </div>
                     <div class="form-group">
@@ -1274,7 +1274,7 @@ $skill_levels = ['entry' => 'Entry Level', 'skilled' => 'Skilled', 'senior' => '
                     </div>
                     <div class="form-group">
                         <label>Description</label>
-                        <textarea name="description" id="edit_description" class="form-control" rows="2"></textarea>
+                        <textarea name="description" id="edit_description" class="form-control" rows="2" placeholder="Brief description of this role (e.g., tasks, skills, or responsibilities)"></textarea>
                     </div>
                     <div class="form-group">
                         <label class="checkbox-wrapper">

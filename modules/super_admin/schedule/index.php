@@ -331,7 +331,7 @@ try {
                 <form method="GET" action="" id="filterForm">
                     <div class="filter-row">
                         <div class="filter-group">
-                            <select name="worker">
+                            <select name="worker" onchange="this.form.submit()">
                                 <option value="">All Workers</option>
                                 <?php foreach ($allWorkers as $w): ?>
                                 <option value="<?php echo $w['worker_id']; ?>" <?php echo $worker_filter == $w['worker_id'] ? 'selected' : ''; ?>>
@@ -342,16 +342,14 @@ try {
                         </div>
 
                         <div class="filter-group">
-                            <select name="status">
+                            <select name="status" onchange="this.form.submit()">
                                 <option value="all"      <?php echo $status_filter === 'all'      ? 'selected' : ''; ?>>All Schedules</option>
                                 <option value="active"   <?php echo $status_filter === 'active'   ? 'selected' : ''; ?>>Active Only</option>
                                 <option value="inactive" <?php echo $status_filter === 'inactive' ? 'selected' : ''; ?>>Inactive Only</option>
                             </select>
                         </div>
 
-                        <button type="submit" class="btn-filter">
-                            <i class="fas fa-filter"></i> Apply
-                        </button>
+                        <!-- Removed Apply button: filtering is now automatic on change -->
                     </div>
                 </form>
             </div>

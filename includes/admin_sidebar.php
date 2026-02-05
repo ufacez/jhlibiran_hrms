@@ -490,6 +490,21 @@ $module_path = '/modules/super_admin';
         </li>
         <?php endif; ?>
         
+        <!-- ANALYTICS & REPORTS -->
+        <?php if ($permissions['can_view_reports']): ?>
+        <div class="menu-separator"></div>
+        <div class="menu-category">
+            <i class="fas fa-chart-line"></i> Analytics
+        </div>
+        <li>
+            <a href="<?php echo BASE_URL . $module_path; ?>/analytics/index.php"
+               class="<?php echo ($current_dir === 'analytics') ? 'active' : ''; ?>">
+                <i class="fas fa-chart-pie"></i>
+                <div class="title">Analytics & Reports</div>
+            </a>
+        </li>
+        <?php endif; ?>
+        
         <!-- SYSTEM SECTION (only if has permission) -->
         <?php if ($permissions['can_access_settings'] || $permissions['can_access_audit'] || $permissions['can_access_archive']): ?>
         <div class="menu-separator"></div>

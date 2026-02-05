@@ -1,0 +1,130 @@
+/* Analytics page styles */
+
+/* Analytics page improved styles */
+.analytics-container {
+    background: #f4f6fa;
+    min-height: 100vh;
+}
+.analytics-main {
+    margin-left: 320px;
+    padding: 32px 24px 24px 24px;
+    max-width: 1200px;
+}
+.analytics-title {
+    font-size: 2.2rem;
+    font-weight: 700;
+    color: #222;
+    margin-bottom: 18px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.analytics-cards {
+    display: flex;
+    gap: 18px;
+    margin-top: 10px;
+    flex-wrap: wrap;
+}
+.analytics-cards .card {
+    background: #fff;
+    border-radius: 12px;
+    padding: 22px 28px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+    min-width: 180px;
+    flex: 1;
+    max-width: 220px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    transition: box-shadow 0.2s;
+}
+.analytics-cards .card:hover {
+    box-shadow: 0 4px 18px rgba(52,152,219,0.13);
+}
+.analytics-cards .card .card-title {
+    font-size: 13px;
+    color: #888;
+    font-weight: 600;
+    margin-bottom: 6px;
+}
+.analytics-cards .card .card-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #222;
+}
+.analytics-charts {
+    margin-top: 32px;
+}
+.charts-title {
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: #444;
+    margin-bottom: 18px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.charts-grid {
+    display: flex;
+    gap: 32px;
+    flex-wrap: wrap;
+}
+.chart-card {
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+    padding: 24px 18px 18px 18px;
+    min-width: 320px;
+    flex: 1;
+    max-width: 600px;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+}
+.chart-label {
+    font-size: 14px;
+    color: #555;
+    font-weight: 600;
+    margin-bottom: 10px;
+}
+.analytics-reports {
+    margin-top: 36px;
+}
+.reports-title {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: #444;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.flash.success {
+    background: #e6ffed;
+    padding: 10px;
+    border-left: 4px solid #28a745;
+    margin-bottom: 12px;
+}
+.flash.error {
+    background: #ffecec;
+    padding: 10px;
+    border-left: 4px solid #d9534f;
+    margin-bottom: 12px;
+}
+@media (max-width: 900px) {
+    .analytics-main {
+        margin-left: 0;
+        padding: 16px 6px;
+    }
+    .charts-grid {
+        flex-direction: column;
+        gap: 18px;
+    }
+    .chart-card {
+        min-width: 0;
+        max-width: 100%;
+    }
+    .analytics-cards {
+        gap: 10px;
+    }
+}
