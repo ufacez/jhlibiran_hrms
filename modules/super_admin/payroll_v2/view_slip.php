@@ -215,9 +215,6 @@ try {
                           if (!empty($record['work_type_name'])) {
                             echo '<span class="badge">' . htmlspecialchars($record['work_type_name']) . '</span>';
                           }
-                          if (!empty($record['position'])) {
-                            echo '<span class="badge">' . htmlspecialchars($record['position']) . '</span>';
-                          }
                     ?>
                   </div>
                 </div>

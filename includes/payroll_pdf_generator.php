@@ -241,7 +241,7 @@ class PayrollPDFGenerator {
             define('PDF_PAGE_UNIT', 'mm');
         }
 
-        // Create A4 landscape with tight margins so content fits on one page
+        // Create A4 landscape with even tighter margins and smaller font/cell height for single-page fit
         $this->pdf = new TCPDF('L', PDF_PAGE_UNIT, 'A4', true, 'UTF-8', false);
         $this->pdfAvailable = true;
 
@@ -250,17 +250,17 @@ class PayrollPDFGenerator {
         $this->pdf->SetAuthor('TrackSite Construction Management');
         $this->pdf->SetTitle('Payroll Slip');
 
-        // Tighter margins and smaller auto page break to maximize printable area
+        // Even tighter margins and smaller auto page break to maximize printable area
         $this->pdf->setPrintHeader(false);
         $this->pdf->setPrintFooter(false);
-        $this->pdf->SetMargins(6, 6, 6);
-        $this->pdf->SetAutoPageBreak(true, 6);
-        $this->pdf->setCellHeightRatio(1.0);
-        $this->pdf->setImageScale(1.0);
+        $this->pdf->SetMargins(4, 4, 4); // was 6mm, now 4mm
+        $this->pdf->SetAutoPageBreak(true, 4); // was 6mm, now 4mm
+        $this->pdf->setCellHeightRatio(0.85); // was 1.0, now 0.85
+        $this->pdf->setImageScale(0.95); // slightly smaller images if any
 
-        // Add compact page and default smaller font (use DejaVu Sans for system-like rendering)
+        // Add compact page and smaller font (use DejaVu Sans for system-like rendering)
         $this->pdf->AddPage();
-        $this->pdf->SetFont('dejavusans', '', 9);
+        $this->pdf->SetFont('dejavusans', '', 8); // was 9, now 8
     }
     
     /**
@@ -286,46 +286,46 @@ class PayrollPDFGenerator {
         }
         
         // Company header (compact)
-        $this->pdf->SetFont('dejavusans', 'B', 12);
-        $this->pdf->Cell(0, 7, $this->companyName, 0, 1, 'C');
+        $this->pdf->SetFont('dejavusans', 'B', 10); // was 12
+        $this->pdf->Cell(0, 6, $this->companyName, 0, 1, 'C'); // was 7
 
-        $this->pdf->SetFont('dejavusans', '', 8);
+        $this->pdf->SetFont('dejavusans', '', 7); // was 8
         if (!empty($this->companyAddress)) {
-            $this->pdf->Cell(0, 6, $this->companyAddress, 0, 1, 'C');
+            $this->pdf->Cell(0, 5, $this->companyAddress, 0, 1, 'C'); // was 6
         }
-        $this->pdf->SetFont('dejavusans', 'B', 11);
-        $this->pdf->Cell(0, 6, 'PAYROLL SLIP', 0, 1, 'C');
+        $this->pdf->SetFont('dejavusans', 'B', 9); // was 11
+        $this->pdf->Cell(0, 5, 'PAYROLL SLIP', 0, 1, 'C'); // was 6
 
         // Period info (compact)
-        $this->pdf->SetFont('dejavusans', 'B', 9);
-        $this->pdf->Cell(60, 5, 'Period:', 0, 0, 'L');
-        $this->pdf->SetFont('dejavusans', '', 9);
-        $periodStr = date('F d, Y', strtotime($period['period_start'])) . ' - ' . date('F d, Y', strtotime($period['period_end']));
-        $this->pdf->Cell(0, 5, $periodStr, 0, 1, 'L');
+        $this->pdf->SetFont('dejavusans', 'B', 8); // was 9
+        $this->pdf->Cell(50, 4, 'Period:', 0, 0, 'L'); // was 60,5
+        $this->pdf->SetFont('dejavusans', '', 8); // was 9
+        $periodStr = date('M d, Y', strtotime($period['period_start'])) . ' - ' . date('M d, Y', strtotime($period['period_end']));
+        $this->pdf->Cell(0, 4, $periodStr, 0, 1, 'L'); // was 5
 
         // Employee info (single line compact)
-        $this->pdf->SetFont('dejavusans', 'B', 9);
-        $this->pdf->Cell(40, 5, "Employee:", 0, 0, 'L');
-        $this->pdf->SetFont('dejavusans', '', 9);
+        $this->pdf->SetFont('dejavusans', 'B', 8); // was 9
+        $this->pdf->Cell(35, 4, "Employee:", 0, 0, 'L'); // was 40,5
+        $this->pdf->SetFont('dejavusans', '', 8); // was 9
         $empName = $worker['first_name'] . ' ' . $worker['last_name'];
-        $this->pdf->Cell(0, 5, $empName . '  |  ' . ($worker['position'] ?? '') . '  |  ID: ' . ($worker['worker_code'] ?? ''), 0, 1, 'L');
+        $this->pdf->Cell(0, 4, $empName . ' | ' . ($worker['position'] ?? '') . ' | ID: ' . ($worker['worker_code'] ?? ''), 0, 1, 'L'); // was 5
 
-        $this->pdf->Ln(2);
+        // No extra blank line
 
         // Work Hours Summary (compact cells)
-        $this->pdf->SetFont('dejavusans', 'B', 9);
+        $this->pdf->SetFont('dejavusans', 'B', 8); // was 9
         $this->pdf->SetFillColor(240, 240, 240);
-        $this->pdf->Cell(50, 5, 'Regular Hrs', 1, 0, 'C', true);
-        $this->pdf->Cell(50, 5, 'OT Hrs', 1, 0, 'C', true);
-        $this->pdf->Cell(0, 5, 'Total Hrs', 1, 1, 'C', true);
+        $this->pdf->Cell(40, 4, 'Regular Hrs', 1, 0, 'C', true); // was 50,5
+        $this->pdf->Cell(40, 4, 'OT Hrs', 1, 0, 'C', true); // was 50,5
+        $this->pdf->Cell(0, 4, 'Total Hrs', 1, 1, 'C', true); // was 5
 
-        $this->pdf->SetFont('dejavusans', '', 9);
+        $this->pdf->SetFont('dejavusans', '', 8); // was 9
         $totalHours = $period['total_hours'] ?? ($record['regular_hours'] + $record['overtime_hours'] + $record['night_diff_hours'] + $record['rest_day_hours'] + $record['regular_holiday_hours'] + $record['special_holiday_hours']);
-        $this->pdf->Cell(50, 5, number_format($record['regular_hours'], 2), 1, 0, 'C');
-        $this->pdf->Cell(50, 5, number_format($record['overtime_hours'], 2), 1, 0, 'C');
-        $this->pdf->Cell(0, 5, number_format($totalHours, 2), 1, 1, 'C');
+        $this->pdf->Cell(40, 4, number_format($record['regular_hours'], 2), 1, 0, 'C');
+        $this->pdf->Cell(40, 4, number_format($record['overtime_hours'], 2), 1, 0, 'C');
+        $this->pdf->Cell(0, 4, number_format($totalHours, 2), 1, 1, 'C');
 
-        $this->pdf->Ln(2);
+        // No extra blank line
     }
     
     /**
