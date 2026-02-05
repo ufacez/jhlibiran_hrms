@@ -326,9 +326,9 @@ try {
                                 </select>
                             </div>
                             <div class="filter-group">
-                                <label style="font-size:11px;font-weight:600;color:#666;letter-spacing:0.5px;text-transform:uppercase;margin-bottom:6px;">Work Type</label>
+                                <label style="font-size:11px;font-weight:600;color:#666;letter-spacing:0.5px;text-transform:uppercase;margin-bottom:6px;">Role</label>
                                 <select name="work_type" id="workTypeFilter" onchange="submitFilter()">
-                                    <option value="">All Work Types</option>
+                                    <option value="">All Roles</option>
                                     <?php foreach ($work_types as $wt): ?>
                                         <option value="<?php echo $wt['work_type_id']; ?>" <?php echo $work_type_filter == $wt['work_type_id'] ? 'selected' : ''; ?>>
                                             <?php echo htmlspecialchars($wt['work_type_name']); ?>
@@ -350,16 +350,17 @@ try {
                             
                             <div class="filter-group">
                                 <label style="font-size:11px;font-weight:600;color:#666;letter-spacing:0.5px;text-transform:uppercase;margin-bottom:6px;">Experience</label>
-                                <select name="experience" id="experienceFilter" onchange="submitFilter()">
-                                    <option value="">All Tenure</option>
-                                    <option value="0-1" <?php echo $experience_filter === '0-1' ? 'selected' : ''; ?>>0-1 years</option>
-                                    <option value="1-3" <?php echo $experience_filter === '1-3' ? 'selected' : ''; ?>>1-3 years</option>
-                                    <option value="3-5" <?php echo $experience_filter === '3-5' ? 'selected' : ''; ?>>3-5 years</option>
-                                    <option value="5+" <?php echo $experience_filter === '5+' ? 'selected' : ''; ?>>5+ years</option>
-                                </select>
+                                <div style="display:flex;align-items:end;gap:8px;">
+                                    <select name="experience" id="experienceFilter">
+                                        <option value="">All Tenure</option>
+                                        <option value="0-1" <?php echo $experience_filter === '0-1' ? 'selected' : ''; ?>>0-1 years</option>
+                                        <option value="1-3" <?php echo $experience_filter === '1-3' ? 'selected' : ''; ?>>1-3 years</option>
+                                        <option value="3-5" <?php echo $experience_filter === '3-5' ? 'selected' : ''; ?>>3-5 years</option>
+                                        <option value="5+" <?php echo $experience_filter === '5+' ? 'selected' : ''; ?>>5+ years</option>
+                                    </select>
+                                    <button type="submit" class="btn btn-primary" style="height:36px;padding:0 18px;font-size:14px;">Apply</button>
+                                </div>
                             </div>
-                            
-                            <!-- Removed Apply button: filtering is now automatic on change -->
                         </div>
                     </form>
                 </div>
@@ -376,7 +377,7 @@ try {
                                 <tr>
                                     <th>Worker</th>
                                     <th>Classification</th>
-                                    <th>Work Type</th>
+                                    <th>Role</th>
                                     <th>Contact</th>
                                     <th>Tenure</th>
                                     <th>Daily Rate</th>

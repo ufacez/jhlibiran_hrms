@@ -165,9 +165,9 @@ try {
                                 </select>
                             </div>
                             <div class="filter-group">
-                                <label>Work Type</label>
-                                <select name="work_type" id="workTypeFilter" onchange="document.getElementById('filterForm').submit()">
-                                    <option value="">All Work Types</option>
+                                <label>Role</label>
+                                <select name="work_type" id="workTypeFilter">
+                                    <option value="">All Roles</option>
                                     <?php foreach ($work_types as $wt): ?>
                                         <option value="<?php echo $wt['work_type_id']; ?>" <?php echo $work_type_filter == $wt['work_type_id'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($wt['work_type_name']); ?></option>
                                     <?php endforeach; ?>
@@ -187,10 +187,11 @@ try {
                             
                             <div class="filter-group">
                                 <label>Date Range</label>
-                                <input type="date" name="date" id="dateFilter" value="<?php echo htmlspecialchars($date_filter); ?>" onchange="document.getElementById('filterForm').submit()">
+                                <div style="display:flex;align-items:end;gap:8px;">
+                                    <input type="date" name="date" id="dateFilter" value="<?php echo htmlspecialchars($date_filter); ?>">
+                                    <button type="submit" class="btn btn-primary" style="height:36px;padding:0 18px;font-size:14px;">Apply</button>
+                                </div>
                             </div>
-                            
-                            <!-- Removed Apply button: filtering is now automatic on change -->
                             <?php if (!empty($position_filter) || !empty($status_filter) || $date_filter !== date('Y-m-d')): ?>
                             <button type="button" 
                                     class="btn btn-secondary" 
@@ -219,7 +220,7 @@ try {
                                 <tr>
                                     <th>Worker</th>
                                     <th>Classification</th>
-                                    <th>Work Type</th>
+                                    <th>Role</th>
                                     <th>Time In</th>
                                     <th>Time Out</th>
                                     <th>Hours Worked</th>
