@@ -901,9 +901,9 @@ $pageTitle = 'Payroll Management';
                                         </select>
                                     </div>
                                     <div style="flex:1; display:flex; flex-direction:column;">
-                                        <span style="font-size:11px; color:#888; letter-spacing:1px; margin-bottom:2px;">WORK TYPE</span>
+                                        <span style="font-size:11px; color:#888; letter-spacing:1px; margin-bottom:2px;">Role</span>
                                         <select id="filterWorkType" style="width:100%;padding:8px 12px; border:1.5px solid #e0e0e0; border-radius:7px; font-size:15px; background:#fafbfc;">
-                                            <option value="">All Work Types</option>
+                                            <option value="">All Roles</option>
                                             <?php foreach ($workTypes as $t): ?>
                                                 <option value="<?php echo htmlspecialchars($t['work_type_name']); ?>"><?php echo htmlspecialchars($t['work_type_name']); ?></option>
                                             <?php endforeach; ?>
@@ -926,9 +926,8 @@ $pageTitle = 'Payroll Management';
                                                     <span class="worker-ref" style="color:#888; font-size:12px; margin-left:6px;">
                                                         <?php
                                                             $refs = [];
-                                                            if (!empty($worker['work_type_name']) && strtolower($worker['work_type_name']) !== 'trainee') $refs[] = htmlspecialchars($worker['work_type_name']);
                                                             if (!empty($worker['classification_name']) && strtolower($worker['classification_name']) !== 'trainee') $refs[] = htmlspecialchars($worker['classification_name']);
-                                                            $refs = array_filter($refs, function($val) { return strtolower(trim($val)) !== 'trainee'; });
+                                                            if (!empty($worker['work_type_name']) && strtolower($worker['work_type_name']) !== 'trainee') $refs[] = htmlspecialchars($worker['work_type_name']);
                                                             echo implode(' | ', $refs);
                                                         ?>
                                                     </span>

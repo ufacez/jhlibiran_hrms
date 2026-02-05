@@ -31,17 +31,19 @@ $canMarkPaid = ($userLevel === 'super_admin') || hasPermission($db, 'can_mark_pa
 $filter_worker = $_GET['worker'] ?? '';
 $filter_period = $_GET['period'] ?? '';
 $filter_status = $_GET['status'] ?? '';
+$filter_classification = $_GET['classification'] ?? '';
+$filter_role = $_GET['role'] ?? '';
 
 // Build query
 $query = "
-    SELECT pr.record_id, pr.period_id, pr.worker_id, pr.gross_pay, pr.net_pay, 
-           pr.total_deductions, pr.status, pr.payment_date,
-           p.period_start, p.period_end,
-           w.worker_id, w.first_name, w.last_name, w.worker_code, w.position
-    FROM payroll_records pr
-    JOIN payroll_periods p ON pr.period_id = p.period_id
-    JOIN workers w ON pr.worker_id = w.worker_id
-    WHERE 1=1
+        SELECT pr.record_id, pr.period_id, pr.worker_id, pr.gross_pay, pr.net_pay, 
+            pr.total_deductions, pr.status, pr.payment_date,
+            p.period_start, p.period_end,
+            w.worker_id, w.first_name, w.last_name, w.worker_code, w.position, w.worker_type, w.classification_id
+        FROM payroll_records pr
+        JOIN payroll_periods p ON pr.period_id = p.period_id
+        JOIN workers w ON pr.worker_id = w.worker_id
+        WHERE 1=1
 ";
 
 $params = [];
@@ -59,6 +61,16 @@ if (!empty($filter_period)) {
 if (!empty($filter_status)) {
     $query .= " AND pr.status = ?";
     $params[] = $filter_status;
+}
+
+if (!empty($filter_classification)) {
+    $query .= " AND w.classification_id = ?";
+    $params[] = $filter_classification;
+}
+
+if (!empty($filter_role)) {
+    $query .= " AND w.worker_type = ?";
+    $params[] = $filter_role;
 }
 
 $query .= " ORDER BY p.period_end DESC, w.first_name ASC";
@@ -96,6 +108,22 @@ try {
     $periods = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (Exception $e) {
     $periods = [];
+}
+
+// Get classifications for filter dropdown
+try {
+    $stmt = $pdo->query("SELECT classification_id, classification_name FROM worker_classifications WHERE is_active = 1 ORDER BY display_order, classification_name");
+    $classifications = $stmt->fetchAll(PDO::FETCH_ASSOC);
+} catch (Exception $e) {
+    $classifications = [];
+}
+
+// Get work types for role dropdown (to match payroll index)
+try {
+    $stmt = $pdo->query("SELECT work_type_name FROM work_types ORDER BY work_type_name");
+    $roles = $stmt->fetchAll(PDO::FETCH_COLUMN);
+} catch (Exception $e) {
+    $roles = [];
 }
 
 $pageTitle = 'Payroll Slips';
@@ -549,10 +577,26 @@ $pageTitle = 'Payroll Slips';
                     <select name="status" id="status">
                         <option value="">All Status</option>
                         <option value="draft" <?php echo $filter_status === 'draft' ? 'selected' : ''; ?>>Draft</option>
-                        <option value="pending" <?php echo $filter_status === 'pending' ? 'selected' : ''; ?>>Pending</option>
                         <option value="approved" <?php echo $filter_status === 'approved' ? 'selected' : ''; ?>>Approved</option>
                         <option value="paid" <?php echo $filter_status === 'paid' ? 'selected' : ''; ?>>Paid</option>
-                        <option value="cancelled" <?php echo $filter_status === 'cancelled' ? 'selected' : ''; ?>>Cancelled</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="classification">Classification</label>
+                    <select name="classification" id="classification">
+                        <option value="">All Classifications</option>
+                        <?php foreach ($classifications as $c): ?>
+                            <option value="<?php echo htmlspecialchars($c['classification_name']); ?>" <?php echo (isset($_GET['classification']) && $_GET['classification'] == $c['classification_name']) ? 'selected' : ''; ?>><?php echo htmlspecialchars($c['classification_name']); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="role">Role</label>
+                    <select name="role" id="role">
+                        <option value="">All Roles</option>
+                        <?php foreach ($roles as $role): ?>
+                            <option value="<?php echo htmlspecialchars($role); ?>" <?php echo (isset($_GET['role']) && $_GET['role'] == $role) ? 'selected' : ''; ?>><?php echo htmlspecialchars($role); ?></option>
+                        <?php endforeach; ?>
                     </select>
                 </div>
                 
