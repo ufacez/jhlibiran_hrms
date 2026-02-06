@@ -934,7 +934,7 @@ $pageTitle = 'Payroll Management';
                                                 <?php endif; ?>
                                             </div>
                                         </div>
-                                        <div class="worker-code"><?php echo $worker['worker_code']; ?></div>
+                                        <div class="worker-code"><?php  echo $worker['worker_code']; ?></div>
                                     </div>
                                     <?php endforeach; ?>
                                 </div>
