@@ -412,7 +412,7 @@ class PayrollCalculator {
      */
     public function getWorkerDeductions($workerId) {
         $stmt = $this->pdo->prepare("
-            SELECT deduction_id, deduction_type, amount, description, frequency
+            SELECT deduction_id, deduction_type, amount, description, frequency, created_at
             FROM deductions 
             WHERE worker_id = ? 
             AND is_active = 1 
@@ -836,7 +836,8 @@ class PayrollCalculator {
                 'type' => $type,
                 'amount' => $amount,
                 'description' => $d['description'],
-                'frequency' => $d['frequency']
+                'frequency' => $d['frequency'],
+                'date_applied' => $d['created_at'] ?? null
             ];
         }
         

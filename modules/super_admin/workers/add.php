@@ -105,6 +105,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
+    // Assigned project (single)
+    $assigned_project_id = intval($_POST['assigned_project'] ?? 0);
+
     // Employment history entries (multiple rows)
     $employment_history = [];
     if (isset($_POST['emp_company']) && is_array($_POST['emp_company'])) {
@@ -319,6 +322,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $eh['reason'] ?: null
                     ]);
                 }
+            }
+
+            // Assign worker to selected project
+            if ($assigned_project_id > 0) {
+                $projStmt = $db->prepare("INSERT INTO project_workers (project_id, worker_id, assigned_date, is_active) VALUES (?, ?, CURDATE(), 1)");
+                $projStmt->execute([$assigned_project_id, $worker_id]);
             }
             
             $db->commit();
@@ -1009,6 +1018,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 <input type="date" id="date_hired" name="date_hired" required
                                        value="<?php echo isset($_POST['date_hired']) ? htmlspecialchars($_POST['date_hired']) : date('Y-m-d'); ?>">
                             </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Assigned Project -->
+                    <div class="form-card">
+                        <h3 class="form-section-title">
+                            <i class="fas fa-hard-hat"></i> Assigned Project
+                        </h3>
+                        <p style="font-size:13px;color:#666;margin-bottom:15px;">Optionally assign this worker to an active project. Workers can be moved to another project later.</p>
+                        <div class="form-group">
+                            <label for="assigned_project">Select Project</label>
+                            <select id="assigned_project" name="assigned_project">
+                                <option value="0">-- No Project --</option>
+                                <?php
+                                try {
+                                    $proj_stmt = $db->query("SELECT project_id, project_name, status, location FROM projects WHERE is_archived = 0 AND status IN ('active','planning') ORDER BY project_name");
+                                    $projects_list = $proj_stmt->fetchAll(PDO::FETCH_ASSOC);
+                                    $posted_project = intval($_POST['assigned_project'] ?? 0);
+                                    foreach ($projects_list as $proj):
+                                        $sel = ($proj['project_id'] == $posted_project) ? 'selected' : '';
+                                ?>
+                                <option value="<?php echo $proj['project_id']; ?>" <?php echo $sel; ?>>
+                                    <?php echo htmlspecialchars($proj['project_name']); ?>
+                                    (<?php echo ucfirst($proj['status']); ?>)
+                                    <?php if ($proj['location']): ?> – <?php echo htmlspecialchars($proj['location']); ?><?php endif; ?>
+                                </option>
+                                <?php
+                                    endforeach;
+                                } catch (PDOException $e) {
+                                    error_log("Projects load error: " . $e->getMessage());
+                                }
+                                ?>
+                            </select>
                         </div>
                     </div>
                     

@@ -75,6 +75,16 @@ try {
         ORDER BY wt.display_order, wt.work_type_name
     ");
     $work_types = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    // Get current assigned project
+    $pstmt = $db->prepare("SELECT p.project_id FROM project_workers pw JOIN projects p ON pw.project_id = p.project_id WHERE pw.worker_id = ? AND pw.is_active = 1 AND p.is_archived = 0 ORDER BY pw.assigned_date DESC LIMIT 1");
+    $pstmt->execute([$worker_id]);
+    $current_project = $pstmt->fetch(PDO::FETCH_ASSOC);
+    $current_project_id = $current_project ? (int)$current_project['project_id'] : 0;
+
+    // Get all available projects for dropdown
+    $proj_stmt = $db->query("SELECT project_id, project_name, status, location FROM projects WHERE is_archived = 0 AND status IN ('active','planning') ORDER BY project_name");
+    $available_projects = $proj_stmt->fetchAll(PDO::FETCH_ASSOC);
     
 } catch (PDOException $e) {
     error_log("Fetch Worker Error: " . $e->getMessage());
@@ -136,6 +146,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $work_type_id = sanitizeInt($_POST['work_type_id'] ?? 0);
     $worker_type = '';
     $hourly_rate = 0;
+
+    // Assigned project (single)
+    $new_project_id = intval($_POST['assigned_project'] ?? 0);
     
     // Validate and get work type data
     if ($work_type_id > 0) {
@@ -300,7 +313,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Log activity
             logActivity($db, $user_id, 'update_worker', 'workers', $worker_id,
                        "Updated worker: $first_name $last_name");
-            
+
+            // Update assigned project
+            // Deactivate all existing project assignments
+            $deact = $db->prepare("UPDATE project_workers SET is_active = 0 WHERE worker_id = ?");
+            $deact->execute([$worker_id]);
+
+            // Assign new project if selected
+            if ($new_project_id > 0) {
+                // Check if a row already exists for this pair
+                $chk = $db->prepare("SELECT project_worker_id FROM project_workers WHERE project_id = ? AND worker_id = ?");
+                $chk->execute([$new_project_id, $worker_id]);
+                if ($chk->fetch()) {
+                    $upd = $db->prepare("UPDATE project_workers SET is_active = 1, assigned_date = CURDATE() WHERE project_id = ? AND worker_id = ?");
+                    $upd->execute([$new_project_id, $worker_id]);
+                } else {
+                    $ins = $db->prepare("INSERT INTO project_workers (project_id, worker_id, assigned_date, is_active) VALUES (?, ?, CURDATE(), 1)");
+                    $ins->execute([$new_project_id, $worker_id]);
+                }
+            }
+
             $db->commit();
             setFlashMessage('Worker updated successfully', 'success');
             redirect(BASE_URL . '/modules/super_admin/workers/index.php');
@@ -955,6 +987,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     <option value="on_leave" <?php echo $worker['employment_status'] === 'on_leave' ? 'selected' : ''; ?>>On Leave</option>
                                     <option value="blocklisted" <?php echo $worker['employment_status'] === 'blocklisted' ? 'selected' : ''; ?>>Blocklisted</option>
                                     <option value="terminated" <?php echo $worker['employment_status'] === 'terminated' ? 'selected' : ''; ?>>Terminated</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Assigned Project -->
+                    <div class="form-card">
+                        <h3><i class="fas fa-hard-hat"></i> Assigned Project</h3>
+                        <p style="font-size:13px;color:#666;margin-bottom:15px;">Assign this worker to a project. Workers can only be assigned to one project at a time.</p>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="assigned_project">Select Project</label>
+                                <?php $sel_proj = isset($_POST['assigned_project']) ? intval($_POST['assigned_project']) : $current_project_id; ?>
+                                <select id="assigned_project" name="assigned_project">
+                                    <option value="0">-- No Project --</option>
+                                    <?php foreach ($available_projects as $proj): 
+                                        $sel = ($proj['project_id'] == $sel_proj) ? 'selected' : '';
+                                    ?>
+                                    <option value="<?php echo $proj['project_id']; ?>" <?php echo $sel; ?>>
+                                        <?php echo htmlspecialchars($proj['project_name']); ?>
+                                        (<?php echo ucfirst($proj['status']); ?>)
+                                        <?php if ($proj['location']): ?> – <?php echo htmlspecialchars($proj['location']); ?><?php endif; ?>
+                                    </option>
+                                    <?php endforeach; ?>
                                 </select>
                             </div>
                         </div>

@@ -326,6 +326,15 @@ if (!isset($db) || !$db) {
                 <div class="title">Classifications and Roles</div>
             </a>
         </li>
+
+        <!-- Projects -->
+        <li>
+            <a href="<?php echo BASE_URL; ?>/modules/super_admin/projects/index.php"
+               class="<?php echo ($current_dir === 'projects') ? 'active' : ''; ?>">
+                <i class="fas fa-hard-hat"></i>
+                <div class="title">Projects</div>
+            </a>
+        </li>
         
         <!-- Attendance -->
         <li>
@@ -344,6 +353,7 @@ if (!isset($db) || !$db) {
                 <div class="title">Schedule</div>
             </a>
         </li>
+        
         
         <div class="menu-separator"></div>
         
@@ -371,6 +381,15 @@ if (!isset($db) || !$db) {
             </a>
         </li>
         <?php endif; ?>
+
+        <!-- Deductions -->
+        <li>
+            <a href="<?php echo BASE_URL; ?>/modules/super_admin/deductions/index.php"
+               class="<?php echo ($current_dir === 'deductions') ? 'active' : ''; ?>">
+                <i class="fas fa-file-invoice-dollar"></i>
+                <div class="title">Deductions</div>
+            </a>
+        </li>
         
         <!-- Payroll Settings (show only if allowed) -->
         <?php if (getCurrentUserLevel() === 'super_admin' || (function_exists('hasPermission') && (hasPermission($db, 'can_view_payroll_settings') || hasPermission($db, 'can_edit_payroll_settings')))): ?>

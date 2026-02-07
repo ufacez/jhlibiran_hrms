@@ -388,6 +388,15 @@ $module_path = '/modules/super_admin';
         </li>
         <?php endif; ?>
         
+        <!-- Projects -->
+        <li>
+            <a href="<?php echo BASE_URL . $module_path; ?>/projects/index.php"
+               class="<?php echo ($current_dir === 'projects') ? 'active' : ''; ?>">
+                <i class="fas fa-hard-hat"></i>
+                <div class="title">Projects</div>
+            </a>
+        </li>
+        
         <div class="menu-separator"></div>
         
         <!-- PAYROLL MANAGEMENT SECTION -->
@@ -413,6 +422,17 @@ $module_path = '/modules/super_admin';
                 <div class="title">Payroll Slips</div>
             </a>
         </li>
+        
+        <!-- Deductions -->
+        <?php if ($permissions['can_view_deductions']): ?>
+        <li>
+            <a href="<?php echo BASE_URL; ?>/modules/super_admin/deductions/index.php"
+               class="<?php echo ($current_dir === 'deductions') ? 'active' : ''; ?>">
+                <i class="fas fa-file-invoice-dollar"></i>
+                <div class="title">Deductions</div>
+            </a>
+        </li>
+        <?php endif; ?>
         
         <!-- Payroll Settings (Super Admin Only) -->
         <?php if ($is_super_admin): ?>

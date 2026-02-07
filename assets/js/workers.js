@@ -209,7 +209,6 @@ function renderEmploymentHistory(history) {
         </div>
     `;
 }
-}
 
 /**
  * Show modal

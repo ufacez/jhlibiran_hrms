@@ -69,6 +69,15 @@ if ($action === 'view' && isset($_GET['id'])) {
             } catch (PDOException $he) {
                 $worker['employment_history'] = [];
             }
+
+            // Fetch assigned project (single – most recent active)
+            try {
+                $pstmt = $db->prepare("SELECT p.project_id, p.project_name, p.status, p.location, pw.assigned_date FROM project_workers pw JOIN projects p ON pw.project_id = p.project_id WHERE pw.worker_id = ? AND pw.is_active = 1 AND p.is_archived = 0 ORDER BY pw.assigned_date DESC LIMIT 1");
+                $pstmt->execute([$worker_id]);
+                $worker['assigned_project'] = $pstmt->fetch(PDO::FETCH_ASSOC) ?: null;
+            } catch (PDOException $pe) {
+                $worker['assigned_project'] = null;
+            }
             
             echo json_encode([
                 'success' => true,

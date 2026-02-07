@@ -112,6 +112,61 @@ $taxMonthly = $taxWeekly * 4;
 
 $totalDeductions = floatval($record['total_deductions']);
 $netPay = floatval($record['net_pay']);
+
+// Fetch itemized manual deductions for this worker that were active during this payroll
+try {
+    $deductionStmt = $pdo->prepare("
+        SELECT d.deduction_id, d.deduction_type, d.amount, d.description, d.frequency,
+               d.created_at, d.payroll_id,
+               pp.period_start AS ded_period_start, pp.period_end AS ded_period_end
+        FROM deductions d
+        LEFT JOIN payroll_periods pp ON d.payroll_id = pp.period_id
+        WHERE d.worker_id = ?
+          AND d.deduction_type NOT IN ('sss','philhealth','pagibig','tax')
+          AND d.is_active = 1
+          AND d.status = 'pending'
+          AND (d.frequency = 'per_payroll' OR d.frequency = 'one_time')
+        ORDER BY d.deduction_type, d.created_at ASC
+    ");
+    $deductionStmt->execute([$record['worker_id']]);
+    $manualDeductions = $deductionStmt->fetchAll(PDO::FETCH_ASSOC);
+} catch (Exception $e) {
+    $manualDeductions = [];
+}
+
+// Also look up deductions that may have already been applied (for historical accuracy)
+if (empty($manualDeductions)) {
+    try {
+        $deductionStmt = $pdo->prepare("
+            SELECT d.deduction_id, d.deduction_type, d.amount, d.description, d.frequency,
+                   d.created_at, d.payroll_id,
+                   pp.period_start AS ded_period_start, pp.period_end AS ded_period_end
+            FROM deductions d
+            LEFT JOIN payroll_periods pp ON d.payroll_id = pp.period_id
+            WHERE d.worker_id = ?
+              AND d.deduction_type NOT IN ('sss','philhealth','pagibig','tax')
+              AND (d.status = 'pending' OR d.status = 'applied')
+              AND d.created_at <= ?
+            ORDER BY d.deduction_type, d.created_at ASC
+        ");
+        $deductionStmt->execute([$record['worker_id'], $record['period_end'] . ' 23:59:59']);
+        $manualDeductions = $deductionStmt->fetchAll(PDO::FETCH_ASSOC);
+    } catch (Exception $e) {
+        $manualDeductions = [];
+    }
+}
+
+// Map deduction types to friendly labels
+$deductionTypeLabels = [
+    'cashadvance' => 'Cash Advance',
+    'loan' => 'Loan',
+    'uniform' => 'Uniform',
+    'tools' => 'Tools',
+    'damage' => 'Damage',
+    'absence' => 'Absence',
+    'other' => 'Other'
+];
+
 // Recompute taxable income (gross minus statutory contributions) and calculate tax using PayrollCalculator
 try {
   require_once __DIR__ . '/../../../includes/payroll_calculator.php';
@@ -351,15 +406,58 @@ try {
                 </table>
               </div>
 
-              <div style="flex:1;min-width:200px">
+              <div style="flex:1;min-width:260px">
                 <div class="table-label">Other Deductions</div>
                 <table class="compact" style="width:100%">
+                  <thead>
+                    <tr style="font-size:10px;color:#888;border-bottom:1px solid #eee">
+                      <th style="text-align:left;padding:3px 4px;font-weight:600">Type</th>
+                      <th style="text-align:left;padding:3px 4px;font-weight:600">Date Applied</th>
+                      <th style="text-align:left;padding:3px 4px;font-weight:600">Payroll Period</th>
+                      <th style="text-align:right;padding:3px 4px;font-weight:600">Amount</th>
+                    </tr>
+                  </thead>
                   <tbody>
                     <?php
-                      $other = floatval($totalDeductions) - (floatval($sssWeekly) + floatval($philhealthWeekly) + floatval($pagibigWeekly) + floatval($taxWeekly));
-                      if ($other < 0) $other = 0.00;
+                      $otherTotal = 0;
+                      if (!empty($manualDeductions)):
+                        foreach ($manualDeductions as $md):
+                          $mdAmount = floatval($md['amount']);
+                          $otherTotal += $mdAmount;
+                          $mdLabel = $deductionTypeLabels[$md['deduction_type']] ?? ucfirst($md['deduction_type']);
+                          if (!empty($md['description'])) {
+                              $mdLabel .= ' <span style="color:#888;font-size:10px">(' . htmlspecialchars(mb_strimwidth($md['description'], 0, 25, '...')) . ')</span>';
+                          }
+                          $dateApplied = !empty($md['created_at']) ? date('M d, Y', strtotime($md['created_at'])) : '-';
+                          $periodText = '-';
+                          if (!empty($md['ded_period_start']) && !empty($md['ded_period_end'])) {
+                              $periodText = date('M d', strtotime($md['ded_period_start'])) . ' - ' . date('M d, Y', strtotime($md['ded_period_end']));
+                          } elseif (!empty($record['period_start']) && !empty($record['period_end'])) {
+                              $periodText = date('M d', strtotime($record['period_start'])) . ' - ' . date('M d, Y', strtotime($record['period_end']));
+                          }
                     ?>
-                    <tr><td>Other</td><td class="right">-₱<?php echo number_format($other,2); ?></td></tr>
+                    <tr>
+                      <td style="padding:4px"><?php echo $mdLabel; ?></td>
+                      <td style="padding:4px;font-size:11px;color:#555"><?php echo $dateApplied; ?></td>
+                      <td style="padding:4px;font-size:11px;color:#555"><?php echo $periodText; ?></td>
+                      <td class="right" style="padding:4px">-₱<?php echo number_format($mdAmount,2); ?></td>
+                    </tr>
+                    <?php
+                        endforeach;
+                      else:
+                        // Fallback: compute from total_deductions minus statutory
+                        $otherTotal = floatval($totalDeductions) - (floatval($sssWeekly) + floatval($philhealthWeekly) + floatval($pagibigWeekly) + floatval($taxWeekly));
+                        if ($otherTotal < 0) $otherTotal = 0.00;
+                        if ($otherTotal > 0):
+                    ?>
+                    <tr><td>Other</td><td>-</td><td>-</td><td class="right">-₱<?php echo number_format($otherTotal,2); ?></td></tr>
+                    <?php
+                        endif;
+                      endif;
+                      if (empty($manualDeductions) && $otherTotal <= 0):
+                    ?>
+                    <tr><td colspan="4" style="color:#999;font-size:10px">None</td></tr>
+                    <?php endif; ?>
                   </tbody>
                 </table>
               </div>

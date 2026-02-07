@@ -665,6 +665,12 @@ try {
                                 </div>
                             </div>
                         </div>
+                        
+                        <!-- Assigned Project -->
+                        <div class="worker-detail-section">
+                            <h4><i class="fas fa-hard-hat"></i> Assigned Project</h4>
+                            ${renderAssignedProject(worker.assigned_project)}
+                        </div>
                     </div>
                 </div>
             `;
@@ -703,6 +709,25 @@ try {
             }
             
             return phone;
+        }
+        
+        // Render assigned project (single)
+        function renderAssignedProject(project) {
+            if (!project) {
+                return '<div class="detail-grid"><div class="detail-item"><span class="info-value" style="color:#888;">No project assigned.</span></div></div>';
+            }
+            const statusColors = {active:'#43A047',planning:'#1976D2',on_hold:'#F57C00',completed:'#7B1FA2',cancelled:'#c62828'};
+            const color = statusColors[project.status] || '#888';
+            const st = (project.status || '').replace(/_/g, ' ');
+            return `<div style="display:flex;flex-wrap:wrap;gap:10px;">
+                <div style="background:#f8f9fa;border-left:3px solid ${color};border-radius:8px;padding:12px 16px;flex:1;min-width:200px;">
+                    <div style="font-weight:600;font-size:14px;color:#333;margin-bottom:4px;">${project.project_name}</div>
+                    <div style="font-size:12px;color:#888;">
+                        <span style="display:inline-block;padding:2px 8px;border-radius:10px;background:${color}15;color:${color};font-weight:600;font-size:11px;text-transform:capitalize;margin-right:6px;">${st}</span>
+                        ${project.location ? '<i class="fas fa-map-marker-alt" style="color:#DAA520;margin-right:3px;"></i>' + project.location : ''}
+                    </div>
+                </div>
+            </div>`;
         }
     </script>
 </body>

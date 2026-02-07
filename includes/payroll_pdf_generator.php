@@ -419,71 +419,158 @@ class PayrollPDFGenerator {
         if (!class_exists('TCPDF')) {
             return;
         }
-        // Build three small tables (Contributions | Taxes | Other Deductions) and right-side calculation summary
+
         $this->pdf->SetFont('dejavusans', 'B', 10);
         $this->pdf->SetFillColor(247, 251, 255);
         $this->pdf->Cell(0, 6, 'DEDUCTIONS', 0, 1, 'L', true);
 
-        // Prepare values
+        // Prepare statutory values
         $sss = (float)($record['sss_contribution'] ?? 0);
         $philhealth = (float)($record['philhealth_contribution'] ?? 0);
         $pagibig = (float)($record['pagibig_contribution'] ?? 0);
         $tax = (float)($record['tax_withholding'] ?? 0);
         $totalDeductions = (float)($record['total_deductions'] ?? 0);
-        $other = (float)($record['other_deductions'] ?? 0);
-        if ($other <= 0) {
-            $computedOther = $totalDeductions - ($sss + $philhealth + $pagibig + $tax);
-            $other = $computedOther > 0 ? $computedOther : 0.00;
+
+        // Fetch itemized manual deductions with date and payroll period
+        $manualDeductions = [];
+        try {
+            $stmt = $this->pdo->prepare("
+                SELECT d.deduction_type, d.amount, d.description, d.frequency,
+                       d.created_at, d.payroll_id,
+                       pp.period_start AS ded_period_start, pp.period_end AS ded_period_end
+                FROM deductions d
+                LEFT JOIN payroll_periods pp ON d.payroll_id = pp.period_id
+                WHERE d.worker_id = ?
+                  AND d.deduction_type NOT IN ('sss','philhealth','pagibig','tax')
+                  AND d.is_active = 1
+                  AND d.status = 'pending'
+                  AND (d.frequency = 'per_payroll' OR d.frequency = 'one_time')
+                ORDER BY d.deduction_type, d.created_at ASC
+            ");
+            $stmt->execute([$record['worker_id']]);
+            $manualDeductions = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (Exception $e) {
+            try {
+                $stmt = $this->pdo->prepare("
+                    SELECT d.deduction_type, d.amount, d.description, d.frequency,
+                           d.created_at, d.payroll_id,
+                           pp.period_start AS ded_period_start, pp.period_end AS ded_period_end
+                    FROM deductions d
+                    LEFT JOIN payroll_periods pp ON d.payroll_id = pp.period_id
+                    WHERE d.worker_id = ?
+                      AND d.deduction_type NOT IN ('sss','philhealth','pagibig','tax')
+                      AND (d.status = 'pending' OR d.status = 'applied')
+                    ORDER BY d.deduction_type, d.created_at ASC
+                ");
+                $stmt->execute([$record['worker_id']]);
+                $manualDeductions = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            } catch (Exception $e2) {
+                $manualDeductions = [];
+            }
         }
 
-        // Column widths (mm) for A4 landscape with 6mm margins ~= 285mm content width
-        $w1 = 90; // Contributions
-        $w2 = 70; // Taxes
-        $w3 = 60; // Other Deductions
-        $w4 = 285 - ($w1 + $w2 + $w3); // Summary box width
+        $deductionTypeLabels = [
+            'cashadvance' => 'Cash Advance',
+            'loan' => 'Loan',
+            'uniform' => 'Uniform',
+            'tools' => 'Tools',
+            'damage' => 'Damage',
+            'absence' => 'Absence',
+            'other' => 'Other'
+        ];
 
-        // Save current X/Y
+        // --- Contributions column ---
+        $w1 = 75;
         $startX = $this->pdf->GetX();
         $startY = $this->pdf->GetY();
 
-        // Contributions box
         $this->pdf->SetFont('dejavusans', 'B', 9);
         $this->pdf->SetFillColor(245, 245, 245);
         $this->pdf->MultiCell($w1, 6, "Contributions", 1, 'L', true, 0, '', '', true, 0, false, true, 0, 'M');
         $this->pdf->Ln(0);
         $this->pdf->SetFont('dejavusans', '', 9);
         $this->pdf->MultiCell($w1, 6, "SSS\nPhilHealth\nPag-IBIG", 1, 'L', false, 0);
-        $this->pdf->MultiCell($w1, 6, "₱" . number_format($sss,2) . "\n₱" . number_format($philhealth,2) . "\n₱" . number_format($pagibig,2), 1, 'R', false, 0);
+        $this->pdf->MultiCell($w1, 6, "P" . number_format($sss,2) . "\nP" . number_format($philhealth,2) . "\nP" . number_format($pagibig,2), 1, 'R', false, 0);
 
-        // Taxes box
+        // --- Taxes column ---
+        $w2 = 55;
         $this->pdf->SetFont('dejavusans', 'B', 9);
         $this->pdf->MultiCell($w2, 6, "Taxes", 1, 'L', true, 0);
         $this->pdf->SetFont('dejavusans', '', 9);
         $this->pdf->MultiCell($w2, 6, "BIR Withholding", 1, 'L', false, 0);
-        $this->pdf->MultiCell($w2, 6, "₱" . number_format($tax,2), 1, 'R', false, 0);
+        $this->pdf->MultiCell($w2, 6, "P" . number_format($tax,2), 1, 'R', false, 0);
 
-        // Other Deductions box
-        $this->pdf->SetFont('dejavusans', 'B', 9);
-        $this->pdf->MultiCell($w3, 6, "Other Deductions", 1, 'L', true, 0);
-        $this->pdf->SetFont('dejavusans', '', 9);
-        $this->pdf->MultiCell($w3, 6, "Other", 1, 'L', false, 0);
-        $this->pdf->MultiCell($w3, 6, "-₱" . number_format($other,2), 1, 'R', false, 0);
-
-        // Move to summary column (ensure on same line)
-        $this->pdf->SetXY($startX + $w1 + $w2 + $w3, $startY);
-        $this->pdf->SetFont('dejavusans', '', 9);
-        $this->pdf->MultiCell($w4, 6, '', 0, 'L', false, 1);
-
-        // Calculation summary box
-        $this->pdf->SetX($startX + $w1 + $w2 + $w3);
+        // --- Summary column (right side) ---
+        $wSummary = 65;
+        $summaryX = 285 - $wSummary;
+        $this->pdf->SetXY($summaryX, $startY);
         $this->pdf->SetFont('dejavusans', '', 9);
         $this->pdf->SetFillColor(250,250,250);
-        $this->pdf->MultiCell($w4, 6, "Total Gross:   ₱" . number_format($record['gross_pay'],2), 1, 'L', true, 1);
-        $this->pdf->SetX($startX + $w1 + $w2 + $w3);
-        $this->pdf->MultiCell($w4, 6, "Total Deductions:   -₱" . number_format($totalDeductions,2), 1, 'L', false, 1);
-        $this->pdf->SetX($startX + $w1 + $w2 + $w3);
+        $this->pdf->MultiCell($wSummary, 6, "Total Gross:   P" . number_format($record['gross_pay'],2), 1, 'L', true, 1);
+        $this->pdf->SetX($summaryX);
+        $this->pdf->MultiCell($wSummary, 6, "Total Deductions:   -P" . number_format($totalDeductions,2), 1, 'L', false, 1);
+        $this->pdf->SetX($summaryX);
         $this->pdf->SetFont('dejavusans', 'B', 12);
-        $this->pdf->MultiCell($w4, 8, "NET PAY:   ₱" . number_format($record['net_pay'],2), 1, 'C', true, 1);
+        $this->pdf->MultiCell($wSummary, 8, "NET PAY:   P" . number_format($record['net_pay'],2), 1, 'C', true, 1);
+
+        $this->pdf->Ln(4);
+
+        // --- Other Deductions table with Type | Date Applied | Payroll Period | Amount ---
+        $this->pdf->SetFont('dejavusans', 'B', 9);
+        $this->pdf->SetFillColor(245, 245, 245);
+        $this->pdf->Cell(0, 6, 'OTHER DEDUCTIONS', 0, 1, 'L', true);
+
+        // Table header
+        $cw = [80, 50, 70, 45]; // Type, Date Applied, Payroll Period, Amount
+        $this->pdf->SetFont('dejavusans', 'B', 8);
+        $this->pdf->SetFillColor(240, 240, 240);
+        $this->pdf->Cell($cw[0], 5, 'Type', 1, 0, 'L', true);
+        $this->pdf->Cell($cw[1], 5, 'Date Applied', 1, 0, 'L', true);
+        $this->pdf->Cell($cw[2], 5, 'Payroll Period', 1, 0, 'L', true);
+        $this->pdf->Cell($cw[3], 5, 'Amount', 1, 1, 'R', true);
+
+        $this->pdf->SetFont('dejavusans', '', 8);
+        $otherTotal = 0;
+        if (!empty($manualDeductions)) {
+            foreach ($manualDeductions as $md) {
+                $mdAmount = floatval($md['amount']);
+                $otherTotal += $mdAmount;
+                $label = $deductionTypeLabels[$md['deduction_type']] ?? ucfirst($md['deduction_type']);
+                if (!empty($md['description'])) {
+                    $label .= ' - ' . mb_strimwidth($md['description'], 0, 30, '...');
+                }
+
+                $dateApplied = !empty($md['created_at']) ? date('M d, Y', strtotime($md['created_at'])) : '-';
+                $periodText = '-';
+                if (!empty($md['ded_period_start']) && !empty($md['ded_period_end'])) {
+                    $periodText = date('M d', strtotime($md['ded_period_start'])) . ' - ' . date('M d, Y', strtotime($md['ded_period_end']));
+                } elseif (!empty($record['period_start']) && !empty($record['period_end'])) {
+                    $periodText = date('M d', strtotime($record['period_start'])) . ' - ' . date('M d, Y', strtotime($record['period_end']));
+                }
+
+                $this->pdf->Cell($cw[0], 5, $label, 1, 0, 'L');
+                $this->pdf->Cell($cw[1], 5, $dateApplied, 1, 0, 'L');
+                $this->pdf->Cell($cw[2], 5, $periodText, 1, 0, 'L');
+                $this->pdf->Cell($cw[3], 5, '-P' . number_format($mdAmount, 2), 1, 1, 'R');
+            }
+        } else {
+            // Fallback: compute lump from stored total
+            $otherTotal = $totalDeductions - ($sss + $philhealth + $pagibig + $tax);
+            if ($otherTotal < 0) $otherTotal = 0;
+            if ($otherTotal > 0) {
+                $periodText = '-';
+                if (!empty($record['period_start']) && !empty($record['period_end'])) {
+                    $periodText = date('M d', strtotime($record['period_start'])) . ' - ' . date('M d, Y', strtotime($record['period_end']));
+                }
+                $this->pdf->Cell($cw[0], 5, 'Other', 1, 0, 'L');
+                $this->pdf->Cell($cw[1], 5, '-', 1, 0, 'L');
+                $this->pdf->Cell($cw[2], 5, $periodText, 1, 0, 'L');
+                $this->pdf->Cell($cw[3], 5, '-P' . number_format($otherTotal, 2), 1, 1, 'R');
+            } else {
+                $this->pdf->SetFont('dejavusans', '', 8);
+                $this->pdf->Cell(array_sum($cw), 5, 'None', 1, 1, 'C');
+            }
+        }
 
         $this->pdf->Ln(6);
     }

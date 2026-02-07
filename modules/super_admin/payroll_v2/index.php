@@ -1497,9 +1497,15 @@ $pageTitle = 'Payroll Management';
                         if (deduction.formula) {
                             deductionLabel += `<span class="formula">${deduction.formula}</span>`;
                         }
+                        // Show date applied for manual deductions (non-government)
+                        let dateInfo = '';
+                        if (deduction.date_applied && !['sss','philhealth','pagibig','tax'].includes(deduction.type)) {
+                            const appliedDate = new Date(deduction.date_applied);
+                            dateInfo = `<span class="deduction-date" style="display:block;font-size:10px;color:#888;margin-top:2px"><i class="fas fa-calendar-alt" style="margin-right:3px"></i>${appliedDate.toLocaleDateString('en-PH', {year:'numeric',month:'short',day:'numeric'})}</span>`;
+                        }
                         deductionsHtml += `
                             <div class="breakdown-row">
-                                <span class="label">${deductionLabel}</span>
+                                <span class="label">${deductionLabel}${dateInfo}</span>
                                 <span class="amount">₱${formatNum(deduction.amount)}</span>
                             </div>`;
                     });
