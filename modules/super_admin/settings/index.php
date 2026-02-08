@@ -34,15 +34,22 @@ try {
     $stmt = $db->query("SELECT COUNT(*) as total FROM workers WHERE employment_status = 'active'");
     $worker_count = $stmt->fetch()['total'];
     
-    // Recent activity logs (last 10) - FIXED QUERY
+    // Recent activity logs (last 10) - from unified audit_trail
     $stmt = $db->query("
         SELECT 
-            al.*,
-            u.username,
-            u.user_level
-        FROM activity_logs al
-        LEFT JOIN users u ON al.user_id = u.user_id
-        ORDER BY al.created_at DESC
+            at.audit_id,
+            at.user_id,
+            at.action_type AS action,
+            at.table_name,
+            at.record_id,
+            at.changes_summary AS description,
+            at.ip_address,
+            at.user_agent,
+            at.created_at,
+            at.username,
+            at.user_level
+        FROM audit_trail at
+        ORDER BY at.created_at DESC
         LIMIT 10
     ");
     $recent_logs = $stmt->fetchAll();
@@ -61,11 +68,13 @@ function getActionBadge($action) {
         'create' => ['icon' => 'plus-circle', 'color' => '#4CAF50', 'bg' => '#E8F5E9'],
         'update' => ['icon' => 'edit', 'color' => '#FF9800', 'bg' => '#FFF3E0'],
         'delete' => ['icon' => 'trash', 'color' => '#F44336', 'bg' => '#FFEBEE'],
-        'add_admin' => ['icon' => 'user-plus', 'color' => '#9C27B0', 'bg' => '#F3E5F5'],
-        'update_admin' => ['icon' => 'user-edit', 'color' => '#FF9800', 'bg' => '#FFF3E0'],
-        'delete_admin' => ['icon' => 'user-times', 'color' => '#F44336', 'bg' => '#FFEBEE'],
-        'toggle_admin_status' => ['icon' => 'toggle-on', 'color' => '#2196F3', 'bg' => '#E3F2FD'],
-        'update_admin_permissions' => ['icon' => 'key', 'color' => '#FF9800', 'bg' => '#FFF3E0'],
+        'archive' => ['icon' => 'archive', 'color' => '#795548', 'bg' => '#EFEBE9'],
+        'restore' => ['icon' => 'undo', 'color' => '#00BCD4', 'bg' => '#E0F7FA'],
+        'approve' => ['icon' => 'check-circle', 'color' => '#4CAF50', 'bg' => '#E8F5E9'],
+        'reject' => ['icon' => 'times-circle', 'color' => '#F44336', 'bg' => '#FFEBEE'],
+        'password_change' => ['icon' => 'key', 'color' => '#FF9800', 'bg' => '#FFF3E0'],
+        'status_change' => ['icon' => 'toggle-on', 'color' => '#2196F3', 'bg' => '#E3F2FD'],
+        'other' => ['icon' => 'info-circle', 'color' => '#607D8B', 'bg' => '#ECEFF1'],
     ];
     return $badges[$action] ?? ['icon' => 'info-circle', 'color' => '#607D8B', 'bg' => '#ECEFF1'];
 }
@@ -392,11 +401,11 @@ function formatActivityTime($datetime) {
                     
                     <a href="<?php echo BASE_URL; ?>/modules/super_admin/settings/activity_logs.php" class="action-card logs">
                         <div class="action-icon logs">
-                            <i class="fas fa-history"></i>
+                            <i class="fas fa-shield-alt"></i>
                         </div>
                         <div class="action-details">
-                            <h3>Activity Logs</h3>
-                            <p>View all system activity and changes</p>
+                            <h3>Audit Trail</h3>
+                            <p>View unified system audit trail</p>
                         </div>
                     </a>
                 </div>
@@ -406,7 +415,7 @@ function formatActivityTime($datetime) {
                     <div class="card-header">
                         <h2><i class="fas fa-clock"></i> Recent Activity</h2>
                         <a href="<?php echo BASE_URL; ?>/modules/super_admin/settings/activity_logs.php" class="view-all-link">
-                            View All <i class="fas fa-arrow-right"></i>
+                            View Audit Trail <i class="fas fa-arrow-right"></i>
                         </a>
                     </div>
                     

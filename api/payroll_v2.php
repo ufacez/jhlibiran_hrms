@@ -27,8 +27,10 @@ require_once __DIR__ . '/../config/settings.php';
 require_once __DIR__ . '/../config/session.php';
 require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../includes/admin_functions.php';
+require_once __DIR__ . '/../includes/functions.php';
 require_once __DIR__ . '/../includes/payroll_calculator.php';
 require_once __DIR__ . '/../includes/payroll_settings.php';
+require_once __DIR__ . '/../includes/audit_trail.php';
 
 // Helper function to check if user can edit payroll settings
 function canEditPayrollSettings($db) {
@@ -97,6 +99,11 @@ try {
     
     $calculator = new PayrollCalculator($pdo);
     $settingsManager = new PayrollSettingsManager($pdo);
+
+    // Set audit context for DB triggers
+    if (function_exists('ensureAuditContext')) {
+        ensureAuditContext($pdo);
+    }
     
 } catch (Exception $e) {
     http_response_code(500);
@@ -108,6 +115,9 @@ try {
 $method = $_SERVER['REQUEST_METHOD'];
 $action = $_GET['action'] ?? '';
 $input = json_decode(file_get_contents('php://input'), true) ?? [];
+
+// Resolve acting user for audit logging
+$currentUserId = getCurrentUserId() ?? ($input['user_id'] ?? 0);
 
 // Route handling
 try {
@@ -167,7 +177,16 @@ try {
             }
             
             $settingsManager->updateSetting($key, floatval($value), $userId);
-            
+
+            logActivity($pdo, $currentUserId, 'update_payroll_setting', 'payroll_settings', null,
+                "Updated payroll setting: {$key}");
+            logAudit($pdo, [
+                'action_type' => 'update', 'module' => 'payroll', 'table_name' => 'payroll_settings',
+                'record_identifier' => $key,
+                'new_values' => json_encode(['key' => $key, 'value' => $value]),
+                'changes_summary' => "Updated payroll setting: {$key}", 'severity' => 'medium'
+            ]);
+
             echo json_encode([
                 'success' => true,
                 'message' => 'Setting updated successfully'
@@ -193,7 +212,18 @@ try {
             }
             
             $results = $settingsManager->updateMultipleSettings($settings, $userId);
-            
+
+            $settingKeys = array_keys($settings);
+            logActivity($pdo, $currentUserId, 'update_payroll_settings', 'payroll_settings', null,
+                "Updated " . count($settingKeys) . " payroll settings");
+            logAudit($pdo, [
+                'action_type' => 'update', 'module' => 'payroll', 'table_name' => 'payroll_settings',
+                'record_identifier' => 'Bulk settings update',
+                'new_values' => json_encode($settings),
+                'changes_summary' => 'Updated ' . count($settingKeys) . ' payroll settings: ' . implode(', ', array_slice($settingKeys, 0, 5)),
+                'severity' => 'medium'
+            ]);
+
             echo json_encode([
                 'success' => true,
                 'results' => $results,
@@ -256,6 +286,16 @@ try {
                 throw new Exception('No SSS settings found. Please contact administrator.');
             }
 
+            logActivity($pdo, $currentUserId, 'update_sss_rates', 'sss_settings', null,
+                'Updated SSS contribution rates');
+            logAudit($pdo, [
+                'action_type' => 'update', 'module' => 'payroll', 'table_name' => 'sss_settings',
+                'record_identifier' => 'SSS Rates',
+                'new_values' => json_encode(['employee_rate' => $employeeRate, 'employer_rate' => $employerRate]),
+                'changes_summary' => 'Updated SSS rates: EE=' . $employeeRate . '%, ER=' . $employerRate . '%',
+                'severity' => 'high'
+            ]);
+
             echo json_encode([
                 'success' => true,
                 'message' => 'SSS rates updated successfully'
@@ -313,6 +353,16 @@ try {
             ]);
 
             $pdo->commit();
+
+            logActivity($pdo, $currentUserId, 'update_sss_settings', 'sss_settings', null,
+                'Updated SSS contribution settings');
+            logAudit($pdo, [
+                'action_type' => 'update', 'module' => 'payroll', 'table_name' => 'sss_settings',
+                'record_identifier' => 'SSS Settings',
+                'new_values' => json_encode(['effective_date' => $effectiveDate, 'employee_rate' => $employeeRate, 'employer_rate' => $employerRate]),
+                'changes_summary' => 'Updated SSS settings effective ' . $effectiveDate,
+                'severity' => 'high'
+            ]);
 
             echo json_encode([
                 'success' => true,
@@ -383,6 +433,15 @@ try {
                 }
 
                 $pdo->commit();
+
+                logActivity($pdo, $currentUserId, 'update_sss_matrix', 'sss_contribution_matrix', null,
+                    'Updated SSS contribution matrix (' . count($matrix) . ' brackets)');
+                logAudit($pdo, [
+                    'action_type' => 'update', 'module' => 'payroll', 'table_name' => 'sss_contribution_matrix',
+                    'record_identifier' => 'SSS Matrix',
+                    'changes_summary' => 'Updated ' . count($matrix) . ' SSS matrix brackets',
+                    'severity' => 'high'
+                ]);
 
                 echo json_encode([
                     'success' => true,
@@ -459,6 +518,16 @@ try {
                     $effectiveDate
                 ]);
             }
+
+            logActivity($pdo, $currentUserId, 'update_philhealth_settings', 'philhealth_settings', null,
+                'Updated PhilHealth settings');
+            logAudit($pdo, [
+                'action_type' => 'update', 'module' => 'payroll', 'table_name' => 'philhealth_settings',
+                'record_identifier' => 'PhilHealth Settings',
+                'new_values' => json_encode(['premium_rate' => $premiumRate, 'employee_share' => $employeeShare, 'employer_share' => $employerShare]),
+                'changes_summary' => 'Updated PhilHealth: ' . $premiumRate . '% (EE ' . $employeeShare . '% / ER ' . $employerShare . '%)',
+                'severity' => 'high'
+            ]);
 
             echo json_encode([
                 'success' => true,
@@ -551,6 +620,16 @@ try {
                 ]);
             }
 
+            logActivity($pdo, $currentUserId, 'update_pagibig_settings', 'pagibig_settings', null,
+                'Updated Pag-IBIG settings');
+            logAudit($pdo, [
+                'action_type' => 'update', 'module' => 'payroll', 'table_name' => 'pagibig_settings',
+                'record_identifier' => 'Pag-IBIG Settings',
+                'new_values' => json_encode(['salary_threshold' => $salaryThreshold, 'max_compensation' => $maxCompensation]),
+                'changes_summary' => 'Updated Pag-IBIG contribution settings',
+                'severity' => 'high'
+            ]);
+
             echo json_encode([
                 'success' => true,
                 'message' => 'Pag-IBIG settings saved successfully'
@@ -632,10 +711,23 @@ try {
             ");
             $stmt->execute([$name, $date, $type, $isRecurring, $recurringMonth, $recurringDay]);
             
+            $holidayId = $pdo->lastInsertId();
+
+            logActivity($pdo, $currentUserId, 'add_holiday', 'holiday_calendar', $holidayId,
+                "Added holiday: {$name} on {$date}");
+            logAudit($pdo, [
+                'action_type' => 'create', 'module' => 'payroll', 'table_name' => 'holiday_calendar',
+                'record_id' => $holidayId,
+                'record_identifier' => $name,
+                'new_values' => json_encode(['name' => $name, 'date' => $date, 'type' => $type]),
+                'changes_summary' => "Added {$type} holiday: {$name} ({$date})",
+                'severity' => 'info'
+            ]);
+
             echo json_encode([
                 'success' => true,
                 'message' => 'Holiday added successfully',
-                'holiday_id' => $pdo->lastInsertId()
+                'holiday_id' => $holidayId
             ]);
             break;
         
@@ -682,7 +774,18 @@ try {
                 WHERE holiday_id = ?
             ");
             $stmt->execute([$name, $date, $type, $isRecurring, $recurringMonth, $recurringDay, $id]);
-            
+
+            logActivity($pdo, $currentUserId, 'update_holiday', 'holiday_calendar', $id,
+                "Updated holiday: {$name}");
+            logAudit($pdo, [
+                'action_type' => 'update', 'module' => 'payroll', 'table_name' => 'holiday_calendar',
+                'record_id' => $id,
+                'record_identifier' => $name,
+                'new_values' => json_encode(['name' => $name, 'date' => $date, 'type' => $type]),
+                'changes_summary' => "Updated holiday: {$name} ({$date})",
+                'severity' => 'info'
+            ]);
+
             echo json_encode([
                 'success' => true,
                 'message' => 'Holiday updated successfully'
@@ -708,7 +811,17 @@ try {
             
             $stmt = $pdo->prepare("UPDATE holiday_calendar SET is_active = 0 WHERE holiday_id = ?");
             $stmt->execute([$id]);
-            
+
+            logActivity($pdo, $currentUserId, 'delete_holiday', 'holiday_calendar', $id,
+                "Deleted holiday #{$id}");
+            logAudit($pdo, [
+                'action_type' => 'delete', 'module' => 'payroll', 'table_name' => 'holiday_calendar',
+                'record_id' => $id,
+                'record_identifier' => "Holiday #{$id}",
+                'changes_summary' => "Deleted holiday #{$id}",
+                'severity' => 'warning'
+            ]);
+
             echo json_encode([
                 'success' => true,
                 'message' => 'Holiday deleted successfully'
@@ -800,7 +913,19 @@ try {
             
             // Save to database
             $recordId = savePayrollRecord($pdo, $periodId, $calculation, $userId, $projectId);
-            
+
+            $workerName = ($calculation['worker']['first_name'] ?? '') . ' ' . ($calculation['worker']['last_name'] ?? '');
+            logActivity($pdo, $currentUserId, 'generate_payroll', 'payroll_records', $recordId,
+                "Generated payroll for {$workerName}: ₱" . number_format($calculation['net_pay'], 2));
+            logAudit($pdo, [
+                'action_type' => 'create', 'module' => 'payroll', 'table_name' => 'payroll_records',
+                'record_id' => $recordId,
+                'record_identifier' => "{$workerName} ({$periodStart} - {$periodEnd})",
+                'new_values' => json_encode(['worker_id' => $workerId, 'period' => "{$periodStart} to {$periodEnd}", 'gross_pay' => $calculation['totals']['gross_pay'], 'net_pay' => $calculation['net_pay']]),
+                'changes_summary' => "Generated payroll for {$workerName}: ₱" . number_format($calculation['net_pay'], 2),
+                'severity' => 'high'
+            ]);
+
             echo json_encode([
                 'success' => true,
                 'record_id' => $recordId,
@@ -852,6 +977,20 @@ try {
                 }
             }
             
+            $successCount = count(array_filter($results, fn($r) => $r['success']));
+            $totalNet = array_sum(array_column(array_filter($results, fn($r) => $r['success']), 'net_pay'));
+
+            logActivity($pdo, $currentUserId, 'generate_batch_payroll', 'payroll_records', $periodId,
+                "Batch generated payroll for {$successCount}/" . count($workerIds) . " workers: ₱" . number_format($totalNet, 2));
+            logAudit($pdo, [
+                'action_type' => 'create', 'module' => 'payroll', 'table_name' => 'payroll_records',
+                'record_id' => $periodId,
+                'record_identifier' => "Batch payroll ({$periodStart} - {$periodEnd})",
+                'new_values' => json_encode(['worker_count' => $successCount, 'period' => "{$periodStart} to {$periodEnd}", 'total_net_pay' => $totalNet, 'project_id' => $projectId]),
+                'changes_summary' => "Batch generated payroll for {$successCount} workers: ₱" . number_format($totalNet, 2),
+                'severity' => 'high'
+            ]);
+
             echo json_encode([
                 'success' => true,
                 'period_id' => $periodId,
@@ -1103,6 +1242,15 @@ try {
                 }
                 
                 $pdo->commit();
+
+                logActivity($pdo, $currentUserId, 'update_tax_brackets', 'bir_tax_brackets', null,
+                    'Updated ' . count($brackets) . ' BIR tax brackets');
+                logAudit($pdo, [
+                    'action_type' => 'update', 'module' => 'payroll', 'table_name' => 'bir_tax_brackets',
+                    'record_identifier' => 'BIR Tax Brackets',
+                    'changes_summary' => 'Updated ' . count($brackets) . ' BIR tax brackets',
+                    'severity' => 'high'
+                ]);
                 
                 echo json_encode([
                     'success' => true,
@@ -1133,7 +1281,17 @@ try {
             
             $stmt = $pdo->prepare("DELETE FROM bir_tax_brackets WHERE bracket_id = ?");
             $stmt->execute([$bracketId]);
-            
+
+            logActivity($pdo, $currentUserId, 'delete_tax_bracket', 'bir_tax_brackets', $bracketId,
+                "Deleted tax bracket #{$bracketId}");
+            logAudit($pdo, [
+                'action_type' => 'delete', 'module' => 'payroll', 'table_name' => 'bir_tax_brackets',
+                'record_id' => $bracketId,
+                'record_identifier' => "Tax Bracket #{$bracketId}",
+                'changes_summary' => "Deleted tax bracket #{$bracketId}",
+                'severity' => 'warning'
+            ]);
+
             echo json_encode([
                 'success' => true,
                 'message' => 'Bracket deleted'
@@ -1202,7 +1360,34 @@ try {
                 $stmt = $pdo->prepare("UPDATE payroll_records SET status = ?, updated_at = NOW() WHERE record_id = ?");
                 $stmt->execute([$newStatus, $recordId]);
             }
-            
+
+            // Get worker info for audit
+            $recStmt = $pdo->prepare("SELECT pr.worker_id, pr.net_pay, w.first_name, w.last_name FROM payroll_records pr LEFT JOIN workers w ON pr.worker_id = w.worker_id WHERE pr.record_id = ?");
+            $recStmt->execute([$recordId]);
+            $recInfo = $recStmt->fetch(PDO::FETCH_ASSOC);
+            $wName = $recInfo ? trim($recInfo['first_name'] . ' ' . $recInfo['last_name']) : 'Unknown';
+            $netPay = $recInfo['net_pay'] ?? 0;
+
+            $actionLabel = match($newStatus) {
+                'approved' => 'approved',
+                'paid'     => 'marked as paid',
+                'cancelled'=> 'cancelled',
+                default    => 'updated to ' . $newStatus
+            };
+
+            logActivity($pdo, $currentUserId, $newStatus . '_payroll', 'payroll_records', $recordId,
+                "Payroll {$actionLabel} for {$wName}: ₱" . number_format($netPay, 2));
+            logAudit($pdo, [
+                'action_type' => ($newStatus === 'approved' ? 'approve' : ($newStatus === 'paid' ? 'status_change' : 'update')),
+                'module' => 'payroll', 'table_name' => 'payroll_records',
+                'record_id' => $recordId,
+                'record_identifier' => "{$wName} - Payroll #{$recordId}",
+                'old_values' => json_encode(['status' => $currentRecord['status']]),
+                'new_values' => json_encode(['status' => $newStatus, 'payment_date' => $paymentDate]),
+                'changes_summary' => "Payroll {$actionLabel} for {$wName}: ₱" . number_format($netPay, 2),
+                'severity' => ($newStatus === 'paid' ? 'high' : ($newStatus === 'approved' ? 'high' : 'medium'))
+            ]);
+
             echo json_encode([
                 'success' => true,
                 'message' => 'Payroll status updated to ' . ucfirst($newStatus),
@@ -1257,7 +1442,25 @@ try {
             $stmt->execute($params);
             
             $updatedCount = $stmt->rowCount();
-            
+
+            $batchActionLabel = match($newStatus) {
+                'approved' => 'approved',
+                'paid'     => 'marked as paid',
+                'cancelled'=> 'cancelled',
+                default    => 'updated to ' . $newStatus
+            };
+
+            logActivity($pdo, $currentUserId, 'batch_' . $newStatus . '_payroll', 'payroll_records', null,
+                "Batch {$batchActionLabel} {$updatedCount} payroll records");
+            logAudit($pdo, [
+                'action_type' => ($newStatus === 'approved' ? 'approve' : ($newStatus === 'paid' ? 'status_change' : 'update')),
+                'module' => 'payroll', 'table_name' => 'payroll_records',
+                'record_identifier' => "Batch status update",
+                'new_values' => json_encode(['status' => $newStatus, 'record_ids' => $recordIds, 'count' => $updatedCount]),
+                'changes_summary' => "Batch {$batchActionLabel} {$updatedCount} payroll record(s)",
+                'severity' => 'high'
+            ]);
+
             echo json_encode([
                 'success' => true,
                 'message' => $updatedCount . ' payroll record(s) updated to ' . ucfirst($newStatus),

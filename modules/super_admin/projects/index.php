@@ -32,6 +32,7 @@ $flash = getFlashMessage();
     <link rel="stylesheet" href="https://pro.fontawesome.com/releases/v5.10.0/css/all.css" />
     <link rel="stylesheet" href="<?php echo CSS_URL; ?>/dashboard.css">
     <link rel="stylesheet" href="<?php echo CSS_URL; ?>/workers.css">
+    <link rel="stylesheet" href="<?php echo CSS_URL; ?>/buttons.css">
     <style>
         .projects-content { padding: 30px; }
 
@@ -41,30 +42,30 @@ $flash = getFlashMessage();
             margin-bottom: 25px;
         }
         .header-left h1 {
-            font-size: 24px; color: #1a1a1a; font-weight: 700; margin-bottom: 0;
+            font-size: 28px; color: #1a1a1a; font-weight: 700; margin-bottom: 5px;
         }
         .header-actions { display: flex; gap: 10px; align-items: center; }
 
         .btn-outline {
-            padding: 9px 18px;
-            background: #fff;
-            color: #333; border: 1.5px solid #ddd; border-radius: 8px;
-            font-size: 13px; font-weight: 500; cursor: pointer;
-            display: inline-flex; align-items: center; gap: 6px;
-            transition: all 0.2s; text-decoration: none;
+            padding: 12px 24px;
+            background: #6c757d;
+            color: #fff; border: none; border-radius: 8px;
+            font-size: 14px; font-weight: 600; cursor: pointer;
+            display: inline-flex; align-items: center; gap: 8px;
+            transition: all 0.3s ease; text-decoration: none;
         }
-        .btn-outline:hover { border-color: #999; background: #fafafa; }
-        .btn-outline i { font-size: 12px; }
+        .btn-outline:hover { background: #5a6268; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(108, 117, 125, 0.3); }
+        .btn-outline i { font-size: 14px; }
 
         .btn-primary {
-            padding: 9px 20px;
+            padding: 12px 24px;
             background: linear-gradient(135deg, #DAA520, #B8860B);
-            color: #fff; border: none; border-radius: 8px;
-            font-size: 13px; font-weight: 600; cursor: pointer;
-            display: inline-flex; align-items: center; gap: 7px;
-            transition: all 0.2s; text-decoration: none;
+            color: #1a1a1a; border: none; border-radius: 8px;
+            font-size: 14px; font-weight: 600; cursor: pointer;
+            display: inline-flex; align-items: center; gap: 8px;
+            transition: all 0.3s ease; text-decoration: none;
         }
-        .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(218,165,32,0.3); }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(218,165,32,0.3); }
 
         /* Filter Tabs */
         .filter-bar {
@@ -84,28 +85,31 @@ $flash = getFlashMessage();
         }
         .filter-search:focus { outline: none; border-color: #DAA520; box-shadow: 0 0 0 3px rgba(218,165,32,0.1); }
 
-        /* Projects Table */
+        /* Projects Table - matches standard table design across all pages */
         .projects-table-wrap {
-            background: #fff; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+            background: #fff; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.08);
             overflow: hidden;
         }
         .projects-table {
-            width: 100%; border-collapse: collapse; font-size: 13px;
+            width: 100%; border-collapse: collapse; background: #fff;
+        }
+        .projects-table thead {
+            background: #1a1a1a;
         }
         .projects-table thead th {
-            background: #fafbfc; padding: 12px 16px; text-align: left;
-            font-size: 11px; font-weight: 600; color: #888; text-transform: uppercase;
-            letter-spacing: 0.5px; border-bottom: 1px solid #eee;
+            padding: 18px 20px; text-align: left;
+            font-size: 13px; font-weight: 600; color: #fff; text-transform: uppercase;
+            letter-spacing: 0.5px; white-space: nowrap;
         }
         .projects-table tbody tr {
-            border-bottom: 1px solid #f2f2f2; transition: background 0.15s; cursor: pointer;
+            border-bottom: 1px solid #f0f0f0; transition: all 0.3s ease; cursor: pointer;
         }
         .projects-table tbody tr:last-child { border-bottom: none; }
-        .projects-table tbody tr:hover { background: #fafbfc; }
-        .projects-table td { padding: 14px 16px; vertical-align: middle; color: #333; }
-        .projects-table td.name-cell { font-weight: 600; font-size: 14px; }
-        .projects-table td.location-cell { color: #666; font-size: 12px; }
-        .projects-table td.date-cell { font-size: 12px; color: #555; white-space: nowrap; }
+        .projects-table tbody tr:hover { background: #f8f9fa; }
+        .projects-table td { padding: 20px; vertical-align: middle; color: #333; font-size: 14px; }
+        .projects-table td.name-cell { font-weight: 600; }
+        .projects-table td.location-cell { color: #666; }
+        .projects-table td.date-cell { color: #555; white-space: nowrap; }
 
         /* Status badges */
         .status-pill {
@@ -128,16 +132,20 @@ $flash = getFlashMessage();
         .status-pill.in_progress { background: #fff8e1; color: #f57f17; }
         .status-pill.in_progress::before { background: #f57f17; }
 
-        /* Action buttons */
-        .action-group { display: flex; gap: 6px; }
-        .act-btn {
-            width: 32px; height: 32px; border-radius: 8px; border: 1px solid #e8e8e8;
-            background: #fff; cursor: pointer; display: grid; place-items: center;
-            transition: all 0.2s; color: #888; font-size: 13px;
+        /* Action buttons - standardized across all pages */
+        .projects-table .action-buttons { display: flex; gap: 8px; }
+        .projects-table .action-btn {
+            padding: 8px 12px; border: none; border-radius: 6px;
+            cursor: pointer; transition: all 0.3s ease; font-size: 14px;
+            display: inline-flex; align-items: center; justify-content: center; color: #fff;
         }
-        .act-btn:hover { background: #f5f5f5; color: #333; border-color: #ccc; }
-        .act-btn.edit:hover { color: #1976d2; border-color: #90caf9; background: #e3f2fd; }
-        .act-btn.delete:hover { color: #c62828; border-color: #ef9a9a; background: #ffebee; }
+        .projects-table .action-btn:hover { transform: translateY(-2px); opacity: 0.9; }
+        .projects-table .action-btn.btn-view { background: #17a2b8; }
+        .projects-table .action-btn.btn-view:hover { background: #138496; }
+        .projects-table .action-btn.btn-edit { background: #ffc107; color: #1a1a1a; }
+        .projects-table .action-btn.btn-edit:hover { background: #e0a800; }
+        .projects-table .action-btn.btn-delete { background: #dc3545; }
+        .projects-table .action-btn.btn-delete:hover { background: #c82333; }
 
         /* Empty State */
         .empty-state { text-align: center; padding: 60px 20px; color: #888; }
@@ -234,8 +242,8 @@ $flash = getFlashMessage();
 
         @media (max-width: 900px) {
             .form-row, .form-row-3 { grid-template-columns: 1fr; }
-            .projects-table { font-size: 12px; }
-            .projects-table thead th, .projects-table td { padding: 10px 12px; }
+            .projects-table { font-size: 13px; }
+            .projects-table thead th, .projects-table td { padding: 12px 14px; }
         }
     </style>
 </head>
@@ -265,6 +273,7 @@ $flash = getFlashMessage();
                 <div class="page-header">
                     <div class="header-left">
                         <h1>Project Management</h1>
+                        <p class="subtitle">Manage construction projects and assignments</p>
                     </div>
                     <div class="header-actions">
                         <button class="btn-outline" onclick="filterProjects(currentFilter)">
@@ -289,26 +298,31 @@ $flash = getFlashMessage();
 
                 <!-- Projects Table -->
                 <div class="projects-table-wrap">
-                    <table class="projects-table">
-                        <thead>
-                            <tr>
-                                <th>Project Name</th>
-                                <th>Location</th>
-                                <th>Start Date</th>
-                                <th>End Date</th>
-                                <th>Status</th>
-                                <th style="text-align:center;">Action</th>
-                            </tr>
-                        </thead>
-                        <tbody id="projectsTableBody">
-                            <tr>
-                                <td colspan="6" style="text-align:center;padding:40px;color:#aaa;">
-                                    <i class="fas fa-spinner fa-spin" style="font-size:20px;margin-bottom:8px;display:block;"></i>
-                                    Loading projects…
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
+                    <div class="table-info">
+                        <span id="projectsCount">Loading projects…</span>
+                    </div>
+                    <div class="table-wrapper">
+                        <table class="projects-table">
+                            <thead>
+                                <tr>
+                                    <th>Project Name</th>
+                                    <th>Location</th>
+                                    <th>Start Date</th>
+                                    <th>End Date</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="projectsTableBody">
+                                <tr>
+                                    <td colspan="6" style="text-align:center;padding:40px;color:#aaa;">
+                                        <i class="fas fa-spinner fa-spin" style="font-size:20px;margin-bottom:8px;display:block;"></i>
+                                        Loading projects…
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>

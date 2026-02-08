@@ -13,6 +13,7 @@ require_once __DIR__ . '/../config/settings.php';
 require_once __DIR__ . '/../config/session.php';
 require_once __DIR__ . '/../includes/functions.php';
 require_once __DIR__ . '/../includes/auth.php';
+require_once __DIR__ . '/../includes/audit_trail.php';
 
 // Set JSON header
 header('Content-Type: application/json');
@@ -30,6 +31,9 @@ if (!isset($db) || $db === null) {
 }
 
 $user_id = getCurrentUserId();
+
+// Set audit context for DB triggers
+ensureAuditContext($db);
 
 // Handle different actions
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -72,6 +76,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $worker_name = $schedule['first_name'] . ' ' . $schedule['last_name'];
                 logActivity($db, $user_id, 'delete_schedule', 'schedules', $schedule_id,
                            "Deleted schedule for {$worker_name} on " . ucfirst($schedule['day_of_week']));
+
+                logAudit($db, [
+                    'action_type' => 'delete',
+                    'module'      => 'schedule',
+                    'table_name'  => 'schedules',
+                    'record_id'   => $schedule_id,
+                    'record_identifier' => "{$worker_name} - " . ucfirst($schedule['day_of_week']),
+                    'old_values'  => json_encode($schedule),
+                    'changes_summary' => "Deleted schedule for {$worker_name} on " . ucfirst($schedule['day_of_week']),
+                    'severity'    => 'warning'
+                ]);
                 
                 http_response_code(200);
                 jsonSuccess('Schedule deleted successfully', [
@@ -113,6 +128,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // Log activity
                 logActivity($db, $user_id, 'update_schedule', 'schedules', $schedule_id,
                            'Updated schedule');
+
+                logAudit($db, [
+                    'action_type' => 'update',
+                    'module'      => 'schedule',
+                    'table_name'  => 'schedules',
+                    'record_id'   => $schedule_id,
+                    'new_values'  => json_encode(['start_time' => $start_time, 'end_time' => $end_time, 'is_active' => $is_active]),
+                    'changes_summary' => "Updated schedule #{$schedule_id}",
+                    'severity'    => 'info'
+                ]);
                 
                 http_response_code(200);
                 jsonSuccess('Schedule updated successfully', [
@@ -164,6 +189,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // Log activity
                 logActivity($db, $user_id, 'create_schedule', 'schedules', $schedule_id,
                            "Created schedule for worker ID: {$worker_id}");
+
+                logAudit($db, [
+                    'action_type' => 'create',
+                    'module'      => 'schedule',
+                    'table_name'  => 'schedules',
+                    'record_id'   => $schedule_id,
+                    'record_identifier' => "Worker #{$worker_id} - " . ucfirst($day_of_week),
+                    'new_values'  => json_encode(['worker_id' => $worker_id, 'day_of_week' => $day_of_week, 'start_time' => $start_time, 'end_time' => $end_time]),
+                    'changes_summary' => "Created schedule for worker #{$worker_id} on " . ucfirst($day_of_week),
+                    'severity'    => 'info'
+                ]);
                 
                 http_response_code(201);
                 jsonSuccess('Schedule created successfully', [

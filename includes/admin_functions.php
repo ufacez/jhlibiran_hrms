@@ -69,7 +69,13 @@ function getAdminPermissions($db, $user_id = null) {
             'can_access_settings' => true,
             'can_access_audit' => true,
             'can_access_archive' => true,
-            'can_manage_work_types' => true
+            'can_manage_work_types' => true,
+            // Projects
+            'can_view_projects' => true,
+            'can_manage_projects' => true,
+            // Analytics & reporting
+            'can_view_analytics' => true,
+            'can_export_reports' => true
         ];
     }
     
@@ -123,7 +129,13 @@ function getAdminPermissions($db, $user_id = null) {
                 'can_access_settings' => false,
                 'can_access_audit' => false,
                 'can_access_archive' => false,
-                'can_manage_work_types' => false
+                'can_manage_work_types' => false,
+                // Projects
+                'can_view_projects' => false,
+                'can_manage_projects' => false,
+                // Analytics & reporting
+                'can_view_analytics' => false,
+                'can_export_reports' => false
             ];
         }
         
@@ -190,7 +202,13 @@ function getAdminPermissions($db, $user_id = null) {
             'can_access_settings' => (bool)($permissions['can_access_settings'] ?? 0),
             'can_access_audit' => (bool)($permissions['can_access_audit'] ?? 0),
             'can_access_archive' => (bool)($permissions['can_access_archive'] ?? 0),
-            'can_manage_work_types' => (bool)($permissions['can_manage_work_types'] ?? 0)
+            'can_manage_work_types' => (bool)($permissions['can_manage_work_types'] ?? 0),
+            // Projects
+            'can_view_projects' => (bool)($permissions['can_view_projects'] ?? 0),
+            'can_manage_projects' => (bool)($permissions['can_manage_projects'] ?? 0),
+            // Analytics & reporting
+            'can_view_analytics' => (bool)($permissions['can_view_analytics'] ?? 0),
+            'can_export_reports' => (bool)($permissions['can_export_reports'] ?? 0)
         ];
         
     } catch (PDOException $e) {
@@ -203,7 +221,8 @@ function getAdminPermissions($db, $user_id = null) {
             'can_view_deductions', 'can_manage_deductions', 'can_view_reports', 'can_export_data',
             'can_manage_admins', 'can_view_settings', 'can_edit_settings', 'can_view_logs',
             'can_view_schedule', 'can_manage_schedule', 'can_view_cashadvance', 'can_approve_cashadvance',
-            'can_access_settings', 'can_access_audit', 'can_access_archive', 'can_manage_work_types'
+            'can_access_settings', 'can_access_audit', 'can_access_archive', 'can_manage_work_types',
+            'can_view_projects', 'can_manage_projects', 'can_view_analytics', 'can_export_reports'
         ], false);
     }
 }
@@ -433,6 +452,9 @@ function getAllAdmins($db) {
  */
 function updateAdminPermissions($db, $admin_id, $permissions) {
     try {
+        // Set audit context so the DB trigger can log who made the change
+        ensureAuditContext($db);
+
         // Check if permissions exist
         $stmt = $db->prepare("SELECT permission_id FROM admin_permissions WHERE admin_id = ?");
         $stmt->execute([$admin_id]);

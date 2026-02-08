@@ -19,6 +19,7 @@ require_once __DIR__ . '/../config/session.php';
 require_once __DIR__ . '/../includes/functions.php';
 require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../includes/attendance_calculator.php';
+require_once __DIR__ . '/../includes/audit_trail.php';
 
 // Set JSON header
 header('Content-Type: application/json');
@@ -27,6 +28,11 @@ header('Content-Type: application/json');
 if (!isLoggedIn()) {
     http_response_code(401);
     jsonError('Unauthorized access');
+}
+
+// Set audit context for DB triggers
+if (isset($db) && $db) {
+    ensureAuditContext($db);
 }
 
 $user_id = getCurrentUserId();

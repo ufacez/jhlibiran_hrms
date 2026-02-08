@@ -98,29 +98,26 @@ try {
                         ORDER BY attendance_date ASC");
     $attendance_trend = $stmt->fetchAll();
     
-    // Recent Activity
+    // Recent Activity (from unified audit_trail)
     $sql = "SELECT 
-                al.*,
-                u.username,
-                u.user_level,
+                at.*,
                 CASE 
-                    WHEN al.table_name = 'workers' THEN 
-                        (SELECT CONCAT(first_name, ' ', last_name) FROM workers WHERE worker_id = al.record_id)
-                    WHEN al.table_name = 'attendance' THEN 
+                    WHEN at.table_name = 'workers' THEN 
+                        (SELECT CONCAT(first_name, ' ', last_name) FROM workers WHERE worker_id = at.record_id)
+                    WHEN at.table_name = 'attendance' THEN 
                         (SELECT CONCAT(w.first_name, ' ', w.last_name) 
                          FROM attendance a 
                          JOIN workers w ON a.worker_id = w.worker_id 
-                         WHERE a.attendance_id = al.record_id)
-                    WHEN al.table_name = 'payroll' THEN
+                         WHERE a.attendance_id = at.record_id)
+                    WHEN at.table_name = 'payroll' THEN
                         (SELECT CONCAT(w.first_name, ' ', w.last_name)
                          FROM payroll p
                          JOIN workers w ON p.worker_id = w.worker_id
-                         WHERE p.payroll_id = al.record_id)
+                         WHERE p.payroll_id = at.record_id)
                     ELSE NULL
                 END as affected_person
-            FROM activity_logs al
-            LEFT JOIN users u ON al.user_id = u.user_id
-            ORDER BY al.created_at DESC
+            FROM audit_trail at
+            ORDER BY at.created_at DESC
             LIMIT 10";
     $stmt = $db->query($sql);
     $recent_activities = $stmt->fetchAll();
@@ -148,10 +145,10 @@ try {
 
 // Enhanced activity description function
 function getEnhancedActivityDescription($activity) {
-    $action = $activity['action'];
+    $action = $activity['action_type'] ?? $activity['action'] ?? '';
     $table = $activity['table_name'];
-    $description = $activity['description'];
-    $affected_person = $activity['affected_person'];
+    $description = $activity['changes_summary'] ?? $activity['description'] ?? '';
+    $affected_person = $activity['affected_person'] ?? null;
     
     $context = '';
     
@@ -567,8 +564,8 @@ function getEnhancedActivityDescription($activity) {
                             <?php else: ?>
                                 <?php foreach ($recent_activities as $activity): ?>
                                 <div class="activity-item">
-                                    <div class="activity-icon activity-icon-<?php echo getActivityColor($activity['action']); ?>">
-                                        <i class="fas fa-<?php echo getActivityIcon($activity['action']); ?>"></i>
+                                    <div class="activity-icon activity-icon-<?php echo getActivityColor($activity['action_type'] ?? 'other'); ?>">
+                                        <i class="fas fa-<?php echo getActivityIcon($activity['action_type'] ?? 'other'); ?>"></i>
                                     </div>
                                     <div class="activity-content">
                                         <div class="activity-text">
@@ -582,8 +579,8 @@ function getEnhancedActivityDescription($activity) {
                                                 <i class="far fa-clock"></i>
                                                 <?php echo timeAgo($activity['created_at']); ?>
                                             </span>
-                                            <span class="activity-badge badge-<?php echo $activity['action']; ?>">
-                                                <?php echo strtoupper(str_replace('_', ' ', $activity['action'])); ?>
+                                            <span class="activity-badge badge-<?php echo $activity['action_type'] ?? 'other'; ?>">
+                                                <?php echo strtoupper(str_replace('_', ' ', $activity['action_type'] ?? 'other')); ?>
                                             </span>
                                         </div>
                                     </div>

@@ -280,6 +280,10 @@ function renderProjects() {
     }
 
     if (filtered.length === 0) {
+        // Update count
+        const countEl = document.getElementById('projectsCount');
+        if (countEl) countEl.textContent = `Showing 0 of ${allProjects.length} projects`;
+
         tbody.innerHTML = `
             <tr>
                 <td colspan="6" style="text-align:center;padding:50px;color:#888;">
@@ -290,6 +294,10 @@ function renderProjects() {
             </tr>`;
         return;
     }
+
+    // Update count
+    const countEl2 = document.getElementById('projectsCount');
+    if (countEl2) countEl2.textContent = `Showing ${filtered.length} of ${allProjects.length} projects`;
 
     tbody.innerHTML = filtered.map(p => {
         const start = formatDate(p.start_date);
@@ -305,10 +313,10 @@ function renderProjects() {
             <td class="date-cell">${end}</td>
             <td><span class="status-pill ${p.status}">${st}</span></td>
             <td>
-                <div class="action-group" onclick="event.stopPropagation()">
-                    <button class="act-btn" onclick="openProjectDetail(${p.project_id})" title="View Details"><i class="fas fa-eye"></i></button>
-                    <button class="act-btn edit" onclick="openEditModal(${p.project_id})" title="Edit"><i class="fas fa-pen"></i></button>
-                    <button class="act-btn delete" onclick="deleteProject(${p.project_id}, '${escAttr(p.project_name)}')" title="Delete"><i class="fas fa-trash-alt"></i></button>
+                <div class="action-buttons" onclick="event.stopPropagation()">
+                    <button class="action-btn btn-view" onclick="openProjectDetail(${p.project_id})" title="View Details"><i class="fas fa-eye"></i></button>
+                    <button class="action-btn btn-edit" onclick="openEditModal(${p.project_id})" title="Edit"><i class="fas fa-pen"></i></button>
+                    <button class="action-btn btn-delete" onclick="deleteProject(${p.project_id}, '${escAttr(p.project_name)}')" title="Delete"><i class="fas fa-trash-alt"></i></button>
                 </div>
             </td>
         </tr>`;

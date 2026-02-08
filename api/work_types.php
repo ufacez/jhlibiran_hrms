@@ -18,12 +18,18 @@ require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../config/session.php';
 require_once __DIR__ . '/../includes/functions.php';
 require_once __DIR__ . '/../includes/auth.php';
+require_once __DIR__ . '/../includes/audit_trail.php';
 
 // Require authentication
 if (!isLoggedIn()) {
     http_response_code(401);
     echo json_encode(['success' => false, 'message' => 'Unauthorized']);
     exit;
+}
+
+// Set audit context for DB triggers
+if (isset($db) && $db) {
+    ensureAuditContext($db);
 }
 
 $method = $_SERVER['REQUEST_METHOD'];

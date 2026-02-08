@@ -494,32 +494,133 @@ function jsonError($message, $data = null) {
 // ============================================
 
 /**
- * Log activity
+ * Set MySQL session variables for audit trail triggers.
+ * Call this early in each request so DB triggers can log the acting user.
+ *
+ * @param PDO $db Database connection
+ * @return void
+ */
+function ensureAuditContext($db) {
+    static $done = false;
+    if ($done) return;
+    try {
+        $uid   = getCurrentUserId()  ?? 0;
+        $uname = getCurrentUsername() ?? 'system';
+        $ulevel = getCurrentUserLevel() ?? 'system';
+        $db->exec("SET @current_user_id = " . intval($uid));
+        $db->exec("SET @current_username = '" . addslashes($uname) . "'");
+        $db->exec("SET @current_user_level = '" . addslashes($ulevel) . "'");
+        $done = true;
+    } catch (PDOException $e) {
+        error_log("ensureAuditContext Error: " . $e->getMessage());
+    }
+}
+
+/**
+ * Log activity to the unified audit_trail table.
+ * This is the single entry point for all manual logging throughout the app.
+ * DB triggers also write directly to audit_trail for DML on tracked tables.
  * 
  * @param PDO $db Database connection
  * @param int $user_id User ID
- * @param string $action Action performed
+ * @param string $action Action performed (maps to action_type)
  * @param string $table_name Table name
  * @param int $record_id Record ID
- * @param string $description Description
+ * @param string $description Description (maps to changes_summary)
  * @return bool True on success, false on failure
  */
 function logActivity($db, $user_id, $action, $table_name = null, $record_id = null, $description = null) {
-    $sql = "INSERT INTO activity_logs (user_id, action, table_name, record_id, description, ip_address, user_agent) 
-            VALUES (?, ?, ?, ?, ?, ?, ?)";
-    
+    // Always set audit context so triggers can attribute changes
+    ensureAuditContext($db);
+
+    // Map the simple action string to an audit_trail action_type enum value
+    $actionTypeMap = [
+        'login' => 'login', 'logout' => 'logout',
+        'create' => 'create', 'add_worker' => 'create', 'add_admin' => 'create',
+        'add_schedule' => 'create', 'create_backup' => 'create',
+        'update' => 'update', 'update_worker' => 'update', 'update_admin' => 'update',
+        'update_schedule' => 'update', 'update_settings' => 'update',
+        'update_profile' => 'update', 'update_admin_permissions' => 'update',
+        'update_user_status' => 'status_change', 'toggle_admin_status' => 'status_change',
+        'delete' => 'delete', 'delete_worker' => 'delete', 'delete_admin' => 'delete',
+        'delete_backup' => 'delete',
+        'archive' => 'archive', 'restore' => 'restore',
+        'approve' => 'approve', 'reject' => 'reject',
+        'change_password' => 'password_change',
+        'download_backup' => 'other',
+    ];
+    $action_type = $actionTypeMap[$action] ?? 'other';
+
+    // Derive module from table_name
+    $moduleMap = [
+        'workers' => 'workers', 'attendance' => 'attendance', 'payroll' => 'payroll',
+        'schedules' => 'schedule', 'cash_advances' => 'cashadvance',
+        'users' => 'users', 'admin_permissions' => 'settings',
+        'system_settings' => 'settings', 'super_admin_profile' => 'settings',
+        'work_types' => 'workers', 'worker_classifications' => 'workers',
+        'projects' => 'projects', 'deductions' => 'deductions',
+    ];
+    $module = $moduleMap[$table_name] ?? ($table_name ?? 'system');
+
+    $username = getCurrentUsername() ?? 'system';
+    $user_level = getCurrentUserLevel() ?? null;
+
+    $sql = "INSERT INTO audit_trail (
+                user_id, username, user_level, action_type, module, table_name,
+                record_id, changes_summary, ip_address, user_agent,
+                session_id, request_method, request_url, severity
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+
+    $severity = in_array($action_type, ['delete', 'password_change', 'status_change']) ? 'high' : 'medium';
+    if ($action_type === 'login' || $action_type === 'logout') {
+        $severity = 'low';
+    }
+
     $params = [
         $user_id,
-        $action,
+        $username,
+        $user_level,
+        $action_type,
+        $module,
         $table_name,
         $record_id,
         $description,
         $_SERVER['REMOTE_ADDR'] ?? null,
-        $_SERVER['HTTP_USER_AGENT'] ?? null
+        $_SERVER['HTTP_USER_AGENT'] ?? null,
+        session_id() ?: null,
+        $_SERVER['REQUEST_METHOD'] ?? null,
+        $_SERVER['REQUEST_URI'] ?? null,
+        $severity
     ];
-    
+
     $stmt = executeQuery($db, $sql, $params);
     return $stmt !== false;
+}
+
+/**
+ * Log a rich audit trail entry with full before/after values.
+ * Use this for important operations where you want detailed change tracking
+ * beyond what logActivity() provides.
+ *
+ * @param PDO $db Database connection
+ * @param array $params Audit trail parameters (passed to logAudit())
+ * @return int|false Audit trail ID or false
+ */
+function logFullAudit($db, $params) {
+    ensureAuditContext($db);
+
+    // Use the rich audit logging function from audit_trail.php
+    if (function_exists('logAudit')) {
+        return logAudit($db, $params);
+    }
+
+    // Fallback: use logActivity if audit_trail.php is not loaded
+    $user_id = $params['user_id'] ?? getCurrentUserId();
+    $action  = $params['action_type'] ?? 'other';
+    $table   = $params['table_name'] ?? null;
+    $recId   = $params['record_id'] ?? null;
+    $desc    = $params['changes_summary'] ?? $params['record_identifier'] ?? null;
+    return logActivity($db, $user_id, $action, $table, $recId, $desc);
 }
 
 function getWorkerScheduleHours($db, $worker_id) {

@@ -18,6 +18,8 @@ require_once __DIR__ . '/../config/settings.php';
 require_once __DIR__ . '/../config/session.php';
 require_once __DIR__ . '/../includes/functions.php';
 require_once __DIR__ . '/../includes/auth.php';
+require_once __DIR__ . '/../includes/admin_functions.php';
+require_once __DIR__ . '/../includes/audit_trail.php';
 
 // Discard any accidental output from includes and set JSON header
 ob_end_clean();
@@ -38,6 +40,9 @@ if (!isset($db) || $db === null) {
 }
 
 $user_id = getCurrentUserId();
+
+// Set audit context so DB triggers can attribute changes
+ensureAuditContext($db);
 
 /**
  * Consistent JSON helper – guarantees {success, message, data}
@@ -60,9 +65,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             /* ── Create project ── */
             case 'create':
-                if (!isSuperAdmin()) {
+                if (!isSuperAdmin() && !hasPermission($db, 'can_manage_projects')) {
                     http_response_code(403);
-                    apiResponse(false, 'Admin privileges required.');
+                    apiResponse(false, 'You do not have permission to manage projects.');
                 }
 
                 $name       = sanitizeString($_POST['project_name'] ?? '');
@@ -87,14 +92,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 logActivity($db, $user_id, 'create_project', 'projects', $project_id,
                             "Created project: {$name}");
 
+                logAudit($db, [
+                    'action_type' => 'create',
+                    'module'      => 'projects',
+                    'table_name'  => 'projects',
+                    'record_id'   => $project_id,
+                    'record_identifier' => $name,
+                    'new_values'  => json_encode(['project_name' => $name, 'status' => $status, 'location' => $location, 'start_date' => $start_date]),
+                    'changes_summary' => "Created project: {$name}",
+                    'severity'    => 'info'
+                ]);
+
                 apiResponse(true, 'Project created successfully', ['project_id' => $project_id]);
                 break;
 
             /* ── Update project ── */
             case 'update':
-                if (!isSuperAdmin()) {
+                if (!isSuperAdmin() && !hasPermission($db, 'can_manage_projects')) {
                     http_response_code(403);
-                    apiResponse(false, 'Admin privileges required.');
+                    apiResponse(false, 'You do not have permission to manage projects.');
                 }
 
                 $project_id = intval($_POST['project_id'] ?? 0);
@@ -110,6 +126,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     apiResponse(false, 'Invalid data.');
                 }
 
+                // Capture old values for audit
+                $oldStmt = $db->prepare("SELECT project_name, description, location, start_date, end_date, status FROM projects WHERE project_id = ?");
+                $oldStmt->execute([$project_id]);
+                $oldValues = $oldStmt->fetch(PDO::FETCH_ASSOC);
+
                 $stmt = $db->prepare("UPDATE projects SET
                     project_name = ?, description = ?, location = ?,
                     start_date = ?, end_date = ?, status = ?, updated_at = NOW()
@@ -120,14 +141,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 logActivity($db, $user_id, 'update_project', 'projects', $project_id,
                             "Updated project: {$name}");
 
+                $newValues = ['project_name' => $name, 'description' => $desc, 'location' => $location, 'start_date' => $start_date, 'end_date' => $end_date, 'status' => $status];
+                logAudit($db, [
+                    'action_type' => 'update',
+                    'module'      => 'projects',
+                    'table_name'  => 'projects',
+                    'record_id'   => $project_id,
+                    'record_identifier' => $name,
+                    'old_values'  => $oldValues ? json_encode($oldValues) : null,
+                    'new_values'  => json_encode($newValues),
+                    'changes_summary' => "Updated project: {$name}",
+                    'severity'    => 'info'
+                ]);
+
                 apiResponse(true, 'Project updated successfully');
                 break;
 
             /* ── Delete project ── */
             case 'delete':
-                if (!isSuperAdmin()) {
+                if (!isSuperAdmin() && !hasPermission($db, 'can_manage_projects')) {
                     http_response_code(403);
-                    apiResponse(false, 'Admin privileges required.');
+                    apiResponse(false, 'You do not have permission to manage projects.');
                 }
 
                 $project_id = intval($_POST['project_id'] ?? 0);
@@ -136,20 +170,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     apiResponse(false, 'Invalid project ID.');
                 }
 
+                // Capture project name for audit before deletion
+                $pStmt = $db->prepare("SELECT project_name FROM projects WHERE project_id = ?");
+                $pStmt->execute([$project_id]);
+                $pName = $pStmt->fetchColumn() ?: "Project #{$project_id}";
+
                 $stmt = $db->prepare("DELETE FROM projects WHERE project_id = ?");
                 $stmt->execute([$project_id]);
 
                 logActivity($db, $user_id, 'delete_project', 'projects', $project_id,
-                            "Deleted project #{$project_id}");
+                            "Deleted project: {$pName}");
+
+                logAudit($db, [
+                    'action_type' => 'delete',
+                    'module'      => 'projects',
+                    'table_name'  => 'projects',
+                    'record_id'   => $project_id,
+                    'record_identifier' => $pName,
+                    'changes_summary' => "Deleted project: {$pName}",
+                    'severity'    => 'warning'
+                ]);
 
                 apiResponse(true, 'Project deleted successfully');
                 break;
 
             /* ── Assign worker to project ── */
             case 'assign_worker':
-                if (!isSuperAdmin()) {
+                if (!isSuperAdmin() && !hasPermission($db, 'can_manage_projects')) {
                     http_response_code(403);
-                    apiResponse(false, 'Admin privileges required.');
+                    apiResponse(false, 'You do not have permission to manage projects.');
                 }
 
                 $project_id = intval($_POST['project_id'] ?? 0);
@@ -177,14 +226,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 logActivity($db, $user_id, 'assign_worker_project', 'project_workers', $project_id,
                             "Assigned worker #{$worker_id} to project #{$project_id}");
 
+                logAudit($db, [
+                    'action_type' => 'create',
+                    'module'      => 'projects',
+                    'table_name'  => 'project_workers',
+                    'record_id'   => $project_id,
+                    'record_identifier' => "Worker #{$worker_id} → Project #{$project_id}",
+                    'new_values'  => json_encode(['project_id' => $project_id, 'worker_id' => $worker_id]),
+                    'changes_summary' => "Assigned worker #{$worker_id} to project #{$project_id}",
+                    'severity'    => 'info'
+                ]);
+
                 apiResponse(true, 'Worker assigned successfully');
                 break;
 
             /* ── Remove worker from project ── */
             case 'remove_worker':
-                if (!isSuperAdmin()) {
+                if (!isSuperAdmin() && !hasPermission($db, 'can_manage_projects')) {
                     http_response_code(403);
-                    apiResponse(false, 'Admin privileges required.');
+                    apiResponse(false, 'You do not have permission to manage projects.');
                 }
 
                 $project_id = intval($_POST['project_id'] ?? 0);
@@ -201,6 +261,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 logActivity($db, $user_id, 'remove_worker_project', 'project_workers', $project_id,
                             "Removed worker #{$worker_id} from project #{$project_id}");
+
+                logAudit($db, [
+                    'action_type' => 'update',
+                    'module'      => 'projects',
+                    'table_name'  => 'project_workers',
+                    'record_id'   => $project_id,
+                    'record_identifier' => "Worker #{$worker_id} → Project #{$project_id}",
+                    'new_values'  => json_encode(['is_active' => 0, 'removed_date' => date('Y-m-d')]),
+                    'changes_summary' => "Removed worker #{$worker_id} from project #{$project_id}",
+                    'severity'    => 'info'
+                ]);
 
                 apiResponse(true, 'Worker removed from project');
                 break;

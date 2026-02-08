@@ -1,7 +1,10 @@
 <?php
 /**
- * Activity Logs - Super Admin Only
+ * Unified Audit Trail - Super Admin Only
  * TrackSite Construction Management System
+ * 
+ * Single source of truth for all system activity tracking.
+ * Replaces the old activity_logs page.
  */
 
 define('TRACKSITE_INCLUDED', true);
@@ -27,24 +30,36 @@ $offset = ($page - 1) * $per_page;
 $filter_user = $_GET['filter_user'] ?? '';
 $filter_action = $_GET['filter_action'] ?? '';
 $filter_date = $_GET['filter_date'] ?? '';
+$filter_module = $_GET['filter_module'] ?? '';
+$filter_severity = $_GET['filter_severity'] ?? '';
 
 // Build query
 $where = [];
 $params = [];
 
 if ($filter_user) {
-    $where[] = "al.user_id = ?";
+    $where[] = "at.user_id = ?";
     $params[] = $filter_user;
 }
 
 if ($filter_action) {
-    $where[] = "al.action = ?";
+    $where[] = "at.action_type = ?";
     $params[] = $filter_action;
 }
 
 if ($filter_date) {
-    $where[] = "DATE(al.created_at) = ?";
+    $where[] = "DATE(at.created_at) = ?";
     $params[] = $filter_date;
+}
+
+if ($filter_module) {
+    $where[] = "at.module = ?";
+    $params[] = $filter_module;
+}
+
+if ($filter_severity) {
+    $where[] = "at.severity = ?";
+    $params[] = $filter_severity;
 }
 
 $where_clause = $where ? 'WHERE ' . implode(' AND ', $where) : '';
@@ -53,29 +68,30 @@ try {
     // Get total count
     $stmt = $db->prepare("
         SELECT COUNT(*) as total
-        FROM activity_logs al
+        FROM audit_trail at
         $where_clause
     ");
     $stmt->execute($params);
     $total = $stmt->fetch()['total'];
     $total_pages = ceil($total / $per_page);
     
-    // Get logs
+    // Get logs from audit_trail
     $stmt = $db->prepare("
         SELECT 
-            al.*,
-            CASE 
-                WHEN u.user_level = 'super_admin' THEN CONCAT(sa.first_name, ' ', sa.last_name)
-                WHEN u.user_level = 'admin' THEN CONCAT(ap.first_name, ' ', ap.last_name)
-                ELSE u.username
-            END as user_name,
-            u.user_level
-        FROM activity_logs al
-        LEFT JOIN users u ON al.user_id = u.user_id
+            at.*,
+            COALESCE(at.username,
+                CASE 
+                    WHEN u.user_level = 'super_admin' THEN CONCAT(sa.first_name, ' ', sa.last_name)
+                    WHEN u.user_level = 'admin' THEN CONCAT(ap.first_name, ' ', ap.last_name)
+                    ELSE u.username
+                END
+            ) as user_name
+        FROM audit_trail at
+        LEFT JOIN users u ON at.user_id = u.user_id
         LEFT JOIN super_admin_profile sa ON u.user_id = sa.user_id AND u.user_level = 'super_admin'
         LEFT JOIN admin_profile ap ON u.user_id = ap.user_id AND u.user_level = 'admin'
         $where_clause
-        ORDER BY al.created_at DESC
+        ORDER BY at.created_at DESC
         LIMIT ? OFFSET ?
     ");
     $stmt->execute(array_merge($params, [$per_page, $offset]));
@@ -90,23 +106,28 @@ try {
                 WHEN u.user_level = 'admin' THEN CONCAT(ap.first_name, ' ', ap.last_name)
                 ELSE u.username
             END as user_name
-        FROM activity_logs al
-        JOIN users u ON al.user_id = u.user_id
+        FROM audit_trail at
+        JOIN users u ON at.user_id = u.user_id
         LEFT JOIN super_admin_profile sa ON u.user_id = sa.user_id AND u.user_level = 'super_admin'
         LEFT JOIN admin_profile ap ON u.user_id = ap.user_id AND u.user_level = 'admin'
         ORDER BY user_name
     ");
     $users = $stmt->fetchAll();
     
-    // Get unique actions
-    $stmt = $db->query("SELECT DISTINCT action FROM activity_logs ORDER BY action");
+    // Get unique action types
+    $stmt = $db->query("SELECT DISTINCT action_type FROM audit_trail ORDER BY action_type");
     $actions = $stmt->fetchAll();
+    
+    // Get unique modules
+    $stmt = $db->query("SELECT DISTINCT module FROM audit_trail WHERE module IS NOT NULL ORDER BY module");
+    $modules = $stmt->fetchAll();
     
 } catch (PDOException $e) {
     error_log("Error: " . $e->getMessage());
     $logs = [];
     $users = [];
     $actions = [];
+    $modules = [];
     $total = 0;
     $total_pages = 0;
 }
@@ -119,14 +140,26 @@ function getActionBadge($action) {
         'create' => ['icon' => 'plus-circle', 'color' => '#4CAF50', 'bg' => '#E8F5E9'],
         'update' => ['icon' => 'edit', 'color' => '#FF9800', 'bg' => '#FFF3E0'],
         'delete' => ['icon' => 'trash', 'color' => '#F44336', 'bg' => '#FFEBEE'],
-        'add_admin' => ['icon' => 'user-plus', 'color' => '#9C27B0', 'bg' => '#F3E5F5'],
-        'update_admin' => ['icon' => 'user-edit', 'color' => '#FF9800', 'bg' => '#FFF3E0'],
-        'delete_admin' => ['icon' => 'user-times', 'color' => '#F44336', 'bg' => '#FFEBEE'],
-        'update_admin_permissions' => ['icon' => 'key', 'color' => '#FF9800', 'bg' => '#FFF3E0'],
-        'toggle_admin_status' => ['icon' => 'toggle-on', 'color' => '#2196F3', 'bg' => '#E3F2FD'],
+        'archive' => ['icon' => 'archive', 'color' => '#795548', 'bg' => '#EFEBE9'],
+        'restore' => ['icon' => 'undo', 'color' => '#00BCD4', 'bg' => '#E0F7FA'],
+        'approve' => ['icon' => 'check-circle', 'color' => '#4CAF50', 'bg' => '#E8F5E9'],
+        'reject' => ['icon' => 'times-circle', 'color' => '#F44336', 'bg' => '#FFEBEE'],
+        'password_change' => ['icon' => 'key', 'color' => '#FF9800', 'bg' => '#FFF3E0'],
+        'status_change' => ['icon' => 'toggle-on', 'color' => '#2196F3', 'bg' => '#E3F2FD'],
+        'other' => ['icon' => 'info-circle', 'color' => '#607D8B', 'bg' => '#ECEFF1'],
     ];
     
     return $badges[$action] ?? ['icon' => 'info-circle', 'color' => '#607D8B', 'bg' => '#ECEFF1'];
+}
+
+function getSeverityBadge($severity) {
+    $badges = [
+        'low' => ['color' => '#4CAF50', 'bg' => '#E8F5E9'],
+        'medium' => ['color' => '#FF9800', 'bg' => '#FFF3E0'],
+        'high' => ['color' => '#F44336', 'bg' => '#FFEBEE'],
+        'critical' => ['color' => '#B71C1C', 'bg' => '#FFCDD2'],
+    ];
+    return $badges[$severity] ?? $badges['medium'];
 }
 ?>
 <!DOCTYPE html>
@@ -135,7 +168,7 @@ function getActionBadge($action) {
     <link rel="stylesheet" href="https://pro.fontawesome.com/releases/v5.10.0/css/all.css" />
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Activity Logs - <?php echo SYSTEM_NAME; ?></title>
+    <title>Audit Trail - <?php echo SYSTEM_NAME; ?></title>
     <link rel="stylesheet" href="https://pro.fontawesome.com/releases/v5.10.0/css/all.css"/>
     <link rel="stylesheet" href="<?php echo CSS_URL; ?>/dashboard.css">
     <style>
@@ -282,8 +315,8 @@ function getActionBadge($action) {
             <div class="logs-content">
                 <div class="page-header">
                     <div class="header-left">
-                        <h1><i class="fas fa-history"></i> Activity Logs</h1>
-                        <p class="subtitle">Track all system activities and changes</p>
+                        <h1><i class="fas fa-shield-alt"></i> Audit Trail</h1>
+                        <p class="subtitle">Unified log of all system activities and changes</p>
                     </div>
                 </div>
                 
@@ -311,10 +344,33 @@ function getActionBadge($action) {
                                 <select name="filter_action">
                                     <option value="">All Actions</option>
                                     <?php foreach ($actions as $a): ?>
-                                    <option value="<?php echo $a['action']; ?>" <?php echo $filter_action == $a['action'] ? 'selected' : ''; ?>>
-                                        <?php echo ucwords(str_replace('_', ' ', $a['action'])); ?>
+                                    <option value="<?php echo $a['action_type']; ?>" <?php echo $filter_action == $a['action_type'] ? 'selected' : ''; ?>>
+                                        <?php echo ucwords(str_replace('_', ' ', $a['action_type'])); ?>
                                     </option>
                                     <?php endforeach; ?>
+                                </select>
+                            </div>
+                            
+                            <div class="filter-group">
+                                <label>Module</label>
+                                <select name="filter_module">
+                                    <option value="">All Modules</option>
+                                    <?php foreach ($modules as $m): ?>
+                                    <option value="<?php echo $m['module']; ?>" <?php echo $filter_module == $m['module'] ? 'selected' : ''; ?>>
+                                        <?php echo ucwords(str_replace('_', ' ', $m['module'])); ?>
+                                    </option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            
+                            <div class="filter-group">
+                                <label>Severity</label>
+                                <select name="filter_severity">
+                                    <option value="">All Severities</option>
+                                    <option value="low" <?php echo $filter_severity == 'low' ? 'selected' : ''; ?>>Low</option>
+                                    <option value="medium" <?php echo $filter_severity == 'medium' ? 'selected' : ''; ?>>Medium</option>
+                                    <option value="high" <?php echo $filter_severity == 'high' ? 'selected' : ''; ?>>High</option>
+                                    <option value="critical" <?php echo $filter_severity == 'critical' ? 'selected' : ''; ?>>Critical</option>
                                 </select>
                             </div>
                             
@@ -338,13 +394,13 @@ function getActionBadge($action) {
                 <!-- Logs Table -->
                 <div class="logs-table-card">
                     <div class="table-header">
-                        <h2>Activity History (<?php echo number_format($total); ?> records)</h2>
+                        <h2>Audit Trail (<?php echo number_format($total); ?> records)</h2>
                     </div>
                     
                     <?php if (empty($logs)): ?>
                     <div class="no-logs">
-                        <i class="fas fa-clipboard-list" style="font-size: 64px; opacity: 0.3; display: block; margin-bottom: 20px;"></i>
-                        <h3 style="margin: 0 0 10px 0; color: #666;">No Activity Logs Found</h3>
+                        <i class="fas fa-shield-alt" style="font-size: 64px; opacity: 0.3; display: block; margin-bottom: 20px;"></i>
+                        <h3 style="margin: 0 0 10px 0; color: #666;">No Audit Records Found</h3>
                         <p>No activities match your current filters</p>
                     </div>
                     <?php else: ?>
@@ -354,13 +410,16 @@ function getActionBadge($action) {
                                 <th>Timestamp</th>
                                 <th>User</th>
                                 <th>Action</th>
+                                <th>Module</th>
                                 <th>Description</th>
+                                <th>Severity</th>
                                 <th>IP Address</th>
                             </tr>
                         </thead>
                         <tbody>
                             <?php foreach ($logs as $log): 
-                                $badge = getActionBadge($log['action']);
+                                $badge = getActionBadge($log['action_type']);
+                                $sevBadge = getSeverityBadge($log['severity']);
                             ?>
                             <tr>
                                 <td>
@@ -373,22 +432,31 @@ function getActionBadge($action) {
                                 </td>
                                 <td>
                                     <div style="font-weight: 600; margin-bottom: 3px;">
-                                        <?php echo htmlspecialchars($log['user_name'] ?? 'Unknown'); ?>
+                                        <?php echo htmlspecialchars($log['user_name'] ?? $log['username'] ?? 'Unknown'); ?>
                                     </div>
-                                    <span class="user-badge <?php echo $log['user_level']; ?>">
-                                        <i class="fas fa-<?php echo $log['user_level'] === 'super_admin' ? 'crown' : 'user-shield'; ?>"></i>
-                                        <?php echo ucwords(str_replace('_', ' ', $log['user_level'] ?? 'user')); ?>
+                                    <span class="user-badge <?php echo $log['user_level'] ?? ''; ?>">
+                                        <i class="fas fa-<?php echo ($log['user_level'] ?? '') === 'super_admin' ? 'crown' : 'user-shield'; ?>"></i>
+                                        <?php echo ucwords(str_replace('_', ' ', $log['user_level'] ?? 'system')); ?>
                                     </span>
                                 </td>
                                 <td>
                                     <span class="action-badge" style="background: <?php echo $badge['bg']; ?>; color: <?php echo $badge['color']; ?>">
                                         <i class="fas fa-<?php echo $badge['icon']; ?>"></i>
-                                        <?php echo ucwords(str_replace('_', ' ', $log['action'])); ?>
+                                        <?php echo ucwords(str_replace('_', ' ', $log['action_type'])); ?>
                                     </span>
                                 </td>
                                 <td>
-                                    <div style="max-width: 400px;">
-                                        <?php echo htmlspecialchars($log['description'] ?? '-'); ?>
+                                    <?php if ($log['module']): ?>
+                                    <span style="background: #f0f0f0; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; color: #555;">
+                                        <?php echo ucwords(str_replace('_', ' ', $log['module'])); ?>
+                                    </span>
+                                    <?php else: ?>
+                                    <span style="color: #999;">-</span>
+                                    <?php endif; ?>
+                                </td>
+                                <td>
+                                    <div style="max-width: 350px;">
+                                        <?php echo htmlspecialchars($log['changes_summary'] ?? $log['record_identifier'] ?? '-'); ?>
                                     </div>
                                     <?php if ($log['table_name']): ?>
                                     <small style="color: #999;">
@@ -398,6 +466,11 @@ function getActionBadge($action) {
                                         <?php endif; ?>
                                     </small>
                                     <?php endif; ?>
+                                </td>
+                                <td>
+                                    <span style="background: <?php echo $sevBadge['bg']; ?>; color: <?php echo $sevBadge['color']; ?>; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600;">
+                                        <?php echo ucfirst($log['severity'] ?? 'medium'); ?>
+                                    </span>
                                 </td>
                                 <td>
                                     <small style="color: #666; font-family: monospace;">
@@ -412,8 +485,18 @@ function getActionBadge($action) {
                     <!-- Pagination -->
                     <?php if ($total_pages > 1): ?>
                     <div class="pagination">
+                        <?php 
+                        $filter_params = http_build_query(array_filter([
+                            'filter_user' => $filter_user,
+                            'filter_action' => $filter_action,
+                            'filter_date' => $filter_date,
+                            'filter_module' => $filter_module,
+                            'filter_severity' => $filter_severity,
+                        ]));
+                        $filter_qs = $filter_params ? '&' . $filter_params : '';
+                        ?>
                         <?php if ($page > 1): ?>
-                            <a href="?page=<?php echo $page - 1; ?>&filter_user=<?php echo $filter_user; ?>&filter_action=<?php echo $filter_action; ?>&filter_date=<?php echo $filter_date; ?>">
+                            <a href="?page=<?php echo $page - 1; ?><?php echo $filter_qs; ?>">
                                 <i class="fas fa-chevron-left"></i> Previous
                             </a>
                         <?php endif; ?>
@@ -422,14 +505,14 @@ function getActionBadge($action) {
                             <?php if ($i == $page): ?>
                                 <span class="active"><?php echo $i; ?></span>
                             <?php else: ?>
-                                <a href="?page=<?php echo $i; ?>&filter_user=<?php echo $filter_user; ?>&filter_action=<?php echo $filter_action; ?>&filter_date=<?php echo $filter_date; ?>">
+                                <a href="?page=<?php echo $i; ?><?php echo $filter_qs; ?>">
                                     <?php echo $i; ?>
                                 </a>
                             <?php endif; ?>
                         <?php endfor; ?>
                         
                         <?php if ($page < $total_pages): ?>
-                            <a href="?page=<?php echo $page + 1; ?>&filter_user=<?php echo $filter_user; ?>&filter_action=<?php echo $filter_action; ?>&filter_date=<?php echo $filter_date; ?>">
+                            <a href="?page=<?php echo $page + 1; ?><?php echo $filter_qs; ?>">
                                 Next <i class="fas fa-chevron-right"></i>
                             </a>
                         <?php endif; ?>
