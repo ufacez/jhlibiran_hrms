@@ -84,7 +84,7 @@ $flash = getFlashMessage();
 $classification_filter = isset($_GET['classification']) ? sanitizeString($_GET['classification']) : '';
 $work_type_filter = isset($_GET['work_type']) ? sanitizeString($_GET['work_type']) : '';
 $status_filter = isset($_GET['status']) ? sanitizeString($_GET['status']) : '';
-$experience_filter = isset($_GET['experience']) ? sanitizeString($_GET['experience']) : '';
+
 $search_query = isset($_GET['search']) ? sanitizeString($_GET['search']) : '';
 $project_filter = isset($_GET['project']) ? intval($_GET['project']) : 0;
 
@@ -121,22 +121,7 @@ if (!empty($status_filter)) {
     $params[] = $status_filter;
 }
 
-if (!empty($experience_filter)) {
-    switch ($experience_filter) {
-        case '0-1':
-            $sql .= " AND w.experience_years BETWEEN 0 AND 1";
-            break;
-        case '1-3':
-            $sql .= " AND w.experience_years BETWEEN 1 AND 3";
-            break;
-        case '3-5':
-            $sql .= " AND w.experience_years BETWEEN 3 AND 5";
-            break;
-        case '5+':
-            $sql .= " AND w.experience_years >= 5";
-            break;
-    }
-}
+
 
 if (!empty($search_query)) {
     $sql .= " AND (w.first_name LIKE ? OR w.last_name LIKE ? OR w.worker_code LIKE ? OR wt.work_type_name LIKE ? OR COALESCE(wcw.classification_name, wct.classification_name) LIKE ?)";
@@ -371,18 +356,8 @@ try {
                                 </select>
                             </div>
                             
-                            <div class="filter-group">
-                                <label style="font-size:11px;font-weight:600;color:#666;letter-spacing:0.5px;text-transform:uppercase;margin-bottom:6px;">Experience</label>
-                                <div style="display:flex;align-items:end;gap:8px;">
-                                    <select name="experience" id="experienceFilter">
-                                        <option value="">All Tenure</option>
-                                        <option value="0-1" <?php echo $experience_filter === '0-1' ? 'selected' : ''; ?>>0-1 years</option>
-                                        <option value="1-3" <?php echo $experience_filter === '1-3' ? 'selected' : ''; ?>>1-3 years</option>
-                                        <option value="3-5" <?php echo $experience_filter === '3-5' ? 'selected' : ''; ?>>3-5 years</option>
-                                        <option value="5+" <?php echo $experience_filter === '5+' ? 'selected' : ''; ?>>5+ years</option>
-                                    </select>
-                                    <button type="submit" class="btn btn-primary" style="height:36px;padding:0 18px;font-size:14px;">Apply</button>
-                                </div>
+                            <div class="filter-group" style="display:flex;align-items:end;">
+                                <button type="submit" class="btn btn-primary" style="height:36px;padding:0 18px;font-size:14px;">Apply</button>
                             </div>
                         </div>
                     </form>
@@ -402,7 +377,6 @@ try {
                                     <th>Classification</th>
                                     <th>Role</th>
                                     <th>Contact</th>
-                                    <th>Tenure</th>
                                     <th>Daily Rate</th>
                                     <th>Status</th>
                                     <th>Actions</th>
@@ -442,7 +416,6 @@ try {
                                         <td><?php echo htmlspecialchars($worker['classification_name'] ?? ''); ?></td>
                                         <td><?php echo htmlspecialchars($worker['work_type_name'] ?? ''); ?></td>
                                         <td><?php echo formatPhoneNumber($worker['phone']); ?></td>
-                                        <td><?php echo $worker['experience_years']; ?> years</td>
                                         <td class="daily-rate"><?php echo formatCurrency($worker['daily_rate']); ?></td>
                                         <td>
                                             <?php

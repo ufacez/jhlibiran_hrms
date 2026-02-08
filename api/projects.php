@@ -92,17 +92,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 logActivity($db, $user_id, 'create_project', 'projects', $project_id,
                             "Created project: {$name}");
 
-                logAudit($db, [
-                    'action_type' => 'create',
-                    'module'      => 'projects',
-                    'table_name'  => 'projects',
-                    'record_id'   => $project_id,
-                    'record_identifier' => $name,
-                    'new_values'  => json_encode(['project_name' => $name, 'status' => $status, 'location' => $location, 'start_date' => $start_date]),
-                    'changes_summary' => "Created project: {$name}",
-                    'severity'    => 'info'
-                ]);
-
                 apiResponse(true, 'Project created successfully', ['project_id' => $project_id]);
                 break;
 
@@ -141,24 +130,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 logActivity($db, $user_id, 'update_project', 'projects', $project_id,
                             "Updated project: {$name}");
 
-                $newValues = ['project_name' => $name, 'description' => $desc, 'location' => $location, 'start_date' => $start_date, 'end_date' => $end_date, 'status' => $status];
-                logAudit($db, [
-                    'action_type' => 'update',
-                    'module'      => 'projects',
-                    'table_name'  => 'projects',
-                    'record_id'   => $project_id,
-                    'record_identifier' => $name,
-                    'old_values'  => $oldValues ? json_encode($oldValues) : null,
-                    'new_values'  => json_encode($newValues),
-                    'changes_summary' => "Updated project: {$name}",
-                    'severity'    => 'info'
-                ]);
-
                 apiResponse(true, 'Project updated successfully');
                 break;
 
-            /* ── Delete project ── */
+            /* ── Archive project ── */
             case 'delete':
+            case 'archive':
                 if (!isSuperAdmin() && !hasPermission($db, 'can_manage_projects')) {
                     http_response_code(403);
                     apiResponse(false, 'You do not have permission to manage projects.');
@@ -170,28 +147,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     apiResponse(false, 'Invalid project ID.');
                 }
 
-                // Capture project name for audit before deletion
+                // Capture project name for audit before archiving
                 $pStmt = $db->prepare("SELECT project_name FROM projects WHERE project_id = ?");
                 $pStmt->execute([$project_id]);
                 $pName = $pStmt->fetchColumn() ?: "Project #{$project_id}";
 
-                $stmt = $db->prepare("DELETE FROM projects WHERE project_id = ?");
+                $stmt = $db->prepare("UPDATE projects SET is_archived = 1, updated_at = NOW() WHERE project_id = ?");
                 $stmt->execute([$project_id]);
 
-                logActivity($db, $user_id, 'delete_project', 'projects', $project_id,
-                            "Deleted project: {$pName}");
+                logActivity($db, $user_id, 'archive', 'projects', $project_id,
+                            "Archived project: {$pName}");
 
-                logAudit($db, [
-                    'action_type' => 'delete',
-                    'module'      => 'projects',
-                    'table_name'  => 'projects',
-                    'record_id'   => $project_id,
-                    'record_identifier' => $pName,
-                    'changes_summary' => "Deleted project: {$pName}",
-                    'severity'    => 'warning'
-                ]);
-
-                apiResponse(true, 'Project deleted successfully');
+                apiResponse(true, 'Project archived successfully');
                 break;
 
             /* ── Assign worker to project ── */
@@ -218,6 +185,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         WHERE project_id = ? AND worker_id = ?");
                     $stmt->execute([$project_id, $worker_id]);
                 } else {
+                    // Enforce one active project per worker
+                    $activeChk = $db->prepare("SELECT p.project_name FROM project_workers pw
+                                               JOIN projects p ON pw.project_id = p.project_id
+                                               WHERE pw.worker_id = ? AND pw.is_active = 1");
+                    $activeChk->execute([$worker_id]);
+                    $existingProject = $activeChk->fetch();
+                    if ($existingProject) {
+                        apiResponse(false, 'This worker is already assigned to "' . $existingProject['project_name'] . '". Remove them from that project first.');
+                    }
+
                     $stmt = $db->prepare("INSERT INTO project_workers
                         (project_id, worker_id, assigned_date) VALUES (?, ?, CURDATE())");
                     $stmt->execute([$project_id, $worker_id]);
@@ -225,17 +202,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 logActivity($db, $user_id, 'assign_worker_project', 'project_workers', $project_id,
                             "Assigned worker #{$worker_id} to project #{$project_id}");
-
-                logAudit($db, [
-                    'action_type' => 'create',
-                    'module'      => 'projects',
-                    'table_name'  => 'project_workers',
-                    'record_id'   => $project_id,
-                    'record_identifier' => "Worker #{$worker_id} → Project #{$project_id}",
-                    'new_values'  => json_encode(['project_id' => $project_id, 'worker_id' => $worker_id]),
-                    'changes_summary' => "Assigned worker #{$worker_id} to project #{$project_id}",
-                    'severity'    => 'info'
-                ]);
 
                 apiResponse(true, 'Worker assigned successfully');
                 break;
@@ -261,17 +227,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 logActivity($db, $user_id, 'remove_worker_project', 'project_workers', $project_id,
                             "Removed worker #{$worker_id} from project #{$project_id}");
-
-                logAudit($db, [
-                    'action_type' => 'update',
-                    'module'      => 'projects',
-                    'table_name'  => 'project_workers',
-                    'record_id'   => $project_id,
-                    'record_identifier' => "Worker #{$worker_id} → Project #{$project_id}",
-                    'new_values'  => json_encode(['is_active' => 0, 'removed_date' => date('Y-m-d')]),
-                    'changes_summary' => "Removed worker #{$worker_id} from project #{$project_id}",
-                    'severity'    => 'info'
-                ]);
 
                 apiResponse(true, 'Worker removed from project');
                 break;
@@ -386,11 +341,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     WHERE w.employment_status = 'active' AND w.is_archived = FALSE
                       AND w.worker_id NOT IN (
                           SELECT pw.worker_id FROM project_workers pw
-                          WHERE pw.project_id = ? AND pw.is_active = 1
+                          WHERE pw.is_active = 1
                       )
                     ORDER BY w.first_name, w.last_name
                 ");
-                $stmt->execute([$project_id]);
+                $stmt->execute([]);
                 $workers = $stmt->fetchAll();
 
                 apiResponse(true, 'Available workers retrieved', ['workers' => $workers]);

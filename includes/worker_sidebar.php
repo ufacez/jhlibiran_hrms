@@ -73,3 +73,15 @@ $current_page = basename($_SERVER['PHP_SELF']);
         </li>
     </ul>
 </div>
+<script>
+(function() {
+    const sb = document.querySelector('.sidebar');
+    if (!sb) return;
+    const key = 'sidebar_scroll_pos';
+    const saved = sessionStorage.getItem(key);
+    if (saved) sb.scrollTop = parseInt(saved, 10);
+    sb.addEventListener('scroll', function() {
+        sessionStorage.setItem(key, sb.scrollTop);
+    });
+})();
+</script>

@@ -151,12 +151,17 @@ function getActivityIcon($action) {
         'create' => 'plus-circle',
         'update' => 'edit',
         'delete' => 'trash-alt',
+        'archive' => 'archive',
+        'restore' => 'undo',
         'approve' => 'check-circle',
         'reject' => 'times-circle',
+        'status_change' => 'user-check',
+        'password_change' => 'key',
         'change_password' => 'key',
         'update_user_status' => 'user-check',
         'clock_in' => 'clock',
-        'clock_out' => 'clock'
+        'clock_out' => 'clock',
+        'other' => 'info-circle'
     ];
     
     return $icons[$action] ?? 'info-circle';
@@ -170,12 +175,17 @@ function getActivityColor($action) {
         'create' => 'success',
         'update' => 'warning',
         'delete' => 'danger',
+        'archive' => 'warning',
+        'restore' => 'info',
         'approve' => 'success',
         'reject' => 'danger',
+        'status_change' => 'info',
+        'password_change' => 'warning',
         'change_password' => 'warning',
         'update_user_status' => 'info',
         'clock_in' => 'success',
-        'clock_out' => 'info'
+        'clock_out' => 'info',
+        'other' => 'secondary'
     ];
     
     return $colors[$action] ?? 'secondary';
@@ -533,37 +543,86 @@ function logActivity($db, $user_id, $action, $table_name = null, $record_id = nu
     // Always set audit context so triggers can attribute changes
     ensureAuditContext($db);
 
+    // Only log for Super Admin and Admin users
+    $user_level = getCurrentUserLevel() ?? null;
+    if (!in_array($user_level, ['super_admin', 'admin'])) {
+        return true; // skip logging for non-admin users silently
+    }
+
     // Map the simple action string to an audit_trail action_type enum value
     $actionTypeMap = [
         'login' => 'login', 'logout' => 'logout',
         'create' => 'create', 'add_worker' => 'create', 'add_admin' => 'create',
         'add_schedule' => 'create', 'create_backup' => 'create',
+        'create_project' => 'create', 'assign_worker_project' => 'create',
         'update' => 'update', 'update_worker' => 'update', 'update_admin' => 'update',
         'update_schedule' => 'update', 'update_settings' => 'update',
         'update_profile' => 'update', 'update_admin_permissions' => 'update',
+        'update_project' => 'update', 'remove_worker_project' => 'update',
         'update_user_status' => 'status_change', 'toggle_admin_status' => 'status_change',
         'delete' => 'delete', 'delete_worker' => 'delete', 'delete_admin' => 'delete',
-        'delete_backup' => 'delete',
-        'archive' => 'archive', 'restore' => 'restore',
+        'delete_backup' => 'delete', 'delete_project' => 'delete',
+        'archive' => 'archive', 'archive_attendance' => 'archive',
+        'restore' => 'restore', 'restore_attendance' => 'restore',
         'approve' => 'approve', 'reject' => 'reject',
         'change_password' => 'password_change',
         'download_backup' => 'other',
+        // Attendance actions
+        'mark_attendance' => 'create', 'mark_attendance_enhanced' => 'create',
+        'update_attendance' => 'update', 'delete_attendance' => 'delete',
+        'recalculate_attendance' => 'update', 'update_attendance_settings' => 'update',
+        // Payroll actions
+        'generate_payroll' => 'create', 'generate_batch_payroll' => 'create',
+        'approved_payroll' => 'approve', 'paid_payroll' => 'approve',
+        'cancelled_payroll' => 'reject',
+        'batch_approved_payroll' => 'approve', 'batch_paid_payroll' => 'approve',
+        'batch_cancelled_payroll' => 'reject',
+        'update_payroll_setting' => 'update', 'update_payroll_settings' => 'update',
+        'update_sss_rates' => 'update', 'update_sss_settings' => 'update',
+        'update_sss_matrix' => 'update', 'update_philhealth_settings' => 'update',
+        'update_pagibig_settings' => 'update', 'update_tax_brackets' => 'update',
+        'delete_tax_bracket' => 'delete',
+        'add_holiday' => 'create', 'update_holiday' => 'update', 'delete_holiday' => 'delete',
+        // Deduction actions
+        'add_deduction' => 'create', 'update_deduction' => 'update', 'delete_deduction' => 'delete',
     ];
     $action_type = $actionTypeMap[$action] ?? 'other';
 
     // Derive module from table_name
     $moduleMap = [
         'workers' => 'workers', 'attendance' => 'attendance', 'payroll' => 'payroll',
+        'payroll_records' => 'payroll', 'payroll_settings' => 'payroll',
+        'sss_settings' => 'payroll', 'sss_contribution_matrix' => 'payroll',
+        'philhealth_settings' => 'payroll', 'pagibig_settings' => 'payroll',
+        'bir_tax_brackets' => 'payroll', 'holiday_calendar' => 'payroll',
+        'attendance_settings' => 'attendance',
         'schedules' => 'schedule', 'cash_advances' => 'cashadvance',
         'users' => 'users', 'admin_permissions' => 'settings',
         'system_settings' => 'settings', 'super_admin_profile' => 'settings',
         'work_types' => 'workers', 'worker_classifications' => 'workers',
-        'projects' => 'projects', 'deductions' => 'deductions',
+        'projects' => 'projects', 'project_workers' => 'projects',
+        'deductions' => 'deductions',
     ];
     $module = $moduleMap[$table_name] ?? ($table_name ?? 'system');
 
-    $username = getCurrentUsername() ?? 'system';
-    $user_level = getCurrentUserLevel() ?? null;
+    // Resolve the user's real first+last name
+    $username = null;
+    try {
+        if ($user_level === 'super_admin') {
+            $nameStmt = $db->prepare("SELECT CONCAT(sa.first_name, ' ', sa.last_name) AS full_name FROM super_admin_profile sa WHERE sa.user_id = ?");
+            $nameStmt->execute([$user_id]);
+            $username = $nameStmt->fetchColumn() ?: null;
+        } elseif ($user_level === 'admin') {
+            $nameStmt = $db->prepare("SELECT CONCAT(ap.first_name, ' ', ap.last_name) AS full_name FROM admin_profile ap WHERE ap.user_id = ?");
+            $nameStmt->execute([$user_id]);
+            $username = $nameStmt->fetchColumn() ?: null;
+        }
+    } catch (PDOException $e) {
+        // fall through
+    }
+    if (!$username) {
+        $username = getCurrentUsername() ?? 'Unknown';
+    }
 
     $sql = "INSERT INTO audit_trail (
                 user_id, username, user_level, action_type, module, table_name,

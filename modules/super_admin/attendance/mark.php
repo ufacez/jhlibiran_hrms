@@ -48,8 +48,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmt->execute([$worker_id, $today, $time_in, $time_out, $status, $hours_worked]);
                 
                 // Log activity
+                $wStmt = $db->prepare("SELECT CONCAT(first_name, ' ', last_name) AS name FROM workers WHERE worker_id = ?");
+                $wStmt->execute([$worker_id]);
+                $wName = $wStmt->fetchColumn() ?: "Worker #{$worker_id}";
                 logActivity($db, getCurrentUserId(), 'mark_attendance', 'attendance', $db->lastInsertId(), 
-                           "Marked attendance for worker ID: $worker_id");
+                           "Marked attendance for {$wName} (Time In: {$time_in}" . ($time_out ? ", Time Out: {$time_out}" : '') . ", Status: {$status})");
                 
                 echo json_encode(['success' => true, 'message' => 'Attendance marked successfully']);
             }

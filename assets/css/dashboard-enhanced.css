@@ -715,6 +715,36 @@
     color: #721c24;
 }
 
+.badge-archive {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.badge-restore {
+    background: #d1ecf1;
+    color: #0c5460;
+}
+
+.badge-status_change {
+    background: #d1ecf1;
+    color: #0c5460;
+}
+
+.badge-password_change {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.badge-logout {
+    background: #e2e3e5;
+    color: #383d41;
+}
+
+.badge-other {
+    background: #e2e3e5;
+    color: #383d41;
+}
+
 /* ============================================
    ANIMATIONS
    ============================================ */

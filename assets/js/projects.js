@@ -316,7 +316,7 @@ function renderProjects() {
                 <div class="action-buttons" onclick="event.stopPropagation()">
                     <button class="action-btn btn-view" onclick="openProjectDetail(${p.project_id})" title="View Details"><i class="fas fa-eye"></i></button>
                     <button class="action-btn btn-edit" onclick="openEditModal(${p.project_id})" title="Edit"><i class="fas fa-pen"></i></button>
-                    <button class="action-btn btn-delete" onclick="deleteProject(${p.project_id}, '${escAttr(p.project_name)}')" title="Delete"><i class="fas fa-trash-alt"></i></button>
+                    <button class="action-btn btn-archive" onclick="archiveProject(${p.project_id}, '${escAttr(p.project_name)}')" title="Archive"><i class="fas fa-archive"></i></button>
                 </div>
             </td>
         </tr>`;
@@ -412,10 +412,10 @@ function saveProject() {
         .catch(() => showToast('Network error – please try again.', 'error'));
 }
 
-function deleteProject(id, name) {
-    if (!confirm(`Delete project "${name}"?\nThis cannot be undone.`)) return;
+function archiveProject(id, name) {
+    if (!confirm(`Archive project "${name}"?\nThis will move it to the archive.`)) return;
     const data = new FormData();
-    data.append('action', 'delete');
+    data.append('action', 'archive');
     data.append('project_id', id);
 
     fetch(API, { 

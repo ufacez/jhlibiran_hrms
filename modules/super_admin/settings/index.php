@@ -34,7 +34,7 @@ try {
     $stmt = $db->query("SELECT COUNT(*) as total FROM workers WHERE employment_status = 'active'");
     $worker_count = $stmt->fetch()['total'];
     
-    // Recent activity logs (last 10) - from unified audit_trail
+    // Recent activity logs (last 10) - from unified audit_trail, only admin actions
     $stmt = $db->query("
         SELECT 
             at.audit_id,
@@ -46,9 +46,19 @@ try {
             at.ip_address,
             at.user_agent,
             at.created_at,
-            at.username,
+            COALESCE(
+                CASE 
+                    WHEN at.user_level = 'super_admin' THEN 
+                        (SELECT CONCAT(sa.first_name, ' ', sa.last_name) FROM super_admin_profile sa WHERE sa.user_id = at.user_id)
+                    WHEN at.user_level = 'admin' THEN 
+                        (SELECT CONCAT(ap.first_name, ' ', ap.last_name) FROM admin_profile ap WHERE ap.user_id = at.user_id)
+                    ELSE at.username
+                END,
+                at.username
+            ) AS username,
             at.user_level
         FROM audit_trail at
+        WHERE at.user_level IN ('super_admin', 'admin')
         ORDER BY at.created_at DESC
         LIMIT 10
     ");

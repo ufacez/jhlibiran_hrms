@@ -98,9 +98,19 @@ try {
                         ORDER BY attendance_date ASC");
     $attendance_trend = $stmt->fetchAll();
     
-    // Recent Activity (from unified audit_trail)
+    // Recent Activity (from unified audit_trail — only Super Admin/Admin actions)
     $sql = "SELECT 
                 at.*,
+                COALESCE(
+                    CASE 
+                        WHEN at.user_level = 'super_admin' THEN 
+                            (SELECT CONCAT(sa.first_name, ' ', sa.last_name) FROM super_admin_profile sa WHERE sa.user_id = at.user_id)
+                        WHEN at.user_level = 'admin' THEN 
+                            (SELECT CONCAT(ap.first_name, ' ', ap.last_name) FROM admin_profile ap WHERE ap.user_id = at.user_id)
+                        ELSE NULL
+                    END,
+                    at.username
+                ) as display_name,
                 CASE 
                     WHEN at.table_name = 'workers' THEN 
                         (SELECT CONCAT(first_name, ' ', last_name) FROM workers WHERE worker_id = at.record_id)
@@ -114,9 +124,20 @@ try {
                          FROM payroll p
                          JOIN workers w ON p.worker_id = w.worker_id
                          WHERE p.payroll_id = at.record_id)
+                    WHEN at.table_name = 'payroll_records' THEN
+                        (SELECT CONCAT(w.first_name, ' ', w.last_name)
+                         FROM payroll_records pr
+                         JOIN workers w ON pr.worker_id = w.worker_id
+                         WHERE pr.record_id = at.record_id)
+                    WHEN at.table_name = 'schedules' THEN
+                        (SELECT CONCAT(w.first_name, ' ', w.last_name)
+                         FROM schedules s
+                         JOIN workers w ON s.worker_id = w.worker_id
+                         WHERE s.schedule_id = at.record_id)
                     ELSE NULL
                 END as affected_person
             FROM audit_trail at
+            WHERE at.user_level IN ('super_admin', 'admin')
             ORDER BY at.created_at DESC
             LIMIT 10";
     $stmt = $db->query($sql);
@@ -150,6 +171,18 @@ function getEnhancedActivityDescription($activity) {
     $description = $activity['changes_summary'] ?? $activity['description'] ?? '';
     $affected_person = $activity['affected_person'] ?? null;
     
+    // If we have a detailed description from the log, use it directly for specific actions
+    if ($description && in_array($action, ['create', 'approve', 'archive', 'restore'])) {
+        // Check for specific descriptive patterns
+        if (str_contains($description, 'Marked attendance')) return $description;
+        if (str_contains($description, 'Generated payroll')) return $description;
+        if (str_contains($description, 'Batch generated')) return $description;
+        if (str_contains($description, 'Payroll')) return $description;
+        if (str_contains($description, 'payroll')) return $description;
+        if (str_contains($description, 'Archived')) return $description;
+        if (str_contains($description, 'Restored')) return $description;
+    }
+    
     $context = '';
     
     switch($action) {
@@ -173,11 +206,22 @@ function getEnhancedActivityDescription($activity) {
             $context = 'restored ';
             break;
         case 'approve':
+            if ($table === 'payroll_records' || $table === 'payroll') {
+                if ($description && str_contains($description, 'marked as paid')) {
+                    return 'paid ' . ($affected_person ? "payroll for {$affected_person}" : 'payroll record');
+                }
+                return 'approved ' . ($affected_person ? "payroll for {$affected_person}" : 'payroll record');
+            }
             $context = 'approved ';
             break;
         case 'reject':
             $context = 'rejected ';
             break;
+        case 'status_change':
+            $context = 'changed status of ';
+            break;
+        case 'password_change':
+            return 'changed password';
         default:
             $context = $action . ' ';
     }
@@ -190,10 +234,34 @@ function getEnhancedActivityDescription($activity) {
             $context .= 'attendance record';
             break;
         case 'payroll':
+        case 'payroll_records':
             $context .= 'payroll';
+            break;
+        case 'payroll_settings':
+        case 'sss_settings':
+        case 'sss_contribution_matrix':
+        case 'philhealth_settings':
+        case 'pagibig_settings':
+        case 'bir_tax_brackets':
+            $context .= 'payroll settings';
+            break;
+        case 'holiday_calendar':
+            $context .= 'holiday';
             break;
         case 'cash_advances':
             $context .= 'cash advance';
+            break;
+        case 'projects':
+            $context .= 'project';
+            break;
+        case 'project_workers':
+            $context .= 'project assignment';
+            break;
+        case 'schedules':
+            $context .= 'schedule';
+            break;
+        case 'deductions':
+            $context .= 'deduction';
             break;
         default:
             $context .= 'record';
@@ -262,7 +330,7 @@ function getEnhancedActivityDescription($activity) {
                         <div class="welcome-text">
                             <h1>Welcome back, <?php echo htmlspecialchars($full_name); ?>!</h1>
                             <p>Here's what's happening with your workforce today</p>
-                            <span style="display: inline-flex; align-items: center; gap: 8px; margin-top: 10px; background: linear-gradient(135deg, #DAA520, #b8860b); color: #fff; padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 600;">
+                            <span style="display: inline-flex; align-items: center; gap: 8px; margin-top: 10px; background: <?php echo ($_SESSION['user_level'] === 'super_admin') ? 'linear-gradient(135deg, #DAA520, #b8860b)' : 'linear-gradient(135deg, #9C27B0, #7B1FA2)'; ?>; color: #fff; padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 600;">
                                 <i class="fas fa-<?php echo ($_SESSION['user_level'] === 'super_admin') ? 'crown' : 'shield-alt'; ?>"></i> <?php echo ($_SESSION['user_level'] === 'super_admin') ? 'Super Admin Access' : 'Admin Access'; ?>
                             </span>
                             <span style="display: inline-flex; align-items: center; gap: 6px; margin-top: 10px; margin-left: 10px; background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.85); padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 500;">
@@ -552,7 +620,7 @@ function getEnhancedActivityDescription($activity) {
                     <div class="table-card">
                         <div class="table-header">
                             <div class="table-title">
-                                <i class="fas fa-history"></i> Recent System Activity
+                                <i class="fas fa-history"></i> Recent Activity
                             </div>
                             <a href="<?php echo BASE_URL; ?>/modules/super_admin/settings/activity_logs.php" class="view-all">View All →</a>
                         </div>
@@ -570,7 +638,7 @@ function getEnhancedActivityDescription($activity) {
                                     </div>
                                     <div class="activity-content">
                                         <div class="activity-text">
-                                            <strong><?php echo htmlspecialchars($activity['username'] ?? 'System'); ?></strong>
+                                            <strong><?php echo htmlspecialchars($activity['display_name'] ?? $activity['username'] ?? 'Unknown'); ?></strong>
                                             <span class="user-level-tag user-level-<?php echo ($activity['user_level'] ?? '') ?: 'system'; ?>"><?php echo ($activity['user_level'] ?? '') === 'super_admin' ? 'Super Admin' : (($activity['user_level'] ?? '') === 'admin' ? 'Admin' : 'System'); ?></span>
                                             <span class="activity-action">
                                                 <?php echo getEnhancedActivityDescription($activity); ?>

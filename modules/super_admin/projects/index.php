@@ -118,7 +118,7 @@ $flash = getFlashMessage();
         }
         .status-pill::before { content: ''; width: 6px; height: 6px; border-radius: 50%; }
         .status-pill.active    { background: #e8f5e9; color: #2e7d32; }
-        .status-pill.active::before { background: #2e7d32; }
+        .status-pill.active::before { display: none; }
         .status-pill.planning  { background: #e3f2fd; color: #1565c0; }
         .status-pill.planning::before { background: #1565c0; }
         .status-pill.on_hold   { background: #fff3e0; color: #e65100; }
@@ -144,8 +144,8 @@ $flash = getFlashMessage();
         .projects-table .action-btn.btn-view:hover { background: #138496; }
         .projects-table .action-btn.btn-edit { background: #ffc107; color: #1a1a1a; }
         .projects-table .action-btn.btn-edit:hover { background: #e0a800; }
-        .projects-table .action-btn.btn-delete { background: #dc3545; }
-        .projects-table .action-btn.btn-delete:hover { background: #c82333; }
+        .projects-table .action-btn.btn-archive { background: #6c757d; }
+        .projects-table .action-btn.btn-archive:hover { background: #5a6268; }
 
         /* Empty State */
         .empty-state { text-align: center; padding: 60px 20px; color: #888; }
@@ -276,9 +276,6 @@ $flash = getFlashMessage();
                         <p class="subtitle">Manage construction projects and assignments</p>
                     </div>
                     <div class="header-actions">
-                        <button class="btn-outline" onclick="filterProjects(currentFilter)">
-                            <i class="fas fa-sync-alt"></i> Refresh
-                        </button>
                         <button class="btn-primary" onclick="openAddModal()">
                             <i class="fas fa-plus"></i> Add New Project
                         </button>
@@ -292,7 +289,6 @@ $flash = getFlashMessage();
                     <button class="filter-btn" data-filter="planning">Planning</button>
                     <button class="filter-btn" data-filter="on_hold">On Hold</button>
                     <button class="filter-btn" data-filter="completed">Completed</button>
-                    <button class="filter-btn" data-filter="cancelled">Cancelled</button>
                     <input type="text" class="filter-search" id="projectSearchInput" placeholder="Search projects..." oninput="searchProjects(this.value)">
                 </div>
 
@@ -391,7 +387,6 @@ $flash = getFlashMessage();
                             <option value="active">Active</option>
                             <option value="on_hold">On Hold</option>
                             <option value="completed">Completed</option>
-                            <option value="cancelled">Cancelled</option>
                         </select>
                     </div>
                 </div>

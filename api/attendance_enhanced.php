@@ -166,8 +166,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $attendance_id = $db->lastInsertId();
                 
                 // Log enhanced activity
+                $wStmt = $db->prepare("SELECT CONCAT(first_name, ' ', last_name) AS name FROM workers WHERE worker_id = ?");
+                $wStmt->execute([$worker_id]);
+                $wName = $wStmt->fetchColumn() ?: "Worker #{$worker_id}";
                 logActivity($db, $user_id, 'mark_attendance_enhanced', 'attendance', $attendance_id,
-                           "Enhanced attendance marking for worker ID: {$worker_id} via {$source}");
+                           "Marked attendance for {$wName} (Time In: {$time_in}" . ($time_out ? ", Time Out: {$time_out}" : '') . ", Status: {$status}) via {$source}");
                 
                 http_response_code(201);
                 jsonSuccess('Enhanced attendance marked successfully', [

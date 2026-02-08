@@ -131,17 +131,6 @@ try {
             logActivity($db, $user_id, 'create_deduction', 'deductions', $new_id,
                 "Added $deduction_type deduction of ₱" . number_format($amount, 2) . " for worker #$worker_id");
 
-            logAudit($db, [
-                'action_type' => 'create',
-                'module'      => 'deductions',
-                'table_name'  => 'deductions',
-                'record_id'   => $new_id,
-                'record_identifier' => "Worker #{$worker_id} - {$deduction_type}",
-                'new_values'  => json_encode(['deduction_type' => $deduction_type, 'amount' => $amount, 'frequency' => $frequency, 'description' => $description]),
-                'changes_summary' => "Added {$deduction_type} deduction of ₱" . number_format($amount, 2),
-                'severity'    => 'info'
-            ]);
-
             jsonResponse(true, 'Deduction added successfully');
             break;
 
@@ -192,17 +181,6 @@ try {
             logActivity($db, $user_id, 'update_deduction', 'deductions', $deduction_id,
                 "Updated deduction #$deduction_id");
 
-            logAudit($db, [
-                'action_type' => 'update',
-                'module'      => 'deductions',
-                'table_name'  => 'deductions',
-                'record_id'   => $deduction_id,
-                'record_identifier' => "Deduction #{$deduction_id}",
-                'new_values'  => json_encode(['deduction_type' => $deduction_type, 'amount' => $amount, 'status' => $status, 'frequency' => $frequency]),
-                'changes_summary' => "Updated deduction #{$deduction_id}: {$deduction_type} ₱" . number_format($amount, 2),
-                'severity'    => 'info'
-            ]);
-
             jsonResponse(true, 'Deduction updated successfully');
             break;
 
@@ -226,17 +204,6 @@ try {
 
             logActivity($db, $user_id, 'delete_deduction', 'deductions', $deduction_id,
                 "Cancelled/deleted deduction #$deduction_id");
-
-            logAudit($db, [
-                'action_type' => 'delete',
-                'module'      => 'deductions',
-                'table_name'  => 'deductions',
-                'record_id'   => $deduction_id,
-                'record_identifier' => "Deduction #{$deduction_id}",
-                'new_values'  => json_encode(['status' => 'cancelled', 'is_active' => 0]),
-                'changes_summary' => "Cancelled deduction #{$deduction_id}",
-                'severity'    => 'warning'
-            ]);
 
             jsonResponse(true, 'Deduction deleted successfully');
             break;

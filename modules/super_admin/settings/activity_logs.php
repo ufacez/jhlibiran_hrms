@@ -35,7 +35,7 @@ $filter_module = $_GET['filter_module'] ?? '';
 $filter_severity = $_GET['filter_severity'] ?? '';
 
 // Build query
-$where = [];
+$where = ["at.user_level IN ('super_admin', 'admin')"];
 $params = [];
 
 if ($filter_user) {

@@ -157,17 +157,6 @@ if ($action === 'view' && isset($_GET['id'])) {
             logActivity($db, getCurrentUserId(), 'archive_worker', 'workers', $worker_id,
                        "Archived worker: {$worker['first_name']} {$worker['last_name']} ({$worker['worker_code']})");
 
-            logAudit($db, [
-                'action_type' => 'update',
-                'module'      => 'workers',
-                'table_name'  => 'workers',
-                'record_id'   => $worker_id,
-                'record_identifier' => "{$worker['first_name']} {$worker['last_name']} ({$worker['worker_code']})",
-                'new_values'  => json_encode(['is_archived' => true, 'archive_reason' => $archive_reason]),
-                'changes_summary' => "Archived worker: {$worker['first_name']} {$worker['last_name']}",
-                'severity'    => 'warning'
-            ]);
-
             echo json_encode(['success' => true, 'message' => 'Worker archived successfully']);
             exit;
         } catch (PDOException $e) {
@@ -203,17 +192,6 @@ if ($action === 'view' && isset($_GET['id'])) {
 
             logActivity($db, getCurrentUserId(), 'archive_worker', 'workers', $worker_id,
                        "Archived worker (via delete): {$worker['first_name']} {$worker['last_name']} ({$worker['worker_code']})");
-
-            logAudit($db, [
-                'action_type' => 'delete',
-                'module'      => 'workers',
-                'table_name'  => 'workers',
-                'record_id'   => $worker_id,
-                'record_identifier' => "{$worker['first_name']} {$worker['last_name']} ({$worker['worker_code']})",
-                'new_values'  => json_encode(['is_archived' => true, 'archive_reason' => $archive_reason]),
-                'changes_summary' => "Deleted (archived) worker: {$worker['first_name']} {$worker['last_name']}",
-                'severity'    => 'warning'
-            ]);
 
             echo json_encode(['success' => true, 'message' => 'Worker archived (soft-deleted) successfully']);
             exit;

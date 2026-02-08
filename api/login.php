@@ -78,6 +78,15 @@ try {
     $user = $auth_result['user'];
     setUserSession($user);
     
+    // Log login activity for Super Admin and Admin users
+    if (in_array($user['user_level'], ['super_admin', 'admin'])) {
+        try {
+            logActivity($db, $user['user_id'], 'login', 'users', $user['user_id'], 'Logged into the system');
+        } catch (Exception $e) {
+            error_log("Login audit log error: " . $e->getMessage());
+        }
+    }
+    
     // Add debug info
     $response['debug']['user_level'] = $user['user_level'];
     $response['debug']['user_id'] = $user['user_id'];

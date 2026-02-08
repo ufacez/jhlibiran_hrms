@@ -81,18 +81,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $worker_name = $attendance['first_name'] . ' ' . $attendance['last_name'];
                 logActivity($db, $user_id, 'archive_attendance', 'attendance', $attendance_id,
                            "Archived attendance record for {$worker_name} on " . formatDate($attendance['attendance_date']));
-
-                logAudit($db, [
-                    'action_type' => 'update',
-                    'module'      => 'attendance',
-                    'table_name'  => 'attendance',
-                    'record_id'   => $attendance_id,
-                    'record_identifier' => "{$worker_name} - {$attendance['attendance_date']}",
-                    'old_values'  => json_encode(['is_archived' => false]),
-                    'new_values'  => json_encode(['is_archived' => true]),
-                    'changes_summary' => "Archived attendance for {$worker_name}",
-                    'severity'    => 'warning'
-                ]);
                 
                 http_response_code(200);
                 jsonSuccess('Attendance record archived successfully', [
@@ -140,18 +128,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $worker_name = $attendance['first_name'] . ' ' . $attendance['last_name'];
                 logActivity($db, $user_id, 'restore_attendance', 'attendance', $attendance_id,
                            "Restored attendance record for {$worker_name}");
-
-                logAudit($db, [
-                    'action_type' => 'update',
-                    'module'      => 'attendance',
-                    'table_name'  => 'attendance',
-                    'record_id'   => $attendance_id,
-                    'record_identifier' => "{$worker_name} - {$attendance['attendance_date']}",
-                    'old_values'  => json_encode(['is_archived' => true]),
-                    'new_values'  => json_encode(['is_archived' => false]),
-                    'changes_summary' => "Restored attendance for {$worker_name}",
-                    'severity'    => 'info'
-                ]);
                 
                 http_response_code(200);
                 jsonSuccess('Attendance record restored successfully', [
@@ -194,17 +170,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $worker_name = $attendance['first_name'] . ' ' . $attendance['last_name'];
                 logActivity($db, $user_id, 'delete_attendance', 'attendance', $attendance_id,
                            "Permanently deleted attendance record for {$worker_name}");
-
-                logAudit($db, [
-                    'action_type' => 'delete',
-                    'module'      => 'attendance',
-                    'table_name'  => 'attendance',
-                    'record_id'   => $attendance_id,
-                    'record_identifier' => "{$worker_name} - {$attendance['attendance_date']}",
-                    'old_values'  => json_encode($attendance),
-                    'changes_summary' => "Permanently deleted attendance for {$worker_name}",
-                    'severity'    => 'critical'
-                ]);
                 
                 http_response_code(200);
                 jsonSuccess('Attendance record deleted permanently', [
@@ -245,17 +210,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 
                 // Log activity
                 logActivity($db, $user_id, 'update_attendance', 'attendance', $attendance_id,
-                           'Updated attendance status/notes (times protected from editing)');
-
-                logAudit($db, [
-                    'action_type' => 'update',
-                    'module'      => 'attendance',
-                    'table_name'  => 'attendance',
-                    'record_id'   => $attendance_id,
-                    'new_values'  => json_encode(['status' => $status, 'notes' => $notes]),
-                    'changes_summary' => 'Updated attendance status/notes',
-                    'severity'    => 'info'
-                ]);
+                           "Updated attendance record #{$attendance_id} (Status: {$status})");
                 
                 http_response_code(200);
                 jsonSuccess('Attendance record updated successfully', [
@@ -324,19 +279,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $attendance_id = $db->lastInsertId();
                 
                 // Log activity
+                $wStmt = $db->prepare("SELECT CONCAT(first_name, ' ', last_name) AS name FROM workers WHERE worker_id = ?");
+                $wStmt->execute([$worker_id]);
+                $wName = $wStmt->fetchColumn() ?: "Worker #{$worker_id}";
                 logActivity($db, $user_id, 'mark_attendance', 'attendance', $attendance_id,
-                           "Marked attendance for worker ID: {$worker_id}");
-
-                logAudit($db, [
-                    'action_type' => 'create',
-                    'module'      => 'attendance',
-                    'table_name'  => 'attendance',
-                    'record_id'   => $attendance_id,
-                    'record_identifier' => "Worker #{$worker_id} - {$attendance_date}",
-                    'new_values'  => json_encode(['worker_id' => $worker_id, 'date' => $attendance_date, 'time_in' => $time_in, 'time_out' => $time_out, 'status' => $status, 'hours_worked' => $hours_worked]),
-                    'changes_summary' => "Marked attendance for worker #{$worker_id}",
-                    'severity'    => 'info'
-                ]);
+                           "Marked attendance for {$wName} (Time In: {$time_in}" . ($time_out ? ", Time Out: {$time_out}" : '') . ", Status: {$status})");
                 
                 http_response_code(201);
                 jsonSuccess('Attendance marked successfully with enhanced calculations', [
