@@ -547,8 +547,8 @@ $module_path = '/modules/super_admin';
         <!-- Audit Trail -->
         <?php if ($permissions['can_access_audit']): ?>
         <li>
-            <a href="<?php echo BASE_URL . $module_path; ?>/audit/index.php"
-               class="<?php echo ($current_dir === 'audit') ? 'active' : ''; ?>">
+            <a href="<?php echo BASE_URL . $module_path; ?>/settings/activity_logs.php"
+               class="<?php echo ($current_dir === 'settings' && $current_page === 'activity_logs.php') ? 'active' : ''; ?>">
                 <i class="fas fa-clipboard-list"></i>
                 <div class="title">Audit Trail</div>
             </a>
@@ -559,7 +559,7 @@ $module_path = '/modules/super_admin';
         <?php if ($permissions['can_access_settings']): ?>
         <li>
             <a href="<?php echo BASE_URL . $module_path; ?>/settings/index.php"
-               class="<?php echo ($current_dir === 'settings') ? 'active' : ''; ?>">
+               class="<?php echo ($current_dir === 'settings' && $current_page !== 'activity_logs.php') ? 'active' : ''; ?>">
                 <i class="fas fa-cog"></i>
                 <div class="title">Settings</div>
             </a>

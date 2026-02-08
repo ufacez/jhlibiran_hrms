@@ -14,6 +14,7 @@ require_once __DIR__ . '/../../../config/settings.php';
 require_once __DIR__ . '/../../../config/session.php';
 require_once __DIR__ . '/../../../includes/functions.php';
 require_once __DIR__ . '/../../../includes/auth.php';
+require_once __DIR__ . '/../../../includes/audit_trail.php';
 
 // Require Super Admin access
 requireSuperAdmin();
@@ -132,6 +133,13 @@ try {
     $total_pages = 0;
 }
 
+// Get audit statistics
+try {
+    $audit_stats = getAuditStats($db);
+} catch (Exception $e) {
+    $audit_stats = ['total_actions' => 0, 'creates' => 0, 'updates' => 0, 'deletes' => 0, 'critical' => 0, 'high' => 0, 'failed' => 0];
+}
+
 // Action icons and colors
 function getActionBadge($action) {
     $badges = [
@@ -174,42 +182,111 @@ function getSeverityBadge($severity) {
     <style>
         .logs-content { padding: 30px; }
         
-        .filters-card {
+        /* Statistics Cards */
+        .audit-stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        .audit-stat-card {
             background: #fff;
+            border-radius: 12px;
             padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            transition: transform 0.2s;
+        }
+        .audit-stat-card:hover { transform: translateY(-3px); box-shadow: 0 4px 16px rgba(0,0,0,0.12); }
+        .audit-stat-icon {
+            width: 50px; height: 50px; border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 20px; flex-shrink: 0;
+        }
+        .audit-stat-icon.total { background: linear-gradient(135deg, #667eea, #764ba2); color: #fff; }
+        .audit-stat-icon.critical { background: linear-gradient(135deg, #e53935, #b71c1c); color: #fff; }
+        .audit-stat-icon.high { background: linear-gradient(135deg, #FF9800, #F57C00); color: #fff; }
+        .audit-stat-icon.failed { background: linear-gradient(135deg, #78909C, #455A64); color: #fff; }
+        .audit-stat-value { font-size: 26px; font-weight: 700; color: #1a1a1a; line-height: 1; }
+        .audit-stat-label { font-size: 12px; color: #888; margin-top: 4px; }
+        
+        /* Header actions */
+        .header-actions { display: flex; gap: 10px; align-items: center; }
+        .btn-export {
+            padding: 10px 20px; background: #fff; color: #333; border: 1.5px solid #ddd;
+            border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer;
+            display: inline-flex; align-items: center; gap: 8px; text-decoration: none;
+            transition: all 0.2s;
+        }
+        .btn-export:hover { background: #f5f5f5; border-color: #bbb; }
+        
+        .filters-bar {
+            background: #fff;
+            padding: 14px 20px;
             border-radius: 12px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.08);
             margin-bottom: 20px;
         }
         
-        .filters-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 15px;
-            margin-top: 15px;
+        .filters-inline {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
         }
         
-        .filter-group label {
-            display: block;
-            margin-bottom: 5px;
+        .filters-inline select,
+        .filters-inline input[type="date"] {
+            padding: 8px 12px;
+            border: 1.5px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 13px;
+            background: #f8f9fa;
+            color: #333;
+            min-width: 130px;
+            cursor: pointer;
+            transition: border-color 0.2s;
+        }
+        
+        .filters-inline select:focus,
+        .filters-inline input[type="date"]:focus {
+            border-color: #DAA520;
+            outline: none;
+            background: #fff;
+        }
+        
+        .filters-inline .btn-filter {
+            padding: 8px 16px;
+            border-radius: 8px;
             font-size: 13px;
             font-weight: 600;
+            cursor: pointer;
+            border: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s;
+        }
+        
+        .filters-inline .btn-apply {
+            background: linear-gradient(135deg, #DAA520, #B8860B);
+            color: #fff;
+        }
+        
+        .filters-inline .btn-apply:hover {
+            box-shadow: 0 2px 8px rgba(218,165,32,0.4);
+        }
+        
+        .filters-inline .btn-reset {
+            background: #f0f0f0;
             color: #666;
+            text-decoration: none;
         }
         
-        .filter-group select,
-        .filter-group input {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            font-size: 14px;
-        }
-        
-        .filter-actions {
-            display: flex;
-            gap: 10px;
-            align-items: flex-end;
+        .filters-inline .btn-reset:hover {
+            background: #e0e0e0;
         }
         
         .logs-table-card {
@@ -264,14 +341,22 @@ function getSeverityBadge($severity) {
             font-weight: 600;
         }
         
-        .user-badge.super-admin {
-            background: #FFE082;
-            color: #F57F17;
+        .user-badge.super_admin {
+            background: #FFF3CD;
+            color: #B8860B;
+            border: 1px solid #FFE082;
         }
         
         .user-badge.admin {
-            background: #CE93D8;
-            color: #6A1B9A;
+            background: #F3E5F5;
+            color: #7B1FA2;
+            border: 1px solid #CE93D8;
+        }
+        
+        .user-badge.system {
+            background: #FFEBEE;
+            color: #C62828;
+            border: 1px solid #FFCDD2;
         }
         
         .pagination {
@@ -313,80 +398,97 @@ function getSeverityBadge($severity) {
             <?php include __DIR__ . '/../../../includes/topbar.php'; ?>
             
             <div class="logs-content">
-                <div class="page-header">
+                <div class="page-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
                     <div class="header-left">
                         <h1><i class="fas fa-shield-alt"></i> Audit Trail</h1>
                         <p class="subtitle">Unified log of all system activities and changes</p>
                     </div>
+                    <div class="header-actions">
+                        <a href="<?php echo BASE_URL; ?>/api/audit.php?action=export" class="btn-export" title="Export all records to CSV">
+                            <i class="fas fa-file-export"></i> Export CSV
+                        </a>
+                    </div>
+                </div>
+                
+                <!-- Statistics Cards -->
+                <div class="audit-stats-grid">
+                    <div class="audit-stat-card">
+                        <div class="audit-stat-icon total"><i class="fas fa-list-ul"></i></div>
+                        <div>
+                            <div class="audit-stat-value"><?php echo number_format($audit_stats['total_actions'] ?? 0); ?></div>
+                            <div class="audit-stat-label">Total Actions</div>
+                        </div>
+                    </div>
+                    <div class="audit-stat-card">
+                        <div class="audit-stat-icon critical"><i class="fas fa-exclamation-triangle"></i></div>
+                        <div>
+                            <div class="audit-stat-value"><?php echo number_format($audit_stats['critical'] ?? 0); ?></div>
+                            <div class="audit-stat-label">Critical Actions</div>
+                        </div>
+                    </div>
+                    <div class="audit-stat-card">
+                        <div class="audit-stat-icon high"><i class="fas fa-exclamation-circle"></i></div>
+                        <div>
+                            <div class="audit-stat-value"><?php echo number_format($audit_stats['high'] ?? 0); ?></div>
+                            <div class="audit-stat-label">High Severity</div>
+                        </div>
+                    </div>
+                    <div class="audit-stat-card">
+                        <div class="audit-stat-icon failed"><i class="fas fa-times-circle"></i></div>
+                        <div>
+                            <div class="audit-stat-value"><?php echo number_format($audit_stats['failed'] ?? 0); ?></div>
+                            <div class="audit-stat-label">Failed Actions</div>
+                        </div>
+                    </div>
                 </div>
                 
                 <!-- Filters -->
-                <div class="filters-card">
-                    <h3 style="margin: 0 0 15px 0; font-size: 16px;">
-                        <i class="fas fa-filter"></i> Filters
-                    </h3>
+                <div class="filters-bar">
                     <form method="GET" action="">
-                        <div class="filters-grid">
-                            <div class="filter-group">
-                                <label>User</label>
-                                <select name="filter_user">
-                                    <option value="">All Users</option>
-                                    <?php foreach ($users as $u): ?>
-                                    <option value="<?php echo $u['user_id']; ?>" <?php echo $filter_user == $u['user_id'] ? 'selected' : ''; ?>>
-                                        <?php echo htmlspecialchars($u['user_name']); ?>
-                                    </option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
+                        <div class="filters-inline">
+                            <select name="filter_user">
+                                <option value="">All Users</option>
+                                <?php foreach ($users as $u): ?>
+                                <option value="<?php echo $u['user_id']; ?>" <?php echo $filter_user == $u['user_id'] ? 'selected' : ''; ?>>
+                                    <?php echo htmlspecialchars($u['user_name']); ?>
+                                </option>
+                                <?php endforeach; ?>
+                            </select>
                             
-                            <div class="filter-group">
-                                <label>Action</label>
-                                <select name="filter_action">
-                                    <option value="">All Actions</option>
-                                    <?php foreach ($actions as $a): ?>
-                                    <option value="<?php echo $a['action_type']; ?>" <?php echo $filter_action == $a['action_type'] ? 'selected' : ''; ?>>
-                                        <?php echo ucwords(str_replace('_', ' ', $a['action_type'])); ?>
-                                    </option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
+                            <select name="filter_action">
+                                <option value="">All Actions</option>
+                                <?php foreach ($actions as $a): ?>
+                                <option value="<?php echo $a['action_type']; ?>" <?php echo $filter_action == $a['action_type'] ? 'selected' : ''; ?>>
+                                    <?php echo ucwords(str_replace('_', ' ', $a['action_type'])); ?>
+                                </option>
+                                <?php endforeach; ?>
+                            </select>
                             
-                            <div class="filter-group">
-                                <label>Module</label>
-                                <select name="filter_module">
-                                    <option value="">All Modules</option>
-                                    <?php foreach ($modules as $m): ?>
-                                    <option value="<?php echo $m['module']; ?>" <?php echo $filter_module == $m['module'] ? 'selected' : ''; ?>>
-                                        <?php echo ucwords(str_replace('_', ' ', $m['module'])); ?>
-                                    </option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
+                            <select name="filter_module">
+                                <option value="">All Modules</option>
+                                <?php foreach ($modules as $m): ?>
+                                <option value="<?php echo $m['module']; ?>" <?php echo $filter_module == $m['module'] ? 'selected' : ''; ?>>
+                                    <?php echo ucwords(str_replace('_', ' ', $m['module'])); ?>
+                                </option>
+                                <?php endforeach; ?>
+                            </select>
                             
-                            <div class="filter-group">
-                                <label>Severity</label>
-                                <select name="filter_severity">
-                                    <option value="">All Severities</option>
-                                    <option value="low" <?php echo $filter_severity == 'low' ? 'selected' : ''; ?>>Low</option>
-                                    <option value="medium" <?php echo $filter_severity == 'medium' ? 'selected' : ''; ?>>Medium</option>
-                                    <option value="high" <?php echo $filter_severity == 'high' ? 'selected' : ''; ?>>High</option>
-                                    <option value="critical" <?php echo $filter_severity == 'critical' ? 'selected' : ''; ?>>Critical</option>
-                                </select>
-                            </div>
+                            <select name="filter_severity">
+                                <option value="">All Severities</option>
+                                <option value="low" <?php echo $filter_severity == 'low' ? 'selected' : ''; ?>>Low</option>
+                                <option value="medium" <?php echo $filter_severity == 'medium' ? 'selected' : ''; ?>>Medium</option>
+                                <option value="high" <?php echo $filter_severity == 'high' ? 'selected' : ''; ?>>High</option>
+                                <option value="critical" <?php echo $filter_severity == 'critical' ? 'selected' : ''; ?>>Critical</option>
+                            </select>
                             
-                            <div class="filter-group">
-                                <label>Date</label>
-                                <input type="date" name="filter_date" value="<?php echo htmlspecialchars($filter_date); ?>">
-                            </div>
+                            <input type="date" name="filter_date" value="<?php echo htmlspecialchars($filter_date); ?>">
                             
-                            <div class="filter-actions">
-                                <button type="submit" class="btn btn-primary" style="width: 100%;">
-                                    <i class="fas fa-search"></i> Apply
-                                </button>
-                                <a href="activity_logs.php" class="btn btn-secondary" style="width: 100%; text-align: center;">
-                                    <i class="fas fa-redo"></i> Reset
-                                </a>
-                            </div>
+                            <button type="submit" class="btn-filter btn-apply">
+                                <i class="fas fa-search"></i> Apply
+                            </button>
+                            <a href="activity_logs.php" class="btn-filter btn-reset">
+                                <i class="fas fa-redo"></i> Reset
+                            </a>
                         </div>
                     </form>
                 </div>
@@ -434,9 +536,9 @@ function getSeverityBadge($severity) {
                                     <div style="font-weight: 600; margin-bottom: 3px;">
                                         <?php echo htmlspecialchars($log['user_name'] ?? $log['username'] ?? 'Unknown'); ?>
                                     </div>
-                                    <span class="user-badge <?php echo $log['user_level'] ?? ''; ?>">
-                                        <i class="fas fa-<?php echo ($log['user_level'] ?? '') === 'super_admin' ? 'crown' : 'user-shield'; ?>"></i>
-                                        <?php echo ucwords(str_replace('_', ' ', $log['user_level'] ?? 'system')); ?>
+                                    <span class="user-badge <?php echo ($log['user_level'] ?? '') ?: 'system'; ?>">
+                                        <i class="fas fa-<?php echo ($log['user_level'] ?? '') === 'super_admin' ? 'crown' : (($log['user_level'] ?? '') === 'admin' ? 'user-shield' : 'robot'); ?>"></i>
+                                        <?php echo ($log['user_level'] ?? '') === 'super_admin' ? 'Super Admin' : (($log['user_level'] ?? '') === 'admin' ? 'Admin' : 'System'); ?>
                                     </span>
                                 </td>
                                 <td>

@@ -486,8 +486,8 @@ if (!isset($db) || !$db) {
         
         <!-- Audit Trail -->
         <li>
-            <a href="<?php echo BASE_URL; ?>/modules/super_admin/audit/index.php"
-               class="<?php echo ($current_dir === 'audit') ? 'active' : ''; ?>">
+            <a href="<?php echo BASE_URL; ?>/modules/super_admin/settings/activity_logs.php"
+               class="<?php echo ($current_dir === 'settings' && $current_page === 'activity_logs.php') ? 'active' : ''; ?>">
                 <i class="fas fa-clipboard-list"></i>
                 <div class="title">Audit Trail</div>
             </a>
@@ -496,7 +496,7 @@ if (!isset($db) || !$db) {
         <!-- Settings -->
         <li>
             <a href="<?php echo BASE_URL; ?>/modules/super_admin/settings/index.php"
-               class="<?php echo ($current_dir === 'settings') ? 'active' : ''; ?>">
+               class="<?php echo ($current_dir === 'settings' && $current_page !== 'activity_logs.php') ? 'active' : ''; ?>">
                 <i class="fas fa-cog"></i>
                 <div class="title">Settings</div>
             </a>

@@ -554,6 +554,7 @@ function getEnhancedActivityDescription($activity) {
                             <div class="table-title">
                                 <i class="fas fa-history"></i> Recent System Activity
                             </div>
+                            <a href="<?php echo BASE_URL; ?>/modules/super_admin/settings/activity_logs.php" class="view-all">View All →</a>
                         </div>
                         <div class="activity-list">
                             <?php if (empty($recent_activities)): ?>
@@ -570,6 +571,7 @@ function getEnhancedActivityDescription($activity) {
                                     <div class="activity-content">
                                         <div class="activity-text">
                                             <strong><?php echo htmlspecialchars($activity['username'] ?? 'System'); ?></strong>
+                                            <span class="user-level-tag user-level-<?php echo ($activity['user_level'] ?? '') ?: 'system'; ?>"><?php echo ($activity['user_level'] ?? '') === 'super_admin' ? 'Super Admin' : (($activity['user_level'] ?? '') === 'admin' ? 'Admin' : 'System'); ?></span>
                                             <span class="activity-action">
                                                 <?php echo getEnhancedActivityDescription($activity); ?>
                                             </span>
@@ -602,7 +604,7 @@ function getEnhancedActivityDescription($activity) {
             onLeave: <?php echo $on_leave; ?>,
             absent: <?php echo $total_workers - $on_site_today - $on_leave; ?>
         };
-    </script>http://localhost/tracksite/modules/super_admin/audit/index.php
+    </script>
     
     <!-- JavaScript -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
