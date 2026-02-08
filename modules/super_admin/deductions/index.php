@@ -26,7 +26,6 @@ $flash = getFlashMessage();
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Deductions - <?php echo SYSTEM_NAME; ?></title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://pro.fontawesome.com/releases/v5.10.0/css/all.css" />
     <link rel="stylesheet" href="<?php echo CSS_URL; ?>/dashboard.css">
     <link rel="stylesheet" href="<?php echo CSS_URL; ?>/deductions.css">
@@ -70,37 +69,7 @@ $flash = getFlashMessage();
                     </div>
                 </div>
 
-                <!-- Stats Cards -->
-                <div class="stats-row">
-                    <div class="stat-card">
-                        <div class="stat-icon"><i class="fas fa-list-alt"></i></div>
-                        <div class="stat-info">
-                            <span class="stat-value" id="statTotal">0</span>
-                            <span class="stat-label">Total Deductions</span>
-                        </div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon pending"><i class="fas fa-clock"></i></div>
-                        <div class="stat-info">
-                            <span class="stat-value" id="statPending">0</span>
-                            <span class="stat-label">Pending</span>
-                        </div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon amount"><i class="fas fa-money-bill-wave"></i></div>
-                        <div class="stat-info">
-                            <span class="stat-value" id="statAmount">₱0.00</span>
-                            <span class="stat-label">Total Pending Amount</span>
-                        </div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon workers"><i class="fas fa-users"></i></div>
-                        <div class="stat-info">
-                            <span class="stat-value" id="statWorkers">0</span>
-                            <span class="stat-label">Workers with Deductions</span>
-                        </div>
-                    </div>
-                </div>
+
 
                 <!-- Filters -->
                 <div class="filter-card">

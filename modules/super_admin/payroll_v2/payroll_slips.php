@@ -36,13 +36,15 @@ $filter_role = $_GET['role'] ?? '';
 
 // Build query
 $query = "
-        SELECT pr.record_id, pr.period_id, pr.worker_id, pr.gross_pay, pr.net_pay, 
+        SELECT pr.record_id, pr.period_id, pr.worker_id, pr.project_id, pr.gross_pay, pr.net_pay, 
             pr.total_deductions, pr.status, pr.payment_date,
             p.period_start, p.period_end,
-            w.worker_id, w.first_name, w.last_name, w.worker_code, w.position, w.worker_type, w.classification_id
+            w.worker_id, w.first_name, w.last_name, w.worker_code, w.position, w.worker_type, w.classification_id,
+            proj.project_name
         FROM payroll_records pr
         JOIN payroll_periods p ON pr.period_id = p.period_id
         JOIN workers w ON pr.worker_id = w.worker_id
+        LEFT JOIN projects proj ON pr.project_id = proj.project_id
         WHERE 1=1
 ";
 
@@ -257,7 +259,7 @@ $pageTitle = 'Payroll Slips';
             padding: 15px 20px;
             font-weight: 700;
             display: grid;
-            grid-template-columns: 120px 1fr 130px 130px 130px 100px 150px;
+            grid-template-columns: 120px 1fr 120px 130px 130px 130px 100px 150px;
             gap: 10px;
             align-items: center;
             font-size: 13px;
@@ -265,24 +267,24 @@ $pageTitle = 'Payroll Slips';
             letter-spacing: 0.5px;
         }
         
-        .list-header > div:nth-child(3),
         .list-header > div:nth-child(4),
-        .list-header > div:nth-child(5) {
-            text-align: right;
-        }
-        
+        .list-header > div:nth-child(5),
         .list-header > div:nth-child(6) {
-            text-align: center;
+            text-align: right;
         }
         
         .list-header > div:nth-child(7) {
             text-align: center;
         }
         
+        .list-header > div:nth-child(8) {
+            text-align: center;
+        }
+        
         .list-item {
             padding: 15px 20px;
             display: grid;
-            grid-template-columns: 120px 1fr 130px 130px 130px 100px 150px;
+            grid-template-columns: 120px 1fr 120px 130px 130px 130px 100px 150px;
             gap: 10px;
             align-items: center;
             border-bottom: 1px solid #f0f0f0;
@@ -481,11 +483,11 @@ $pageTitle = 'Payroll Slips';
         @media (max-width: 1200px) {
             .list-header,
             .list-item {
-                grid-template-columns: 100px 1fr 110px 110px 110px 90px;
+                grid-template-columns: 100px 1fr 100px 110px 110px 110px 90px;
             }
 
-            .list-header > div:nth-child(7),
-            .list-item > div:nth-child(7) {
+            .list-header > div:nth-child(8),
+            .list-item > div:nth-child(8) {
                 display: none;
             }
         }
@@ -614,6 +616,7 @@ $pageTitle = 'Payroll Slips';
                     <div class="list-header">
                         <div>Period</div>
                         <div>Employee</div>
+                        <div>Project</div>
                         <div>Gross Pay</div>
                         <div>Deductions</div>
                         <div>Net Pay</div>
@@ -639,6 +642,10 @@ $pageTitle = 'Payroll Slips';
                                 <div class="item-code">
                                     <?php echo $record['worker_code']; ?>
                                 </div>
+                            </div>
+                            
+                            <div style="font-size:12px;color:#555;">
+                                <?php echo htmlspecialchars($record['project_name'] ?? '—'); ?>
                             </div>
                             
                             <div class="item-amount">

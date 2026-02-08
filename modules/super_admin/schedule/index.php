@@ -26,12 +26,19 @@ $flash = getFlashMessage();
 // Filters
 $worker_filter = isset($_GET['worker']) ? intval($_GET['worker']) : 0;
 $status_filter = isset($_GET['status']) ? sanitizeString($_GET['status']) : 'all';
+$project_filter = isset($_GET['project']) ? intval($_GET['project']) : 0;
 
 // ─── STEP 1: Get distinct workers (each appears ONCE) ───
 $workerSql = "SELECT DISTINCT w.worker_id, w.worker_code, w.first_name, w.last_name, w.position
-              FROM workers w
-              WHERE w.employment_status = 'active' AND w.is_archived = FALSE";
+              FROM workers w";
 $workerParams = [];
+
+if ($project_filter > 0) {
+    $workerSql .= " JOIN project_workers pw ON w.worker_id = pw.worker_id AND pw.project_id = ? AND pw.is_active = 1";
+    $workerParams[] = $project_filter;
+}
+
+$workerSql .= " WHERE w.employment_status = 'active' AND w.is_archived = FALSE";
 
 if ($worker_filter > 0) {
     $workerSql .= " AND w.worker_id = ?";
@@ -95,6 +102,14 @@ try {
     $allWorkers = $stmt->fetchAll();
 } catch (PDOException $e) {
     $allWorkers = [];
+}
+
+// Get active projects for filter
+try {
+    $stmt = $pdo->query("SELECT project_id, project_name FROM projects WHERE is_archived = 0 AND status IN ('active','planning','in_progress') ORDER BY project_name");
+    $allProjects = $stmt->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {
+    $allProjects = [];
 }
 ?>
 <!DOCTYPE html>
@@ -200,6 +215,13 @@ try {
         font-size: 10px;
         color: #66bb6a;
     }
+
+    .sched-chip.overtime {
+        background: #e3f2fd;
+        border-color: #90caf9;
+    }
+    .sched-chip.overtime .chip-time  { color: #1565c0; }
+    .sched-chip.overtime .chip-hours { color: #42a5f5; }
 
     .sched-chip.inactive {
         background: #f5f5f5;
@@ -331,6 +353,17 @@ try {
                 <form method="GET" action="" id="filterForm">
                     <div class="filter-row">
                         <div class="filter-group">
+                            <select name="project" onchange="this.form.submit()">
+                                <option value="">All Projects</option>
+                                <?php foreach ($allProjects as $proj): ?>
+                                <option value="<?php echo $proj['project_id']; ?>" <?php echo $project_filter == $proj['project_id'] ? 'selected' : ''; ?>>
+                                    <?php echo htmlspecialchars($proj['project_name']); ?>
+                                </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+
+                        <div class="filter-group">
                             <select name="worker" onchange="this.form.submit()">
                                 <option value="">All Workers</option>
                                 <?php foreach ($allWorkers as $w): ?>
@@ -349,7 +382,17 @@ try {
                             </select>
                         </div>
 
-                        <!-- Removed Apply button: filtering is now automatic on change -->
+                        <!-- Schedule Legend -->
+                        <div style="margin-left:auto;display:flex;align-items:center;gap:16px;font-size:12px;font-weight:500;">
+                            <div style="display:flex;align-items:center;gap:5px;">
+                                <span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#e8f5e9;border:1px solid #c8e6c9;"></span>
+                                <span style="color:#2e7d32;">Regular Day</span>
+                            </div>
+                            <div style="display:flex;align-items:center;gap:5px;">
+                                <span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#e3f2fd;border:1px solid #90caf9;"></span>
+                                <span style="color:#1565c0;">Overtime Day</span>
+                            </div>
+                        </div>
                     </div>
                 </form>
             </div>
@@ -418,8 +461,10 @@ try {
                                     <?php if ($sched):
                                         $st = new DateTime($sched['start_time']);
                                         $et = new DateTime($sched['end_time']);
-                                        $hrs = ($et->getTimestamp() - $st->getTimestamp()) / 3600;
-                                        $chipClass = $sched['is_active'] ? '' : 'inactive';
+                                        $rawHrs = ($et->getTimestamp() - $st->getTimestamp()) / 3600;
+                                        $hrs = $rawHrs > 0 ? $rawHrs - 1 : 0; // subtract 1 hour break
+                                        $isOvertime = ($hrs > 8);
+                                        $chipClass = $sched['is_active'] ? ($isOvertime ? 'overtime' : '') : 'inactive';
                                     ?>
                                         <div class="sched-chip <?php echo $chipClass; ?>">
                                             <span class="chip-time"><?php echo $st->format('g:i A'); ?> – <?php echo $et->format('g:i A'); ?></span>

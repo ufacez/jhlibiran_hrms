@@ -8,6 +8,9 @@
  *   GET   list   | get    | workers | available_workers
  */
 
+// Buffer output to prevent PHP warnings from corrupting JSON
+ob_start();
+
 define('TRACKSITE_INCLUDED', true);
 
 require_once __DIR__ . '/../config/database.php';
@@ -16,7 +19,11 @@ require_once __DIR__ . '/../config/session.php';
 require_once __DIR__ . '/../includes/functions.php';
 require_once __DIR__ . '/../includes/auth.php';
 
+// Discard any accidental output from includes and set JSON header
+ob_end_clean();
 header('Content-Type: application/json');
+// Suppress display errors for clean JSON output
+ini_set('display_errors', '0');
 
 if (!isLoggedIn()) {
     http_response_code(401);

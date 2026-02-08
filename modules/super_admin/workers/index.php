@@ -86,6 +86,7 @@ $work_type_filter = isset($_GET['work_type']) ? sanitizeString($_GET['work_type'
 $status_filter = isset($_GET['status']) ? sanitizeString($_GET['status']) : '';
 $experience_filter = isset($_GET['experience']) ? sanitizeString($_GET['experience']) : '';
 $search_query = isset($_GET['search']) ? sanitizeString($_GET['search']) : '';
+$project_filter = isset($_GET['project']) ? intval($_GET['project']) : 0;
 
 // Build query
 $sql = "SELECT w.*, u.email, u.status as user_status, 
@@ -99,6 +100,10 @@ $sql = "SELECT w.*, u.email, u.status as user_status,
     WHERE w.is_archived = FALSE";
 $params = [];
 
+if ($project_filter > 0) {
+    $sql .= " AND w.worker_id IN (SELECT pw.worker_id FROM project_workers pw WHERE pw.project_id = ? AND pw.is_active = 1)";
+    $params[] = $project_filter;
+}
 
 if (!empty($classification_filter)) {
     // Match worker's classification OR the classification assigned to their work type
@@ -169,6 +174,13 @@ try {
     $work_types = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
     $work_types = [];
+}
+// Get active projects for filter
+try {
+    $stmt = $db->query("SELECT project_id, project_name FROM projects WHERE is_archived = 0 AND status IN ('active','planning','in_progress') ORDER BY project_name");
+    $projects_list = $stmt->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {
+    $projects_list = [];
 }
 ?>
 <!DOCTYPE html>
@@ -314,6 +326,17 @@ try {
                 <div class="filter-card">
                     <form method="GET" action="" id="filterForm">
                         <div class="filter-row">
+                            <div class="filter-group">
+                                <label style="font-size:11px;font-weight:600;color:#666;letter-spacing:0.5px;text-transform:uppercase;margin-bottom:6px;">Project</label>
+                                <select name="project" id="projectFilter" onchange="submitFilter()">
+                                    <option value="">All Projects</option>
+                                    <?php foreach ($projects_list as $proj): ?>
+                                        <option value="<?php echo $proj['project_id']; ?>" <?php echo $project_filter == $proj['project_id'] ? 'selected' : ''; ?>>
+                                            <?php echo htmlspecialchars($proj['project_name']); ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
                             <div class="filter-group">
                                 <label style="font-size:11px;font-weight:600;color:#666;letter-spacing:0.5px;text-transform:uppercase;margin-bottom:6px;">Classification</label>
                                 <select name="classification" id="classificationFilter" onchange="submitFilter()">

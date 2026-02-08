@@ -1699,11 +1699,15 @@ class PayrollCalculator {
      */
     public function getCurrentWeekPeriod($referenceDate = null) {
         $date = $referenceDate ? strtotime($referenceDate) : time();
-        $dayOfWeek = date('N', $date); // 1 = Monday, 7 = Sunday
+        $dayOfWeek = date('N', $date); // 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat, 7=Sun
         
-        $weekStart = date('Y-m-d', strtotime('-' . ($dayOfWeek - 1) . ' days', $date));
-        // Company week runs Monday -> Saturday, so week end is 5 days after Monday
-        $weekEnd = date('Y-m-d', strtotime($weekStart . ' +5 days'));
+        // Company payroll period: Saturday (last week) through Friday (current week)
+        // Calculate days since last Saturday
+        $daysSinceSaturday = ($dayOfWeek - 6 + 7) % 7; // Sat=0, Sun=1, Mon=2, ... Fri=6
+        
+        $weekStart = date('Y-m-d', strtotime('-' . $daysSinceSaturday . ' days', $date));
+        // Period ends on Friday (6 days after Saturday)
+        $weekEnd = date('Y-m-d', strtotime($weekStart . ' +6 days'));
         
         return [
             'start' => $weekStart,
@@ -1720,6 +1724,7 @@ class PayrollCalculator {
      */
     public function getPreviousWeekPeriod($referenceDate = null) {
         $current = $this->getCurrentWeekPeriod($referenceDate);
-        return $this->getCurrentWeekPeriod(date('Y-m-d', strtotime($current['start'] . ' -1 day')));
+        // Go back 7 days from current period start to get previous Saturday
+        return $this->getCurrentWeekPeriod(date('Y-m-d', strtotime($current['start'] . ' -7 days')));
     }
 }

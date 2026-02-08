@@ -786,6 +786,7 @@ try {
             $periodStart = $input['period_start'] ?? '';
             $periodEnd = $input['period_end'] ?? '';
             $userId = $input['user_id'] ?? null;
+            $projectId = isset($input['project_id']) ? intval($input['project_id']) : null;
             
             if (!$workerId || !$periodStart || !$periodEnd) {
                 throw new Exception('Worker ID and period dates are required');
@@ -798,7 +799,7 @@ try {
             $periodId = getOrCreatePeriod($pdo, $periodStart, $periodEnd);
             
             // Save to database
-            $recordId = savePayrollRecord($pdo, $periodId, $calculation, $userId);
+            $recordId = savePayrollRecord($pdo, $periodId, $calculation, $userId, $projectId);
             
             echo json_encode([
                 'success' => true,
@@ -818,9 +819,14 @@ try {
             $periodStart = $input['period_start'] ?? '';
             $periodEnd = $input['period_end'] ?? '';
             $userId = $input['user_id'] ?? null;
+            $projectId = isset($input['project_id']) ? intval($input['project_id']) : null;
             
             if (empty($workerIds) || !$periodStart || !$periodEnd) {
                 throw new Exception('Worker IDs and period dates are required');
+            }
+            
+            if (!$projectId) {
+                throw new Exception('Project selection is required for batch payroll generation');
             }
             
             // Get or create period
@@ -830,7 +836,7 @@ try {
             foreach ($workerIds as $workerId) {
                 try {
                     $calculation = $calculator->generatePayroll($workerId, $periodStart, $periodEnd);
-                    $recordId = savePayrollRecord($pdo, $periodId, $calculation, $userId);
+                    $recordId = savePayrollRecord($pdo, $periodId, $calculation, $userId, $projectId);
                     $results[] = [
                         'worker_id' => $workerId,
                         'success' => true,
@@ -1301,7 +1307,7 @@ function getOrCreatePeriod($pdo, $start, $end) {
 /**
  * Save payroll record to database
  */
-function savePayrollRecord($pdo, $periodId, $calculation, $userId = null) {
+function savePayrollRecord($pdo, $periodId, $calculation, $userId = null, $projectId = null) {
     // Check for existing record
     $stmt = $pdo->prepare("
         SELECT record_id FROM payroll_records 
@@ -1317,6 +1323,7 @@ function savePayrollRecord($pdo, $periodId, $calculation, $userId = null) {
         // Update existing
         $stmt = $pdo->prepare("
             UPDATE payroll_records SET
+                project_id = ?,
                 hourly_rate_used = ?,
                 ot_multiplier_used = ?,
                 night_diff_pct_used = ?,
@@ -1346,6 +1353,7 @@ function savePayrollRecord($pdo, $periodId, $calculation, $userId = null) {
         ");
         
         $stmt->execute([
+            $projectId,
             $rates['hourly_rate'],
             $rates['overtime_multiplier'],
             $rates['night_diff_percentage'] / 100,
@@ -1383,7 +1391,7 @@ function savePayrollRecord($pdo, $periodId, $calculation, $userId = null) {
         // Insert new
         $stmt = $pdo->prepare("
             INSERT INTO payroll_records (
-                period_id, worker_id,
+                period_id, worker_id, project_id,
                 hourly_rate_used, ot_multiplier_used, night_diff_pct_used,
                 regular_hours, overtime_hours, night_diff_hours,
                 rest_day_hours, regular_holiday_hours, special_holiday_hours,
@@ -1393,12 +1401,13 @@ function savePayrollRecord($pdo, $periodId, $calculation, $userId = null) {
                 pagibig_contribution, tax_withholding, other_deductions,
                 total_deductions, net_pay,
                 generated_by, status
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft')
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft')
         ");
         
         $stmt->execute([
             $periodId,
             $calculation['worker']['worker_id'],
+            $projectId,
             $rates['hourly_rate'],
             $rates['overtime_multiplier'],
             $rates['night_diff_percentage'] / 100,

@@ -254,7 +254,7 @@ class PayrollPDFGenerator {
         $this->pdf->setPrintHeader(false);
         $this->pdf->setPrintFooter(false);
         $this->pdf->SetMargins(4, 4, 4); // was 6mm, now 4mm
-        $this->pdf->SetAutoPageBreak(true, 4); // was 6mm, now 4mm
+        $this->pdf->SetAutoPageBreak(false); // Disable auto page break to force single page
         $this->pdf->setCellHeightRatio(0.85); // was 1.0, now 0.85
         $this->pdf->setImageScale(0.95); // slightly smaller images if any
 
@@ -515,19 +515,17 @@ class PayrollPDFGenerator {
 
         $this->pdf->Ln(4);
 
-        // --- Other Deductions table with Type | Date Applied | Payroll Period | Amount ---
+        // --- Other Deductions table with Type | Amount ---
         $this->pdf->SetFont('dejavusans', 'B', 9);
         $this->pdf->SetFillColor(245, 245, 245);
         $this->pdf->Cell(0, 6, 'OTHER DEDUCTIONS', 0, 1, 'L', true);
 
         // Table header
-        $cw = [80, 50, 70, 45]; // Type, Date Applied, Payroll Period, Amount
+        $cw = [155, 90]; // Type, Amount
         $this->pdf->SetFont('dejavusans', 'B', 8);
         $this->pdf->SetFillColor(240, 240, 240);
         $this->pdf->Cell($cw[0], 5, 'Type', 1, 0, 'L', true);
-        $this->pdf->Cell($cw[1], 5, 'Date Applied', 1, 0, 'L', true);
-        $this->pdf->Cell($cw[2], 5, 'Payroll Period', 1, 0, 'L', true);
-        $this->pdf->Cell($cw[3], 5, 'Amount', 1, 1, 'R', true);
+        $this->pdf->Cell($cw[1], 5, 'Amount', 1, 1, 'R', true);
 
         $this->pdf->SetFont('dejavusans', '', 8);
         $otherTotal = 0;
@@ -540,32 +538,16 @@ class PayrollPDFGenerator {
                     $label .= ' - ' . mb_strimwidth($md['description'], 0, 30, '...');
                 }
 
-                $dateApplied = !empty($md['created_at']) ? date('M d, Y', strtotime($md['created_at'])) : '-';
-                $periodText = '-';
-                if (!empty($md['ded_period_start']) && !empty($md['ded_period_end'])) {
-                    $periodText = date('M d', strtotime($md['ded_period_start'])) . ' - ' . date('M d, Y', strtotime($md['ded_period_end']));
-                } elseif (!empty($record['period_start']) && !empty($record['period_end'])) {
-                    $periodText = date('M d', strtotime($record['period_start'])) . ' - ' . date('M d, Y', strtotime($record['period_end']));
-                }
-
                 $this->pdf->Cell($cw[0], 5, $label, 1, 0, 'L');
-                $this->pdf->Cell($cw[1], 5, $dateApplied, 1, 0, 'L');
-                $this->pdf->Cell($cw[2], 5, $periodText, 1, 0, 'L');
-                $this->pdf->Cell($cw[3], 5, '-P' . number_format($mdAmount, 2), 1, 1, 'R');
+                $this->pdf->Cell($cw[1], 5, '-P' . number_format($mdAmount, 2), 1, 1, 'R');
             }
         } else {
             // Fallback: compute lump from stored total
             $otherTotal = $totalDeductions - ($sss + $philhealth + $pagibig + $tax);
             if ($otherTotal < 0) $otherTotal = 0;
             if ($otherTotal > 0) {
-                $periodText = '-';
-                if (!empty($record['period_start']) && !empty($record['period_end'])) {
-                    $periodText = date('M d', strtotime($record['period_start'])) . ' - ' . date('M d, Y', strtotime($record['period_end']));
-                }
                 $this->pdf->Cell($cw[0], 5, 'Other', 1, 0, 'L');
-                $this->pdf->Cell($cw[1], 5, '-', 1, 0, 'L');
-                $this->pdf->Cell($cw[2], 5, $periodText, 1, 0, 'L');
-                $this->pdf->Cell($cw[3], 5, '-P' . number_format($otherTotal, 2), 1, 1, 'R');
+                $this->pdf->Cell($cw[1], 5, '-P' . number_format($otherTotal, 2), 1, 1, 'R');
             } else {
                 $this->pdf->SetFont('dejavusans', '', 8);
                 $this->pdf->Cell(array_sum($cw), 5, 'None', 1, 1, 'C');

@@ -217,81 +217,101 @@ async function setAddressFieldsAsync(provName, cityName, brgyName) {
    LOAD & RENDER PROJECTS
    ================================================================ */
 function loadProjects() {
-    fetch(`${API}?action=list`)
-        .then(r => r.json())
+    fetch(`${API}?action=list`, {
+        method: 'GET',
+        credentials: 'same-origin',
+        headers: { 'Accept': 'application/json' }
+    })
+        .then(r => {
+            if (r.status === 401) {
+                window.location.href = '/tracksite/login.php';
+                return null;
+            }
+            if (!r.ok) throw new Error(`HTTP ${r.status}`);
+            return r.text();
+        })
+        .then(text => {
+            if (text === null) return;
+            // Strip any leading PHP warnings before the JSON
+            const jsonStart = text.indexOf('{');
+            if (jsonStart === -1) throw new Error('Invalid response');
+            const cleanJson = text.substring(jsonStart);
+            return JSON.parse(cleanJson);
+        })
         .then(res => {
+            if (!res) return;
             if (res.success) {
-                allProjects = res.data.projects;
+                allProjects = res.data.projects || [];
                 renderProjects();
             } else {
                 console.error('API error:', res.message);
-                document.getElementById('projectsGrid').innerHTML =
-                    `<div class="empty-state" style="grid-column:1/-1">
-                        <i class="fas fa-exclamation-triangle"></i>
-                        <h3>${escHtml(res.message)}</h3>
-                    </div>`;
+                document.getElementById('projectsTableBody').innerHTML =
+                    `<tr><td colspan="6" style="text-align:center;padding:40px;color:#e53935;">
+                        <i class="fas fa-exclamation-triangle" style="margin-right:6px;"></i>${escHtml(res.message)}
+                    </td></tr>`;
             }
         })
         .catch(err => {
             console.error('Load projects error:', err);
-            document.getElementById('projectsGrid').innerHTML =
-                `<div class="empty-state" style="grid-column:1/-1">
-                    <i class="fas fa-exclamation-triangle"></i>
-                    <h3>Failed to load projects. Please refresh.</h3>
-                </div>`;
+            document.getElementById('projectsTableBody').innerHTML =
+                `<tr><td colspan="6" style="text-align:center;padding:40px;color:#e53935;">
+                    <i class="fas fa-exclamation-triangle" style="margin-right:6px;"></i>Failed to load projects. Please refresh the page or check your login status.
+                </td></tr>`;
         });
 }
 
 function renderProjects() {
-    const grid = document.getElementById('projectsGrid');
+    const tbody = document.getElementById('projectsTableBody');
+    if (!tbody) return;
     let filtered = allProjects;
     if (currentFilter !== 'all') {
         filtered = allProjects.filter(p => p.status === currentFilter);
     }
 
+    // Also apply search filter if active
+    const searchInput = document.getElementById('projectSearchInput');
+    const q = searchInput ? searchInput.value.toLowerCase() : '';
+    if (q) {
+        filtered = filtered.filter(p => {
+            const name = (p.project_name || '').toLowerCase();
+            const loc = (p.location || '').toLowerCase();
+            return name.includes(q) || loc.includes(q);
+        });
+    }
+
     if (filtered.length === 0) {
-        grid.innerHTML = `
-            <div class="empty-state" style="grid-column:1/-1">
-                <i class="fas fa-hard-hat"></i>
-                <h3>No Projects Found</h3>
-                <p>Add your first project to start managing construction sites.</p>
-            </div>`;
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="6" style="text-align:center;padding:50px;color:#888;">
+                    <i class="fas fa-hard-hat" style="font-size:36px;display:block;margin-bottom:10px;color:#ddd;"></i>
+                    <div style="font-size:15px;font-weight:500;color:#666;">No Projects Found</div>
+                    <div style="font-size:13px;margin-top:4px;">Add your first project to start managing construction sites.</div>
+                </td>
+            </tr>`;
         return;
     }
 
-    grid.innerHTML = filtered.map(p => {
+    tbody.innerHTML = filtered.map(p => {
         const start = formatDate(p.start_date);
-        const end   = p.end_date ? formatDate(p.end_date) : 'Ongoing';
-        const desc  = p.description || '';
-        const loc   = p.location || 'Not specified';
+        const end   = p.end_date ? formatDate(p.end_date) : '—';
+        const loc   = p.location || '—';
         const st    = (p.status || '').replace(/_/g, ' ');
 
         return `
-        <div class="project-card" onclick="openProjectDetail(${p.project_id})">
-            <div class="project-card-header">
-                <div>
-                    <h3>${escHtml(p.project_name)}</h3>
-                    <span class="project-code">${escHtml(p.status.toUpperCase())}</span>
+        <tr data-project-id="${p.project_id}" data-name="${escHtml(p.project_name).toLowerCase()}" data-location="${escHtml(p.location || '').toLowerCase()}" onclick="openProjectDetail(${p.project_id})" style="cursor:pointer;">
+            <td class="name-cell">${escHtml(p.project_name)}</td>
+            <td class="location-cell">${escHtml(loc)}</td>
+            <td class="date-cell">${start}</td>
+            <td class="date-cell">${end}</td>
+            <td><span class="status-pill ${p.status}">${st}</span></td>
+            <td>
+                <div class="action-group" onclick="event.stopPropagation()">
+                    <button class="act-btn" onclick="openProjectDetail(${p.project_id})" title="View Details"><i class="fas fa-eye"></i></button>
+                    <button class="act-btn edit" onclick="openEditModal(${p.project_id})" title="Edit"><i class="fas fa-pen"></i></button>
+                    <button class="act-btn delete" onclick="deleteProject(${p.project_id}, '${escAttr(p.project_name)}')" title="Delete"><i class="fas fa-trash-alt"></i></button>
                 </div>
-                <span class="status-pill ${p.status}">${st}</span>
-            </div>
-            ${desc ? `<p class="project-description">${escHtml(desc)}</p>` : ''}
-            <div class="project-meta">
-                <div class="meta-item"><i class="fas fa-calendar-alt"></i> ${start} – ${end}</div>
-                <div class="meta-item"><i class="fas fa-map-marker-alt"></i> ${escHtml(loc)}</div>
-                <div class="meta-item meta-clickable" onclick="event.stopPropagation(); openProjectDetail(${p.project_id})" title="View workers">
-                    <i class="fas fa-users"></i> ${p.worker_count} worker${p.worker_count != 1 ? 's' : ''}
-                </div>
-            </div>
-            <div class="project-actions">
-                <button class="btn-sm btn-edit" onclick="event.stopPropagation(); openEditModal(${p.project_id})">
-                    <i class="fas fa-edit"></i> Edit
-                </button>
-                <button class="btn-sm btn-delete" onclick="event.stopPropagation(); deleteProject(${p.project_id}, '${escAttr(p.project_name)}')">
-                    <i class="fas fa-trash"></i> Delete
-                </button>
-            </div>
-        </div>`;
+            </td>
+        </tr>`;
     }).join('');
 }
 
@@ -359,9 +379,20 @@ function saveProject() {
     data.append('end_date',     document.getElementById('fieldEnd').value);
     data.append('status',       document.getElementById('fieldStatus').value);
 
-    fetch(API, { method: 'POST', body: data })
-        .then(r => r.json())
+    fetch(API, { 
+        method: 'POST', 
+        body: data,
+        credentials: 'same-origin'
+    })
+        .then(r => {
+            if (r.status === 401) {
+                window.location.href = '/tracksite/login.php';
+                return;
+            }
+            return r.json();
+        })
         .then(res => {
+            if (!res) return;
             if (res.success) {
                 closeAllModals();
                 loadProjects();
@@ -379,9 +410,20 @@ function deleteProject(id, name) {
     data.append('action', 'delete');
     data.append('project_id', id);
 
-    fetch(API, { method: 'POST', body: data })
-        .then(r => r.json())
+    fetch(API, { 
+        method: 'POST', 
+        body: data,
+        credentials: 'same-origin'
+    })
+        .then(r => {
+            if (r.status === 401) {
+                window.location.href = '/tracksite/login.php';
+                return;
+            }
+            return r.json();
+        })
         .then(res => {
+            if (!res) return;
             if (res.success) {
                 loadProjects();
                 showToast(res.message, 'success');
@@ -425,9 +467,18 @@ function loadProjectWorkers(id) {
     const body = document.getElementById('detailScheduleBody');
     body.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:40px;color:#aaa"><i class="fas fa-spinner fa-spin"></i> Loading…</td></tr>';
 
-    fetch(`${API}?action=workers&project_id=${id}`)
-        .then(r => r.json())
+    fetch(`${API}?action=workers&project_id=${id}`, {
+        credentials: 'same-origin'
+    })
+        .then(r => {
+            if (r.status === 401) {
+                window.location.href = '/tracksite/login.php';
+                return;
+            }
+            return r.json();
+        })
         .then(res => {
+            if (!res) return;
             if (!res.success) { body.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:30px;color:#e53935">Error loading workers</td></tr>'; return; }
             const workers = res.data.workers;
 
@@ -496,9 +547,18 @@ function loadAvailableWorkers() {
     const list = document.getElementById('availableWorkersList');
     list.innerHTML = '<div class="aw-empty"><i class="fas fa-spinner fa-spin"></i> Loading…</div>';
 
-    fetch(`${API}?action=available_workers&project_id=${currentProjectId}`)
-        .then(r => r.json())
+    fetch(`${API}?action=available_workers&project_id=${currentProjectId}`, {
+        credentials: 'same-origin'
+    })
+        .then(r => {
+            if (r.status === 401) {
+                window.location.href = '/tracksite/login.php';
+                return;
+            }
+            return r.json();
+        })
         .then(res => {
+            if (!res) return;
             if (!res.success) { list.innerHTML = '<div class="aw-empty">Error</div>'; return; }
             const workers = res.data.workers;
             if (workers.length === 0) {
@@ -534,9 +594,20 @@ function assignWorker(workerId) {
     data.append('project_id', currentProjectId);
     data.append('worker_id', workerId);
 
-    fetch(API, { method: 'POST', body: data })
-        .then(r => r.json())
+    fetch(API, { 
+        method: 'POST', 
+        body: data,
+        credentials: 'same-origin'
+    })
+        .then(r => {
+            if (r.status === 401) {
+                window.location.href = '/tracksite/login.php';
+                return;
+            }
+            return r.json();
+        })
         .then(res => {
+            if (!res) return;
             if (res.success) {
                 loadAvailableWorkers();
                 loadProjectWorkers(currentProjectId);
@@ -555,9 +626,20 @@ function removeWorker(projectId, workerId, name) {
     data.append('project_id', projectId);
     data.append('worker_id', workerId);
 
-    fetch(API, { method: 'POST', body: data })
-        .then(r => r.json())
+    fetch(API, { 
+        method: 'POST', 
+        body: data,
+        credentials: 'same-origin'
+    })
+        .then(r => {
+            if (r.status === 401) {
+                window.location.href = '/tracksite/login.php';
+                return;
+            }
+            return r.json();
+        })
         .then(res => {
+            if (!res) return;
             if (res.success) {
                 loadProjectWorkers(projectId);
                 loadProjects();
@@ -612,7 +694,9 @@ function calcHours(start, end) {
     if (!start || !end) return '0.0';
     const [sh, sm] = start.split(':').map(Number);
     const [eh, em] = end.split(':').map(Number);
-    return (((eh * 60 + em) - (sh * 60 + sm)) / 60).toFixed(1);
+    const raw = ((eh * 60 + em) - (sh * 60 + sm)) / 60;
+    const effective = raw > 0 ? raw - 1 : 0; // subtract 1 hour break
+    return effective.toFixed(1);
 }
 function getInitials(name) {
     return name.split(' ').filter(Boolean).map(w => w[0].toUpperCase()).slice(0, 2).join('');

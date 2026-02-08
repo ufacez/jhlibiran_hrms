@@ -35,94 +35,116 @@ $flash = getFlashMessage();
     <style>
         .projects-content { padding: 30px; }
 
-        /* Page Header – matches work_types.php */
+        /* Page Header */
         .page-header {
             display: flex; justify-content: space-between; align-items: center;
             margin-bottom: 25px;
         }
         .header-left h1 {
-            font-size: 28px; color: #1a1a1a; font-weight: 600; margin-bottom: 5px;
-            display: flex; align-items: center; gap: 12px;
+            font-size: 24px; color: #1a1a1a; font-weight: 700; margin-bottom: 0;
         }
-        .header-left h1 i { color: #DAA520; }
-        .subtitle { color: #666; font-size: 14px; }
-        .header-actions { display: flex; gap: 12px; }
+        .header-actions { display: flex; gap: 10px; align-items: center; }
+
+        .btn-outline {
+            padding: 9px 18px;
+            background: #fff;
+            color: #333; border: 1.5px solid #ddd; border-radius: 8px;
+            font-size: 13px; font-weight: 500; cursor: pointer;
+            display: inline-flex; align-items: center; gap: 6px;
+            transition: all 0.2s; text-decoration: none;
+        }
+        .btn-outline:hover { border-color: #999; background: #fafafa; }
+        .btn-outline i { font-size: 12px; }
 
         .btn-primary {
-            padding: 12px 24px;
+            padding: 9px 20px;
             background: linear-gradient(135deg, #DAA520, #B8860B);
-            color: #1a1a1a; border: none; border-radius: 8px;
-            font-size: 14px; font-weight: 600; cursor: pointer;
-            display: inline-flex; align-items: center; gap: 8px;
-            transition: all 0.3s ease; text-decoration: none;
+            color: #fff; border: none; border-radius: 8px;
+            font-size: 13px; font-weight: 600; cursor: pointer;
+            display: inline-flex; align-items: center; gap: 7px;
+            transition: all 0.2s; text-decoration: none;
         }
-        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(218,165,32,0.3); }
+        .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(218,165,32,0.3); }
 
-        /* Tabs */
-        .tabs {
-            display: flex; gap: 5px; margin-bottom: 25px;
-            background: #f5f5f5; padding: 5px; border-radius: 10px; width: fit-content;
+        /* Filter Tabs */
+        .filter-bar {
+            display: flex; gap: 10px; margin-bottom: 20px; align-items: center; flex-wrap: wrap;
         }
-        .tab {
-            padding: 10px 20px; background: none; border: none; cursor: pointer;
-            font-size: 14px; font-weight: 500; color: #666; border-radius: 8px;
-            transition: all 0.3s ease; display: flex; align-items: center; gap: 8px;
+        .filter-btn {
+            padding: 7px 16px; background: #f5f5f5; border: 1.5px solid transparent; border-radius: 8px;
+            cursor: pointer; font-size: 13px; font-weight: 500; color: #666;
+            transition: all 0.2s; display: flex; align-items: center; gap: 6px;
         }
-        .tab:hover { color: #1a1a1a; }
-        .tab.active { background: #fff; color: #1a1a1a; box-shadow: 0 2px 4px rgba(0,0,0,0.08); }
-        .tab-content { display: none; }
-        .tab-content.active { display: block; }
+        .filter-btn:hover { color: #333; background: #eee; }
+        .filter-btn.active { background: #fff; color: #1a1a1a; border-color: #ddd; box-shadow: 0 1px 4px rgba(0,0,0,0.06); font-weight: 600; }
+        .filter-search {
+            margin-left: auto;
+            padding: 8px 14px; border: 1.5px solid #e0e0e0; border-radius: 8px;
+            font-size: 13px; width: 200px; background: #fafbfc;
+        }
+        .filter-search:focus { outline: none; border-color: #DAA520; box-shadow: 0 0 0 3px rgba(218,165,32,0.1); }
 
-        /* Project Cards Grid */
-        .projects-grid {
-            display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 20px;
+        /* Projects Table */
+        .projects-table-wrap {
+            background: #fff; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+            overflow: hidden;
         }
-        .project-card {
-            background: #fff; border-radius: 12px; padding: 20px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08); border: 1px solid #e8e8e8;
-            transition: all 0.3s ease; cursor: pointer;
+        .projects-table {
+            width: 100%; border-collapse: collapse; font-size: 13px;
         }
-        .project-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.12); transform: translateY(-3px); }
-
-        .project-card-header {
-            display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;
+        .projects-table thead th {
+            background: #fafbfc; padding: 12px 16px; text-align: left;
+            font-size: 11px; font-weight: 600; color: #888; text-transform: uppercase;
+            letter-spacing: 0.5px; border-bottom: 1px solid #eee;
         }
-        .project-card-header h3 { font-size: 17px; font-weight: 600; color: #1a1a1a; margin-bottom: 4px; }
-        .project-code { font-size: 11px; color: #999; font-family: 'Consolas', monospace; background: #f5f5f5; padding: 2px 8px; border-radius: 4px; }
-        .project-description { font-size: 13px; color: #666; margin-bottom: 12px; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-
-        .project-meta {
-            display: flex; gap: 15px; padding-top: 12px; border-top: 1px solid #eee; flex-wrap: wrap;
+        .projects-table tbody tr {
+            border-bottom: 1px solid #f2f2f2; transition: background 0.15s; cursor: pointer;
         }
-        .meta-item { display: flex; align-items: center; gap: 6px; font-size: 13px; color: #555; }
-        .meta-item i { color: #DAA520; font-size: 11px; }
-        .meta-item.meta-clickable { cursor: pointer; transition: color 0.15s; }
-        .meta-item.meta-clickable:hover { color: #2b6cb0; }
-
-        .project-actions { display: flex; gap: 8px; margin-top: 12px; }
-        .btn-sm { padding: 6px 14px; font-size: 12px; border-radius: 6px; border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; transition: all 0.2s; font-weight: 500; }
-        .btn-edit { background: #e3f2fd; color: #1976d2; }
-        .btn-edit:hover { background: #1976d2; color: #fff; }
-        .btn-delete { background: #ffebee; color: #c62828; }
-        .btn-delete:hover { background: #c62828; color: #fff; }
+        .projects-table tbody tr:last-child { border-bottom: none; }
+        .projects-table tbody tr:hover { background: #fafbfc; }
+        .projects-table td { padding: 14px 16px; vertical-align: middle; color: #333; }
+        .projects-table td.name-cell { font-weight: 600; font-size: 14px; }
+        .projects-table td.location-cell { color: #666; font-size: 12px; }
+        .projects-table td.date-cell { font-size: 12px; color: #555; white-space: nowrap; }
 
         /* Status badges */
         .status-pill {
-            display: inline-block; padding: 3px 10px; border-radius: 20px;
-            font-size: 10px; font-weight: 600; text-transform: capitalize; letter-spacing: 0.5px;
+            display: inline-flex; align-items: center; gap: 4px; padding: 4px 12px; border-radius: 20px;
+            font-size: 11px; font-weight: 600; text-transform: capitalize; letter-spacing: 0.3px;
         }
+        .status-pill::before { content: ''; width: 6px; height: 6px; border-radius: 50%; }
         .status-pill.active    { background: #e8f5e9; color: #2e7d32; }
+        .status-pill.active::before { background: #2e7d32; }
         .status-pill.planning  { background: #e3f2fd; color: #1565c0; }
+        .status-pill.planning::before { background: #1565c0; }
         .status-pill.on_hold   { background: #fff3e0; color: #e65100; }
-        .status-pill.completed { background: #f3e5f5; color: #6a1b9a; }
+        .status-pill.on_hold::before { background: #e65100; }
+        .status-pill.completed { background: #e8f5e9; color: #1b5e20; }
+        .status-pill.completed::before { background: #1b5e20; }
         .status-pill.cancelled { background: #fbe9e7; color: #c62828; }
+        .status-pill.cancelled::before { background: #c62828; }
+        .status-pill.delayed   { background: #ffebee; color: #c62828; }
+        .status-pill.delayed::before { background: #c62828; }
+        .status-pill.in_progress { background: #fff8e1; color: #f57f17; }
+        .status-pill.in_progress::before { background: #f57f17; }
+
+        /* Action buttons */
+        .action-group { display: flex; gap: 6px; }
+        .act-btn {
+            width: 32px; height: 32px; border-radius: 8px; border: 1px solid #e8e8e8;
+            background: #fff; cursor: pointer; display: grid; place-items: center;
+            transition: all 0.2s; color: #888; font-size: 13px;
+        }
+        .act-btn:hover { background: #f5f5f5; color: #333; border-color: #ccc; }
+        .act-btn.edit:hover { color: #1976d2; border-color: #90caf9; background: #e3f2fd; }
+        .act-btn.delete:hover { color: #c62828; border-color: #ef9a9a; background: #ffebee; }
 
         /* Empty State */
         .empty-state { text-align: center; padding: 60px 20px; color: #888; }
         .empty-state i { font-size: 48px; margin-bottom: 15px; color: #ddd; }
         .empty-state h3 { font-size: 18px; margin-bottom: 8px; color: #666; }
 
-        /* Modal (same as work_types.php) */
+        /* Modal (same as before) */
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; justify-content: center; align-items: center; }
         .modal.active { display: flex; }
         .modal-content { background: #fff; border-radius: 12px; width: 100%; max-height: 90vh; overflow-y: auto; animation: modalSlide 0.3s ease; }
@@ -143,7 +165,7 @@ $flash = getFlashMessage();
         .form-group { margin-bottom: 20px; }
         .form-group label { display: block; font-size: 13px; font-weight: 600; color: #333; margin-bottom: 8px; }
         .form-group label .required { color: #e74c3c; }
-        .form-control { width: 100%; padding: 12px 14px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; transition: all 0.2s; box-sizing: border-box; }
+        .form-control { width: 100%; padding: 10px 14px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; transition: all 0.2s; box-sizing: border-box; }
         .form-control:focus { outline: none; border-color: #DAA520; box-shadow: 0 0 0 3px rgba(218,165,32,0.15); }
         .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
         .form-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; }
@@ -159,7 +181,7 @@ $flash = getFlashMessage();
         .flash-message.success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
         .flash-message.error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
 
-        /* Detail modal: schedule table */
+        /* Detail modal styles */
         .detail-title { font-size: 22px; font-weight: 700; color: #333; margin: 0 0 8px; }
         .detail-meta { display: flex; flex-wrap: wrap; gap: 18px; font-size: 13px; color: #777; }
         .detail-meta i { color: #DAA520; margin-right: 5px; }
@@ -211,8 +233,9 @@ $flash = getFlashMessage();
         @keyframes toastSlide { from { opacity: 0; transform: translateX(40px); } }
 
         @media (max-width: 900px) {
-            .projects-grid { grid-template-columns: 1fr; }
             .form-row, .form-row-3 { grid-template-columns: 1fr; }
+            .projects-table { font-size: 12px; }
+            .projects-table thead th, .projects-table td { padding: 10px 12px; }
         }
     </style>
 </head>
@@ -241,31 +264,51 @@ $flash = getFlashMessage();
                 <!-- Page Header -->
                 <div class="page-header">
                     <div class="header-left">
-                        <h1><i class="fas fa-hard-hat"></i> Project Management</h1>
-                        <p class="subtitle">Manage construction projects and assign workers</p>
+                        <h1>Project Management</h1>
                     </div>
                     <div class="header-actions">
+                        <button class="btn-outline" onclick="filterProjects(currentFilter)">
+                            <i class="fas fa-sync-alt"></i> Refresh
+                        </button>
                         <button class="btn-primary" onclick="openAddModal()">
-                            <i class="fas fa-plus"></i> Add Project
+                            <i class="fas fa-plus"></i> Add New Project
                         </button>
                     </div>
                 </div>
 
-                <!-- Tabs (filter by status) -->
-                <div class="tabs">
-                    <button class="tab active" data-filter="all"><i class="fas fa-th-large"></i> All</button>
-                    <button class="tab" data-filter="active"><i class="fas fa-check-circle"></i> Active</button>
-                    <button class="tab" data-filter="planning"><i class="fas fa-clipboard-list"></i> Planning</button>
-                    <button class="tab" data-filter="on_hold"><i class="fas fa-pause-circle"></i> On Hold</button>
-                    <button class="tab" data-filter="completed"><i class="fas fa-flag-checkered"></i> Completed</button>
+                <!-- Filter Bar -->
+                <div class="filter-bar">
+                    <button class="filter-btn active" data-filter="all">All</button>
+                    <button class="filter-btn" data-filter="active">Active</button>
+                    <button class="filter-btn" data-filter="planning">Planning</button>
+                    <button class="filter-btn" data-filter="on_hold">On Hold</button>
+                    <button class="filter-btn" data-filter="completed">Completed</button>
+                    <button class="filter-btn" data-filter="cancelled">Cancelled</button>
+                    <input type="text" class="filter-search" id="projectSearchInput" placeholder="Search projects..." oninput="searchProjects(this.value)">
                 </div>
 
-                <!-- Projects Grid -->
-                <div class="projects-grid" id="projectsGrid">
-                    <div class="empty-state" style="grid-column:1/-1">
-                        <i class="fas fa-spinner fa-spin"></i>
-                        <h3>Loading projects…</h3>
-                    </div>
+                <!-- Projects Table -->
+                <div class="projects-table-wrap">
+                    <table class="projects-table">
+                        <thead>
+                            <tr>
+                                <th>Project Name</th>
+                                <th>Location</th>
+                                <th>Start Date</th>
+                                <th>End Date</th>
+                                <th>Status</th>
+                                <th style="text-align:center;">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="projectsTableBody">
+                            <tr>
+                                <td colspan="6" style="text-align:center;padding:40px;color:#aaa;">
+                                    <i class="fas fa-spinner fa-spin" style="font-size:20px;margin-bottom:8px;display:block;"></i>
+                                    Loading projects…
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
@@ -400,14 +443,25 @@ $flash = getFlashMessage();
 
     <script src="<?php echo JS_URL; ?>/projects.js"></script>
     <script>
-        // Tab switching (filter projects)
-        document.querySelectorAll('.tabs .tab').forEach(tab => {
-            tab.addEventListener('click', function() {
-                document.querySelectorAll('.tabs .tab').forEach(t => t.classList.remove('active'));
+        // Filter tab switching
+        document.querySelectorAll('.filter-bar .filter-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.filter-bar .filter-btn').forEach(b => b.classList.remove('active'));
                 this.classList.add('active');
                 filterProjects(this.dataset.filter);
             });
         });
+
+        // Search projects
+        function searchProjects(query) {
+            const q = query.toLowerCase();
+            document.querySelectorAll('#projectsTableBody tr[data-project-id]').forEach(row => {
+                const name = row.dataset.name || '';
+                const loc = row.dataset.location || '';
+                const show = !q || name.includes(q) || loc.includes(q);
+                row.style.display = show ? '' : 'none';
+            });
+        }
 
         // Auto-hide flash messages
         setTimeout(() => {

@@ -26,6 +26,7 @@ $classification_filter = isset($_GET['classification']) ? sanitizeString($_GET['
 $work_type_filter = isset($_GET['work_type']) ? sanitizeString($_GET['work_type']) : '';
 $status_filter = isset($_GET['status']) ? sanitizeString($_GET['status']) : '';
 $date_filter = isset($_GET['date']) ? sanitizeString($_GET['date']) : date('Y-m-d');
+$project_filter = isset($_GET['project']) ? intval($_GET['project']) : 0;
 
 // Build query for attendance - FIXED to exclude archived records
 
@@ -40,6 +41,10 @@ $sql = "SELECT a.*, w.worker_code, w.first_name, w.last_name,
         WHERE a.attendance_date = ? AND a.is_archived = FALSE AND w.is_archived = FALSE";
 $params = [$date_filter];
 
+if ($project_filter > 0) {
+    $sql .= " AND w.worker_id IN (SELECT pw.worker_id FROM project_workers pw WHERE pw.project_id = ? AND pw.is_active = 1)";
+    $params[] = $project_filter;
+}
 if (!empty($classification_filter)) {
     // Match worker's classification OR the classification assigned to their work type
     $sql .= " AND (w.classification_id = ? OR wt.classification_id = ?)";
@@ -82,6 +87,13 @@ try {
     $work_types = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
     $work_types = [];
+}
+// Get active projects for filter
+try {
+    $stmt = $db->query("SELECT project_id, project_name FROM projects WHERE is_archived = 0 AND status IN ('active','planning','in_progress') ORDER BY project_name");
+    $projects = $stmt->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {
+    $projects = [];
 }
 
 // Get total workers for the day
@@ -153,6 +165,17 @@ try {
                 <div class="filter-card">
                     <form method="GET" action="" id="filterForm">
                         <div class="filter-row">
+                            <div class="filter-group">
+                                <label>Project</label>
+                                <select name="project" id="projectFilter" onchange="submitFilter()">
+                                    <option value="">All Projects</option>
+                                    <?php foreach ($projects as $proj): ?>
+                                        <option value="<?php echo $proj['project_id']; ?>" <?php echo $project_filter == $proj['project_id'] ? 'selected' : ''; ?>>
+                                            <?php echo htmlspecialchars($proj['project_name']); ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
                             <div class="filter-group">
                                 <label>Classification</label>
                                 <select name="classification" id="classificationFilter" onchange="submitFilter()">
@@ -480,11 +503,14 @@ try {
     // Export Attendance
     function exportAttendance() {
         const date = '<?php echo $date_filter; ?>';
-        const position = '<?php echo $position_filter; ?>';
+        const classification = '<?php echo $classification_filter; ?>';
         const status = '<?php echo $status_filter; ?>';
+        const project = '<?php echo $project_filter; ?>';
         
         let url = '<?php echo BASE_URL; ?>/modules/super_admin/attendance/export.php?date=' + date;
-        if (position) url += '&position=' + encodeURIComponent(position);
+        if (classification) url += '&classification=' + encodeURIComponent(classification);
+        if (status) url += '&status=' + encodeURIComponent(status);
+        if (project) url += '&project=' + encodeURIComponent(project);
         if (status) url += '&status=' + encodeURIComponent(status);
         
         window.location.href = url;

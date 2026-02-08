@@ -243,7 +243,7 @@ try {
 </head>
 <body>
   <div class="actions">
-    <button class="secondary" onclick="window.history.back()">Back</button>
+    <button class="secondary" onclick="window.location.href='payroll_slips.php'">Back</button>
     <button onclick="window.print()">Print</button>
   </div>
 
@@ -412,8 +412,6 @@ try {
                   <thead>
                     <tr style="font-size:10px;color:#888;border-bottom:1px solid #eee">
                       <th style="text-align:left;padding:3px 4px;font-weight:600">Type</th>
-                      <th style="text-align:left;padding:3px 4px;font-weight:600">Date Applied</th>
-                      <th style="text-align:left;padding:3px 4px;font-weight:600">Payroll Period</th>
                       <th style="text-align:right;padding:3px 4px;font-weight:600">Amount</th>
                     </tr>
                   </thead>
@@ -428,18 +426,9 @@ try {
                           if (!empty($md['description'])) {
                               $mdLabel .= ' <span style="color:#888;font-size:10px">(' . htmlspecialchars(mb_strimwidth($md['description'], 0, 25, '...')) . ')</span>';
                           }
-                          $dateApplied = !empty($md['created_at']) ? date('M d, Y', strtotime($md['created_at'])) : '-';
-                          $periodText = '-';
-                          if (!empty($md['ded_period_start']) && !empty($md['ded_period_end'])) {
-                              $periodText = date('M d', strtotime($md['ded_period_start'])) . ' - ' . date('M d, Y', strtotime($md['ded_period_end']));
-                          } elseif (!empty($record['period_start']) && !empty($record['period_end'])) {
-                              $periodText = date('M d', strtotime($record['period_start'])) . ' - ' . date('M d, Y', strtotime($record['period_end']));
-                          }
                     ?>
                     <tr>
                       <td style="padding:4px"><?php echo $mdLabel; ?></td>
-                      <td style="padding:4px;font-size:11px;color:#555"><?php echo $dateApplied; ?></td>
-                      <td style="padding:4px;font-size:11px;color:#555"><?php echo $periodText; ?></td>
                       <td class="right" style="padding:4px">-₱<?php echo number_format($mdAmount,2); ?></td>
                     </tr>
                     <?php
@@ -450,13 +439,13 @@ try {
                         if ($otherTotal < 0) $otherTotal = 0.00;
                         if ($otherTotal > 0):
                     ?>
-                    <tr><td>Other</td><td>-</td><td>-</td><td class="right">-₱<?php echo number_format($otherTotal,2); ?></td></tr>
+                    <tr><td>Other</td><td class="right">-₱<?php echo number_format($otherTotal,2); ?></td></tr>
                     <?php
                         endif;
                       endif;
                       if (empty($manualDeductions) && $otherTotal <= 0):
                     ?>
-                    <tr><td colspan="4" style="color:#999;font-size:10px">None</td></tr>
+                    <tr><td colspan="2" style="color:#999;font-size:10px">None</td></tr>
                     <?php endif; ?>
                   </tbody>
                 </table>

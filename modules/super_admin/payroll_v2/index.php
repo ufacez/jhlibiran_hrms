@@ -71,10 +71,25 @@ $stmt = $pdo->query("
 ");
 $workers = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-// Get recent payroll periods
+// Get active projects
+$projectStmt = $pdo->query("
+    SELECT p.project_id, p.project_name, p.status,
+           (SELECT COUNT(*) FROM project_workers pw WHERE pw.project_id = p.project_id AND pw.is_active = 1) AS worker_count
+    FROM projects p
+    WHERE p.is_archived = 0
+    ORDER BY p.project_name
+");
+$projects = $projectStmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Get recent payroll periods with project info
 $stmt = $pdo->query("
-    SELECT * FROM payroll_periods 
-    ORDER BY period_end DESC 
+    SELECT pp.*,
+           GROUP_CONCAT(DISTINCT proj.project_name ORDER BY proj.project_name SEPARATOR ', ') AS project_names
+    FROM payroll_periods pp
+    LEFT JOIN payroll_records pr ON pr.period_id = pp.period_id
+    LEFT JOIN projects proj ON pr.project_id = proj.project_id
+    GROUP BY pp.period_id
+    ORDER BY pp.period_end DESC 
     LIMIT 10
 ");
 $recentPeriods = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -167,22 +182,23 @@ $pageTitle = 'Payroll Management';
             color: #DAA520;
         }
         
-        /* Period Selector */
+        /* Period Selector Bar */
         .period-selector {
             background: white;
             border-radius: 12px;
-            padding: 20px;
+            padding: 14px 20px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.05);
             margin-bottom: 20px;
         }
         
         .period-selector h3 {
-            font-size: 14px;
-            margin-bottom: 15px;
+            font-size: 13px;
+            margin-bottom: 10px;
             color: #333;
             display: flex;
             align-items: center;
             gap: 8px;
+            font-weight: 600;
         }
         
         .period-selector h3 i {
@@ -191,17 +207,18 @@ $pageTitle = 'Payroll Management';
         
         .period-options {
             display: flex;
-            gap: 10px;
+            gap: 8px;
+            align-items: center;
             flex-wrap: wrap;
         }
         
         .period-btn {
-            padding: 12px 18px;
-            border: 2px solid #e0e0e0;
+            padding: 8px 14px;
+            border: 1.5px solid #e0e0e0;
             border-radius: 8px;
             background: white;
             cursor: pointer;
-            transition: all 0.3s;
+            transition: all 0.2s;
             text-align: left;
         }
         
@@ -214,40 +231,63 @@ $pageTitle = 'Payroll Management';
             background: rgba(218, 165, 32, 0.1);
         }
 
-            /* Custom period active state (match period-btn.active) */
-            .custom-period.active {
-                border-color: #DAA520;
-                background: rgba(218, 165, 32, 0.08);
-            }
+        .custom-period.active {
+            border-color: #DAA520;
+            background: rgba(218, 165, 32, 0.08);
+        }
         
         .period-btn .dates {
             font-weight: 600;
             color: #333;
-            margin-bottom: 3px;
             font-size: 13px;
         }
         
         .period-btn .label {
-            font-size: 11px;
+            font-size: 10px;
             color: #888;
+            margin-top: 1px;
         }
         
         .custom-period {
             display: flex;
-            gap: 10px;
+            gap: 6px;
             align-items: center;
-            padding: 10px 15px;
-            border: 2px dashed #e0e0e0;
+            padding: 7px 12px;
+            border: 1.5px dashed #e0e0e0;
             border-radius: 8px;
-            font-size: 13px;
+            font-size: 12px;
+            color: #888;
         }
         
         .custom-period input {
-            padding: 8px 10px;
+            padding: 5px 8px;
             border: 1px solid #ddd;
             border-radius: 6px;
+            font-size: 12px;
+            width: 120px;
+        }
+
+        .period-divider {
+            width: 1px;
+            height: 30px;
+            background: #e0e0e0;
+            margin: 0 4px;
+        }
+
+        /* deprecated inline-breakdown - kept minimal for JS compat */
+        .inline-breakdown .breakdown-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 0;
+            border-bottom: 1px solid #f5f5f5;
             font-size: 13px;
         }
+        .inline-breakdown .breakdown-row:last-child { border-bottom: none; }
+        .inline-breakdown .breakdown-row .lbl { color: #555; }
+        .inline-breakdown .breakdown-row .val { font-weight: 600; color: #333; }
+        .inline-breakdown .breakdown-row.net { background: #1a1a2e; color: #fff; margin: 8px -20px -16px; padding: 10px 20px; border-radius: 0 0 12px 12px; }
+        .inline-breakdown .breakdown-row.net .val { color: #DAA520; font-size: 16px; }
+        #inlineBreakdown { display: none; } /* hidden - breakdown only in right panel */
         
         /* Cards - matching system style */
         .payroll-card {
@@ -870,12 +910,18 @@ $pageTitle = 'Payroll Management';
                             <div class="dates"><?php echo date('M d', strtotime($previousPeriod['start'])); ?> - <?php echo date('M d, Y', strtotime($previousPeriod['end'])); ?></div>
                             <div class="label">Previous Week</div>
                         </button>
+                        <div class="period-divider"></div>
                         <div class="custom-period" onclick="selectCustomPeriodContainer(this)">
+                            <span style="font-weight:500;color:#555;white-space:nowrap;">Custom:</span>
                             <input type="date" id="customStart">
                             <span>to</span>
                             <input type="date" id="customEnd">
                         </div>
                     </div>
+                </div>
+                <!-- Hidden container for JS compatibility -->
+                <div class="inline-breakdown" id="inlineBreakdown" style="display:none;">
+                    <div id="inlineBreakdownContent"></div>
                 </div>
                 
                 <!-- Main Layout -->
@@ -957,6 +1003,7 @@ $pageTitle = 'Payroll Management';
                                     <thead>
                                         <tr>
                                             <th>Period</th>
+                                            <th>Project</th>
                                             <th>Workers</th>
                                             <th>Total Net</th>
                                             <th></th>
@@ -965,7 +1012,7 @@ $pageTitle = 'Payroll Management';
                                     <tbody>
                                         <?php if (empty($recentPeriods)): ?>
                                         <tr>
-                                            <td colspan="4" style="text-align: center; color: #888; padding: 30px;">
+                                            <td colspan="5" style="text-align: center; color: #888; padding: 30px;">
                                                 No payroll periods yet
                                             </td>
                                         </tr>
@@ -973,6 +1020,7 @@ $pageTitle = 'Payroll Management';
                                         <?php foreach ($recentPeriods as $period): ?>
                                         <tr>
                                             <td><?php echo date('M d', strtotime($period['period_start'])); ?> - <?php echo date('M d, Y', strtotime($period['period_end'])); ?></td>
+                                            <td style="font-size:12px; color:#555;"><?php echo htmlspecialchars($period['project_names'] ?? '—'); ?></td>
                                             <td><?php echo $period['total_workers']; ?></td>
                                             <td class="amount positive">₱<?php echo number_format($period['total_net'], 2); ?></td>
                                             <td>
@@ -1005,6 +1053,22 @@ $pageTitle = 'Payroll Management';
                                         <div class="period" id="resultPeriod">Pay Period</div>
                                         <div class="period" id="resultDailyRef" style="font-size:13px;color:#666;margin-top:6px;">Daily: ₱0.00 (8.00 hrs)</div>
                                     </div>
+                            </div>
+                            
+                            <!-- Quick Summary Cards -->
+                            <div id="summaryCards" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;padding:15px 20px;background:#fafbfc;border-bottom:1px solid #f0f0f0;">
+                                <div style="text-align:center;padding:10px;background:#fff;border-radius:8px;border:1px solid #e8e8e8;">
+                                    <div style="font-size:10px;text-transform:uppercase;color:#888;letter-spacing:0.5px;margin-bottom:4px;">Gross Pay</div>
+                                    <div id="summaryGross" style="font-size:18px;font-weight:700;color:#DAA520;">₱0.00</div>
+                                </div>
+                                <div style="text-align:center;padding:10px;background:#fff;border-radius:8px;border:1px solid #e8e8e8;">
+                                    <div style="font-size:10px;text-transform:uppercase;color:#888;letter-spacing:0.5px;margin-bottom:4px;">Deductions</div>
+                                    <div id="summaryDeductions" style="font-size:18px;font-weight:700;color:#dc2626;">₱0.00</div>
+                                </div>
+                                <div style="text-align:center;padding:10px;background:linear-gradient(135deg,#1a1a1a,#2d2d2d);border-radius:8px;">
+                                    <div style="font-size:10px;text-transform:uppercase;color:#aaa;letter-spacing:0.5px;margin-bottom:4px;">Net Pay</div>
+                                    <div id="summaryNet" style="font-size:18px;font-weight:700;color:#DAA520;">₱0.00</div>
+                                </div>
                             </div>
                             
                             <div class="payroll-breakdown">
@@ -1075,24 +1139,61 @@ $pageTitle = 'Payroll Management';
     
     <!-- Batch Generate Modal -->
     <div class="modal-overlay" id="batchModal">
-        <div class="modal">
+        <div class="modal" style="max-width:680px;">
             <div class="modal-header">
                 <h2><i class="fas fa-users"></i> Batch Generate Payroll</h2>
                 <button class="modal-close" onclick="closeBatchModal()">&times;</button>
             </div>
-            <div class="modal-body">
-                <p style="margin-bottom: 15px; color: #666;">Generate payroll for multiple workers at once:</p>
-                <div style="display: flex; gap: 10px; margin-bottom: 15px;">
-                    <button class="action-btn" onclick="selectAllWorkers(true)">Select All</button>
-                    <button class="action-btn" onclick="selectAllWorkers(false)">Deselect All</button>
+            <div class="modal-body" style="padding:20px;align-items:stretch;">
+                <!-- Project Selection (Required) -->
+                <div style="margin-bottom:16px;">
+                    <label style="display:block;font-size:12px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:6px;">Project <span style="color:#e74c3c;">*</span></label>
+                    <select id="batchProjectSelect" onchange="loadBatchWorkersByProject()" style="width:100%;padding:10px 14px;border:2px solid #e0e0e0;border-radius:8px;font-size:14px;background:#fafbfc;">
+                        <option value="">— Select a Project —</option>
+                        <?php foreach ($projects as $proj): ?>
+                        <option value="<?php echo $proj['project_id']; ?>"><?php echo htmlspecialchars($proj['project_name']); ?> (<?php echo $proj['worker_count']; ?> workers)</option>
+                        <?php endforeach; ?>
+                    </select>
                 </div>
-                <div id="batchWorkerList" style="max-height: 300px; overflow-y: auto;">
-                    <!-- Populated by JavaScript -->
+                <!-- Filters Row -->
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:14px;">
+                    <div>
+                        <label style="display:block;font-size:11px;font-weight:600;color:#888;text-transform:uppercase;margin-bottom:4px;">Classification</label>
+                        <select id="batchFilterClassification" onchange="filterBatchWorkers()" style="width:100%;padding:8px 10px;border:1.5px solid #e0e0e0;border-radius:6px;font-size:13px;background:#fafbfc;">
+                            <option value="">All</option>
+                            <?php foreach ($classifications as $c): ?>
+                            <option value="<?php echo htmlspecialchars($c['classification_name']); ?>"><?php echo htmlspecialchars($c['classification_name']); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="display:block;font-size:11px;font-weight:600;color:#888;text-transform:uppercase;margin-bottom:4px;">Role</label>
+                        <select id="batchFilterRole" onchange="filterBatchWorkers()" style="width:100%;padding:8px 10px;border:1.5px solid #e0e0e0;border-radius:6px;font-size:13px;background:#fafbfc;">
+                            <option value="">All</option>
+                            <?php foreach ($workTypes as $t): ?>
+                            <option value="<?php echo htmlspecialchars($t['work_type_name']); ?>"><?php echo htmlspecialchars($t['work_type_name']); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="display:block;font-size:11px;font-weight:600;color:#888;text-transform:uppercase;margin-bottom:4px;">Search</label>
+                        <input type="text" id="batchSearchWorker" oninput="filterBatchWorkers()" placeholder="Name..." style="width:100%;padding:8px 10px;border:1.5px solid #e0e0e0;border-radius:6px;font-size:13px;background:#fafbfc;box-sizing:border-box;">
+                    </div>
+                </div>
+                <!-- Select / Deselect -->
+                <div style="display:flex;gap:8px;margin-bottom:10px;">
+                    <button class="action-btn" style="font-size:12px;padding:6px 12px;" onclick="selectAllWorkers(true)">Select All</button>
+                    <button class="action-btn" style="font-size:12px;padding:6px 12px;" onclick="selectAllWorkers(false)">Deselect All</button>
+                    <span id="batchSelectedCount" style="margin-left:auto;font-size:12px;color:#888;line-height:32px;">0 selected</span>
+                </div>
+                <!-- Worker List -->
+                <div id="batchWorkerList" style="max-height:280px;overflow-y:auto;border:1px solid #f0f0f0;border-radius:8px;">
+                    <div style="text-align:center;color:#999;padding:40px 20px;font-size:13px;"><i class="fas fa-project-diagram" style="font-size:24px;display:block;margin-bottom:10px;color:#ddd;"></i>Select a project to load workers</div>
                 </div>
             </div>
             <div class="modal-footer">
                 <button class="action-btn" onclick="closeBatchModal()">Cancel</button>
-                <button class="btn-gold" onclick="executeBatchGenerate()">
+                <button class="btn-gold" id="batchGenerateBtn" onclick="executeBatchGenerate()" disabled>
                     <i class="fas fa-play"></i> Generate Selected
                 </button>
             </div>
@@ -1354,6 +1455,10 @@ $pageTitle = 'Payroll Management';
                 
                 // Hours breakdown
                 const hoursHtml = `
+                    <div class="breakdown-row" style="background:#f8f9fa;margin:-1px 0 6px;padding:8px 10px;border-radius:6px;display:flex;align-items:center;">
+                        <span class="label" style="font-weight:600;font-size:12px;color:#555;flex-direction:row;align-items:center;display:flex;"><i class="fas fa-calendar-check" style="color:#DAA520;margin-right:6px;"></i> Days Worked</span>
+                        <span class="amount" style="font-size:14px;">${payroll.period.days || 0}</span>
+                    </div>
                     <div class="breakdown-row">
                         <span class="label">Regular Hours</span>
                         <span class="amount">${formatNum(payroll.totals.regular_hours)} hrs</span>
@@ -1381,6 +1486,17 @@ $pageTitle = 'Payroll Management';
                         <span class="label">Special Holiday Hours</span>
                         <span class="amount">${formatNum(payroll.totals.special_holiday_hours)} hrs</span>
                     </div>` : ''}
+                    <div class="breakdown-row" style="border-top:1.5px solid #e0e0e0;padding-top:8px;margin-top:4px;">
+                        <span class="label" style="font-weight:600;">Total Hours</span>
+                        <span class="amount" style="color:#DAA520;">${formatNum(
+                            (parseFloat(payroll.totals.regular_hours)||0) +
+                            (parseFloat(payroll.totals.overtime_hours)||0) +
+                            (parseFloat(payroll.totals.night_diff_hours)||0) +
+                            (parseFloat(payroll.totals.rest_day_hours)||0) +
+                            (parseFloat(payroll.totals.regular_holiday_hours)||0) +
+                            (parseFloat(payroll.totals.special_holiday_hours)||0)
+                        )} hrs</span>
+                    </div>
                 `;
                 document.getElementById('hoursBreakdown').innerHTML = hoursHtml;
             
@@ -1478,6 +1594,11 @@ $pageTitle = 'Payroll Management';
             
                 document.getElementById('earningsBreakdown').innerHTML = earningsHtml;
                 document.getElementById('grossPayAmount').textContent = '₱' + formatNum(payroll.totals.gross_pay);
+            
+                // Populate summary cards at top of breakdown
+                document.getElementById('summaryGross').textContent = '₱' + formatNum(payroll.totals.gross_pay);
+                document.getElementById('summaryDeductions').textContent = '₱' + formatNum(payroll.deductions ? payroll.deductions.total : 0);
+                document.getElementById('summaryNet').textContent = '₱' + formatNum(payroll.net_pay);
             
                 // Deductions breakdown
                 let deductionsHtml = '';
@@ -1613,10 +1734,37 @@ $pageTitle = 'Payroll Management';
                 }
             
                 document.getElementById('dailyBreakdown').innerHTML = dailyHtml;
+                
+                // Populate inline breakdown panel (top bar)
+                updateInlineBreakdown(payroll);
             } catch (displayError) {
                 console.error('Error displaying payroll results:', displayError);
                 showToast('Error displaying results. Check console for details.', 'error');
             }
+        }
+        
+        // Update the inline breakdown panel at the top
+        function updateInlineBreakdown(payroll) {
+            const el = document.getElementById('inlineBreakdownContent');
+            if (!el || !payroll) return;
+            let html = '';
+            // Worker name
+            html += `<div style="font-weight:600;font-size:14px;margin-bottom:8px;color:#333;">${payroll.worker.first_name} ${payroll.worker.last_name}</div>`;
+            html += `<div style="font-size:11px;color:#888;margin-bottom:10px;">${formatDate(payroll.period.start)} – ${formatDate(payroll.period.end)}</div>`;
+            // Earnings summary
+            if (payroll.totals.regular_pay > 0) html += `<div class="breakdown-row"><span class="lbl">Regular Pay</span><span class="val">₱${formatNum(payroll.totals.regular_pay)}</span></div>`;
+            if (payroll.totals.overtime_pay > 0) html += `<div class="breakdown-row"><span class="lbl">Overtime</span><span class="val">₱${formatNum(payroll.totals.overtime_pay)}</span></div>`;
+            if (payroll.totals.night_diff_pay > 0) html += `<div class="breakdown-row"><span class="lbl">Night Diff</span><span class="val">₱${formatNum(payroll.totals.night_diff_pay)}</span></div>`;
+            if (payroll.totals.rest_day_pay > 0) html += `<div class="breakdown-row"><span class="lbl">Rest Day</span><span class="val">₱${formatNum(payroll.totals.rest_day_pay)}</span></div>`;
+            if (payroll.totals.regular_holiday_pay > 0) html += `<div class="breakdown-row"><span class="lbl">Reg Holiday</span><span class="val">₱${formatNum(payroll.totals.regular_holiday_pay)}</span></div>`;
+            if (payroll.totals.special_holiday_pay > 0) html += `<div class="breakdown-row"><span class="lbl">Special Holiday</span><span class="val">₱${formatNum(payroll.totals.special_holiday_pay)}</span></div>`;
+            html += `<div class="breakdown-row" style="border-top:1px solid #eee;padding-top:6px;"><span class="lbl" style="font-weight:600;">Gross Pay</span><span class="val" style="color:#DAA520;">₱${formatNum(payroll.totals.gross_pay)}</span></div>`;
+            // Deductions
+            const dedTotal = payroll.deductions ? payroll.deductions.total : 0;
+            if (dedTotal > 0) html += `<div class="breakdown-row"><span class="lbl" style="color:#dc2626;">Deductions</span><span class="val" style="color:#dc2626;">-₱${formatNum(dedTotal)}</span></div>`;
+            // Net pay
+            html += `<div class="breakdown-row net"><span class="lbl" style="font-weight:700;">Net Pay</span><span class="val">₱${formatNum(payroll.net_pay)}</span></div>`;
+            el.innerHTML = html;
         }
         
         // Save payroll
@@ -1661,25 +1809,96 @@ $pageTitle = 'Payroll Management';
             }
         }
         
-        // Batch generate
+        // =====================
+        // Batch generate (project-based)
+        // =====================
+        let batchProjectWorkers = []; // full list loaded from project
+        
         function showBatchGenerate() {
-            const workers = <?php echo json_encode($workers); ?>;
+            // Reset state
+            document.getElementById('batchProjectSelect').value = '';
+            document.getElementById('batchFilterClassification').value = '';
+            document.getElementById('batchFilterRole').value = '';
+            document.getElementById('batchSearchWorker').value = '';
+            document.getElementById('batchWorkerList').innerHTML = '<div style="text-align:center;color:#999;padding:40px 20px;font-size:13px;"><i class="fas fa-project-diagram" style="font-size:24px;display:block;margin-bottom:10px;color:#ddd;"></i>Select a project to load workers</div>';
+            document.getElementById('batchSelectedCount').textContent = '0 selected';
+            document.getElementById('batchGenerateBtn').disabled = true;
+            batchProjectWorkers = [];
+            document.getElementById('batchModal').classList.add('active');
+        }
+        
+        async function loadBatchWorkersByProject() {
+            const projectId = document.getElementById('batchProjectSelect').value;
+            const listEl = document.getElementById('batchWorkerList');
+            if (!projectId) {
+                listEl.innerHTML = '<div style="text-align:center;color:#999;padding:40px 20px;font-size:13px;"><i class="fas fa-project-diagram" style="font-size:24px;display:block;margin-bottom:10px;color:#ddd;"></i>Select a project to load workers</div>';
+                batchProjectWorkers = [];
+                updateBatchCount();
+                return;
+            }
+            listEl.innerHTML = '<div style="text-align:center;padding:30px;color:#888;"><i class="fas fa-spinner fa-spin"></i> Loading workers...</div>';
+            try {
+                const resp = await fetch(`<?php echo BASE_URL; ?>/api/projects.php?action=workers&project_id=${projectId}`);
+                const data = await resp.json();
+                if (data.success && data.data && data.data.workers) {
+                    batchProjectWorkers = data.data.workers;
+                    renderBatchWorkers(batchProjectWorkers);
+                } else {
+                    listEl.innerHTML = '<div style="text-align:center;color:#e74c3c;padding:30px;">Failed to load workers</div>';
+                    batchProjectWorkers = [];
+                }
+            } catch(e) {
+                listEl.innerHTML = '<div style="text-align:center;color:#e74c3c;padding:30px;">Network error</div>';
+                batchProjectWorkers = [];
+            }
+            updateBatchCount();
+        }
+        
+        function renderBatchWorkers(workers) {
+            const listEl = document.getElementById('batchWorkerList');
+            if (!workers.length) {
+                listEl.innerHTML = '<div style="text-align:center;color:#999;padding:30px;">No workers assigned to this project</div>';
+                return;
+            }
             let html = '';
-            
             workers.forEach(w => {
                 html += `
-                    <div class="worker-item" style="padding:10px;">
-                        <input type="checkbox" class="batch-checkbox" value="${w.worker_id}" checked>
+                    <div class="worker-item batch-worker-row" style="padding:10px 14px;" 
+                         data-name="${(w.first_name+' '+w.last_name).toLowerCase()}"
+                         data-classification="${(w.classification_name||'').toLowerCase()}"
+                         data-worktype="${(w.work_type_name||w.position||'').toLowerCase()}">
+                        <input type="checkbox" class="batch-checkbox" value="${w.worker_id}" checked onchange="updateBatchCount()">
                         <div class="worker-info" style="margin-left:10px;">
                             <div class="worker-name">${w.first_name} ${w.last_name}</div>
-                            <div class="worker-position">${w.position}</div>
+                            <div class="worker-position" style="font-size:12px;color:#888;">${w.position || ''} ${w.daily_rate ? '• ₱'+parseFloat(w.daily_rate).toFixed(2)+'/day' : ''}</div>
                         </div>
-                    </div>
-                `;
+                        <div class="worker-code">${w.worker_code}</div>
+                    </div>`;
             });
-            
-            document.getElementById('batchWorkerList').innerHTML = html;
-            document.getElementById('batchModal').classList.add('active');
+            listEl.innerHTML = html;
+            updateBatchCount();
+        }
+        
+        function filterBatchWorkers() {
+            const classVal = document.getElementById('batchFilterClassification').value.toLowerCase();
+            const roleVal = document.getElementById('batchFilterRole').value.toLowerCase();
+            const searchVal = document.getElementById('batchSearchWorker').value.toLowerCase();
+            document.querySelectorAll('.batch-worker-row').forEach(row => {
+                const c = row.dataset.classification || '';
+                const t = row.dataset.worktype || '';
+                const n = row.dataset.name || '';
+                let show = true;
+                if (classVal && c !== classVal) show = false;
+                if (roleVal && t !== roleVal) show = false;
+                if (searchVal && n.indexOf(searchVal) === -1) show = false;
+                row.style.display = show ? '' : 'none';
+            });
+        }
+        
+        function updateBatchCount() {
+            const checked = document.querySelectorAll('.batch-checkbox:checked').length;
+            document.getElementById('batchSelectedCount').textContent = checked + ' selected';
+            document.getElementById('batchGenerateBtn').disabled = checked === 0;
         }
         
         function closeBatchModal() {
@@ -1687,10 +1906,20 @@ $pageTitle = 'Payroll Management';
         }
         
         function selectAllWorkers(select) {
-            document.querySelectorAll('.batch-checkbox').forEach(cb => cb.checked = select);
+            document.querySelectorAll('.batch-worker-row').forEach(row => {
+                if (row.style.display !== 'none') {
+                    row.querySelector('.batch-checkbox').checked = select;
+                }
+            });
+            updateBatchCount();
         }
         
         async function executeBatchGenerate() {
+            const projectId = document.getElementById('batchProjectSelect').value;
+            if (!projectId) {
+                showToast('Please select a project first', 'error');
+                return;
+            }
             const workerIds = Array.from(document.querySelectorAll('.batch-checkbox:checked'))
                 .map(cb => parseInt(cb.value));
             
@@ -1708,6 +1937,7 @@ $pageTitle = 'Payroll Management';
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         worker_ids: workerIds,
+                        project_id: parseInt(projectId),
                         period_start: selectedPeriod.start,
                         period_end: selectedPeriod.end,
                         user_id: <?php echo $_SESSION['user_id'] ?? 'null'; ?>
