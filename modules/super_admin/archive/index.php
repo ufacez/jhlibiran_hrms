@@ -11,8 +11,9 @@ require_once __DIR__ . '/../../../config/settings.php';
 require_once __DIR__ . '/../../../config/session.php';
 require_once __DIR__ . '/../../../includes/functions.php';
 require_once __DIR__ . '/../../../includes/auth.php';
+require_once __DIR__ . '/../../../includes/admin_functions.php';
 
-requireSuperAdmin();
+requireAdminWithPermission($db, 'can_access_archive', 'You do not have permission to access the Archive');
 
 $full_name = $_SESSION['full_name'] ?? 'Administrator';
 $flash = getFlashMessage();

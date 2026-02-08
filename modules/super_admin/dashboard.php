@@ -143,12 +143,34 @@ try {
     $stmt = $db->query($sql);
     $recent_activities = $stmt->fetchAll();
     
-    // Weekly Payroll Notification - Company week is Monday->Saturday, payroll release on Saturday
-    $nextPayrollDate = date('M d, Y', strtotime('saturday this week'));
-    if (date('N') == 6) {
-        // If today is Saturday, next payroll is next Saturday
-        $nextPayrollDate = date('M d, Y', strtotime('next saturday'));
+    // Weekly Payroll - Saturday to Friday cycle
+    // Current payroll period: most recent Saturday to the following Friday
+    $today = new DateTime();
+    $dayOfWeek = (int)$today->format('N'); // 1=Mon ... 6=Sat, 7=Sun
+
+    if ($dayOfWeek == 6) {
+        // Today is Saturday → period starts today
+        $periodStart = clone $today;
+    } else {
+        // Go back to the most recent Saturday
+        $periodStart = clone $today;
+        $periodStart->modify('last saturday');
     }
+    $periodEnd = clone $periodStart;
+    $periodEnd->modify('+6 days'); // Friday
+
+    // Payroll release = the Saturday after the period ends
+    $payrollRelease = clone $periodEnd;
+    $payrollRelease->modify('+1 day'); // Saturday
+
+    // Next payroll period starts on the release Saturday
+    $nextPeriodStart = clone $payrollRelease;
+    $nextPeriodEnd   = clone $nextPeriodStart;
+    $nextPeriodEnd->modify('+6 days'); // following Friday
+
+    $currentPeriodLabel = $periodStart->format('M d') . ' – ' . $periodEnd->format('M d, Y');
+    $payrollReleaseLabel = $payrollRelease->format('M d, Y');
+    $nextPeriodLabel = $nextPeriodStart->format('M d') . ' – ' . $nextPeriodEnd->format('M d, Y');
     
 } catch (PDOException $e) {
     error_log("Dashboard Query Error: " . $e->getMessage());
@@ -161,7 +183,9 @@ try {
     $today_schedules = [];
     $attendance_trend = [];
     $recent_activities = [];
-    $nextPayrollDate = date('M d, Y', strtotime('saturday this week'));
+    $currentPeriodLabel = '';
+    $payrollReleaseLabel = '';
+    $nextPeriodLabel = '';
 }
 
 // Enhanced activity description function
@@ -333,9 +357,19 @@ function getEnhancedActivityDescription($activity) {
                             <span style="display: inline-flex; align-items: center; gap: 8px; margin-top: 10px; background: <?php echo ($_SESSION['user_level'] === 'super_admin') ? 'linear-gradient(135deg, #DAA520, #b8860b)' : 'linear-gradient(135deg, #9C27B0, #7B1FA2)'; ?>; color: #fff; padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 600;">
                                 <i class="fas fa-<?php echo ($_SESSION['user_level'] === 'super_admin') ? 'crown' : 'shield-alt'; ?>"></i> <?php echo ($_SESSION['user_level'] === 'super_admin') ? 'Super Admin Access' : 'Admin Access'; ?>
                             </span>
-                            <span style="display: inline-flex; align-items: center; gap: 6px; margin-top: 10px; margin-left: 10px; background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.85); padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 500;">
-                                <i class="fas fa-calendar-alt"></i> Next Payroll: <?php echo $nextPayrollDate; ?>
-                            </span>
+                            <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px;">
+                                <span style="display: inline-flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.85); padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 500;">
+                                    <i class="fas fa-calendar-week"></i> Payroll Period: <?php echo $currentPeriodLabel; ?>
+                                </span>
+                                <span style="display: inline-flex; align-items: center; gap: 4px; color: rgba(255,255,255,0.5); font-size: 14px; align-self: center;">→</span>
+                                <span style="display: inline-flex; align-items: center; gap: 6px; background: rgba(39,174,96,0.2); color: #6dffb0; padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 500;">
+                                    <i class="fas fa-money-check-alt"></i> Release: <?php echo $payrollReleaseLabel; ?>
+                                </span>
+                                <span style="display: inline-flex; align-items: center; gap: 4px; color: rgba(255,255,255,0.5); font-size: 14px; align-self: center;">→</span>
+                                <span style="display: inline-flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.85); padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 500;">
+                                    <i class="fas fa-calendar-alt"></i> Next Period: <?php echo $nextPeriodLabel; ?>
+                                </span>
+                            </div>
                         </div>
                         <div class="welcome-stats">
                             <div class="welcome-stat">

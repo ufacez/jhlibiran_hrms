@@ -351,6 +351,16 @@
     transform: translateY(-2px);
 }
 
+.btn-archive {
+    background: #6c757d;
+    color: #fff;
+}
+
+.btn-archive:hover {
+    background: #5a6268;
+    transform: translateY(-2px);
+}
+
 .btn-timeout {
     background: #28a745;
     color: #fff;

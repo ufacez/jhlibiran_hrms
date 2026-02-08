@@ -15,9 +15,10 @@ require_once __DIR__ . '/../../../config/session.php';
 require_once __DIR__ . '/../../../includes/functions.php';
 require_once __DIR__ . '/../../../includes/auth.php';
 require_once __DIR__ . '/../../../includes/audit_trail.php';
+require_once __DIR__ . '/../../../includes/admin_functions.php';
 
-// Require Super Admin access
-requireSuperAdmin();
+// Require admin access with audit permission
+requireAdminWithPermission($db, 'can_access_audit', 'You do not have permission to access the Audit Trail');
 
 $user_id = getCurrentUserId();
 $full_name = $_SESSION['full_name'] ?? 'Administrator';

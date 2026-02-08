@@ -314,7 +314,7 @@ try {
                                                     <i class="fas fa-eye"></i>
                                                 </button>
                                                 <?php if ($permissions['can_delete_attendance'] ?? false): ?>
-                                                <button class="action-btn btn-delete" 
+                                                <button class="action-btn btn-archive" 
                                                         onclick="archiveAttendance(this, <?php echo $record['attendance_id']; ?>, '<?php echo htmlspecialchars(addslashes($record['first_name'] . ' ' . $record['last_name'])); ?>')"
                                                         title="Archive">
                                                     <i class="fas fa-archive"></i>
