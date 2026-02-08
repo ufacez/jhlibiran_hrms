@@ -176,6 +176,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     apiResponse(false, 'Invalid project or worker ID.');
                 }
 
+                // Enforce one active project per worker (check BEFORE any insert/update)
+                $activeChk = $db->prepare("SELECT p.project_name, pw.project_id FROM project_workers pw
+                                           JOIN projects p ON pw.project_id = p.project_id
+                                           WHERE pw.worker_id = ? AND pw.is_active = 1 AND pw.project_id != ?");
+                $activeChk->execute([$worker_id, $project_id]);
+                $existingProject = $activeChk->fetch();
+                if ($existingProject) {
+                    apiResponse(false, 'This worker is already assigned to "' . $existingProject['project_name'] . '". Remove them from that project first.');
+                }
+
                 $chk = $db->prepare("SELECT project_worker_id FROM project_workers
                                      WHERE project_id = ? AND worker_id = ?");
                 $chk->execute([$project_id, $worker_id]);
@@ -185,16 +195,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         WHERE project_id = ? AND worker_id = ?");
                     $stmt->execute([$project_id, $worker_id]);
                 } else {
-                    // Enforce one active project per worker
-                    $activeChk = $db->prepare("SELECT p.project_name FROM project_workers pw
-                                               JOIN projects p ON pw.project_id = p.project_id
-                                               WHERE pw.worker_id = ? AND pw.is_active = 1");
-                    $activeChk->execute([$worker_id]);
-                    $existingProject = $activeChk->fetch();
-                    if ($existingProject) {
-                        apiResponse(false, 'This worker is already assigned to "' . $existingProject['project_name'] . '". Remove them from that project first.');
-                    }
-
                     $stmt = $db->prepare("INSERT INTO project_workers
                         (project_id, worker_id, assigned_date) VALUES (?, ?, CURDATE())");
                     $stmt->execute([$project_id, $worker_id]);
@@ -345,7 +345,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                       )
                     ORDER BY w.first_name, w.last_name
                 ");
-                $stmt->execute([]);
+                $stmt->execute();
                 $workers = $stmt->fetchAll();
 
                 apiResponse(true, 'Available workers retrieved', ['workers' => $workers]);

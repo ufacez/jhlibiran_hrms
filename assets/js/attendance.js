@@ -25,6 +25,21 @@ function markAttendance(event, workerId) {
     const formData = new FormData(form);
     const button = form.querySelector('.mark-attendance-btn');
     
+    // Client-side future time validation
+    const now = new Date();
+    const currentTime = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+    const timeIn = formData.get('time_in');
+    const timeOut = formData.get('time_out');
+    
+    if (timeIn && timeIn > currentTime) {
+        alert('Cannot mark a Time In in the future. Please select the current or a past time.');
+        return;
+    }
+    if (timeOut && timeOut > currentTime) {
+        alert('Cannot mark a Time Out in the future. Please select the current or a past time.');
+        return;
+    }
+    
     // Disable button
     button.disabled = true;
     button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Marking...';
@@ -186,6 +201,49 @@ function exportAttendance() {
             console.error('Error:', error);
             alert('Failed to export attendance');
         });
+}
+
+/**
+ * Recalculate attendance statuses based on worker schedules
+ */
+function recalculateAttendance() {
+    if (!confirm('Recalculate all attendance records based on worker schedules?\n\nThis will update overtime and late statuses for all existing records.')) {
+        return;
+    }
+
+    const btn = document.querySelector('.btn-recalculate');
+    const originalHTML = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Recalculating...';
+
+    const formData = new FormData();
+    formData.append('action', 'recalculate_range');
+    formData.append('start_date', '2020-01-01');
+    formData.append('end_date', new Date().toISOString().split('T')[0]);
+
+    fetch('../../../api/attendance_enhanced.php', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        btn.disabled = false;
+        btn.innerHTML = originalHTML;
+
+        if (data.success) {
+            showToast(data.message || 'Attendance records recalculated successfully', 'success');
+            // Reload to show updated statuses
+            setTimeout(() => window.location.reload(), 1000);
+        } else {
+            alert('Failed to recalculate: ' + (data.message || 'Unknown error'));
+        }
+    })
+    .catch(error => {
+        btn.disabled = false;
+        btn.innerHTML = originalHTML;
+        console.error('Error:', error);
+        alert('Failed to recalculate attendance records');
+    });
 }
 
 /**

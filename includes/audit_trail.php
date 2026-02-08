@@ -32,7 +32,7 @@ function logAudit($db, $params) {
         'user_id' => getCurrentUserId(),
         'username' => getCurrentUsername(),
         'user_level' => getCurrentUserLevel(),
-        'action_type' => 'other',
+        'action_type' => 'update',
         'module' => null,
         'table_name' => null,
         'record_id' => null,
@@ -242,7 +242,6 @@ function getAuditStats($db, $date_from = null, $date_to = null) {
             SUM(CASE WHEN action_type = 'create' THEN 1 ELSE 0 END) as creates,
             SUM(CASE WHEN action_type = 'update' THEN 1 ELSE 0 END) as updates,
             SUM(CASE WHEN action_type = 'delete' THEN 1 ELSE 0 END) as deletes,
-            SUM(CASE WHEN severity = 'critical' THEN 1 ELSE 0 END) as critical,
             SUM(CASE WHEN severity = 'high' THEN 1 ELSE 0 END) as high,
             SUM(CASE WHEN success = 0 THEN 1 ELSE 0 END) as failed
         FROM audit_trail WHERE {$where}";
@@ -264,7 +263,7 @@ function getAuditByModule($db, $days = 30) {
         $sql = "SELECT 
             module,
             COUNT(*) as total_actions,
-            SUM(CASE WHEN severity = 'critical' THEN 1 ELSE 0 END) as critical_actions
+            SUM(CASE WHEN severity = 'high' THEN 1 ELSE 0 END) as high_actions
         FROM audit_trail 
         WHERE created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
         GROUP BY module
@@ -325,7 +324,7 @@ function cleanOldAuditTrail($db, $retention_days = 365) {
     try {
         $sql = "DELETE FROM audit_trail 
                 WHERE created_at < DATE_SUB(NOW(), INTERVAL ? DAY)
-                AND severity NOT IN ('critical', 'high')";
+                AND severity != 'high'";
         $stmt = $db->prepare($sql);
         $stmt->execute([$retention_days]);
         

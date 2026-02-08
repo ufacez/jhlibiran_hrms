@@ -138,7 +138,7 @@ try {
 try {
     $audit_stats = getAuditStats($db);
 } catch (Exception $e) {
-    $audit_stats = ['total_actions' => 0, 'creates' => 0, 'updates' => 0, 'deletes' => 0, 'critical' => 0, 'high' => 0, 'failed' => 0];
+    $audit_stats = ['total_actions' => 0, 'creates' => 0, 'updates' => 0, 'deletes' => 0, 'high' => 0, 'failed' => 0];
 }
 
 // Action icons and colors
@@ -155,7 +155,7 @@ function getActionBadge($action) {
         'reject' => ['icon' => 'times-circle', 'color' => '#F44336', 'bg' => '#FFEBEE'],
         'password_change' => ['icon' => 'key', 'color' => '#FF9800', 'bg' => '#FFF3E0'],
         'status_change' => ['icon' => 'toggle-on', 'color' => '#2196F3', 'bg' => '#E3F2FD'],
-        'other' => ['icon' => 'info-circle', 'color' => '#607D8B', 'bg' => '#ECEFF1'],
+        'export' => ['icon' => 'file-export', 'color' => '#3F51B5', 'bg' => '#E8EAF6'],
     ];
     
     return $badges[$action] ?? ['icon' => 'info-circle', 'color' => '#607D8B', 'bg' => '#ECEFF1'];
@@ -166,7 +166,6 @@ function getSeverityBadge($severity) {
         'low' => ['color' => '#4CAF50', 'bg' => '#E8F5E9'],
         'medium' => ['color' => '#FF9800', 'bg' => '#FFF3E0'],
         'high' => ['color' => '#F44336', 'bg' => '#FFEBEE'],
-        'critical' => ['color' => '#B71C1C', 'bg' => '#FFCDD2'],
     ];
     return $badges[$severity] ?? $badges['medium'];
 }
@@ -411,37 +410,7 @@ function getSeverityBadge($severity) {
                     </div>
                 </div>
                 
-                <!-- Statistics Cards -->
-                <div class="audit-stats-grid">
-                    <div class="audit-stat-card">
-                        <div class="audit-stat-icon total"><i class="fas fa-list-ul"></i></div>
-                        <div>
-                            <div class="audit-stat-value"><?php echo number_format($audit_stats['total_actions'] ?? 0); ?></div>
-                            <div class="audit-stat-label">Total Actions</div>
-                        </div>
-                    </div>
-                    <div class="audit-stat-card">
-                        <div class="audit-stat-icon critical"><i class="fas fa-exclamation-triangle"></i></div>
-                        <div>
-                            <div class="audit-stat-value"><?php echo number_format($audit_stats['critical'] ?? 0); ?></div>
-                            <div class="audit-stat-label">Critical Actions</div>
-                        </div>
-                    </div>
-                    <div class="audit-stat-card">
-                        <div class="audit-stat-icon high"><i class="fas fa-exclamation-circle"></i></div>
-                        <div>
-                            <div class="audit-stat-value"><?php echo number_format($audit_stats['high'] ?? 0); ?></div>
-                            <div class="audit-stat-label">High Severity</div>
-                        </div>
-                    </div>
-                    <div class="audit-stat-card">
-                        <div class="audit-stat-icon failed"><i class="fas fa-times-circle"></i></div>
-                        <div>
-                            <div class="audit-stat-value"><?php echo number_format($audit_stats['failed'] ?? 0); ?></div>
-                            <div class="audit-stat-label">Failed Actions</div>
-                        </div>
-                    </div>
-                </div>
+
                 
                 <!-- Filters -->
                 <div class="filters-bar">
@@ -479,7 +448,6 @@ function getSeverityBadge($severity) {
                                 <option value="low" <?php echo $filter_severity == 'low' ? 'selected' : ''; ?>>Low</option>
                                 <option value="medium" <?php echo $filter_severity == 'medium' ? 'selected' : ''; ?>>Medium</option>
                                 <option value="high" <?php echo $filter_severity == 'high' ? 'selected' : ''; ?>>High</option>
-                                <option value="critical" <?php echo $filter_severity == 'critical' ? 'selected' : ''; ?>>Critical</option>
                             </select>
                             
                             <input type="date" name="filter_date" value="<?php echo htmlspecialchars($filter_date); ?>">

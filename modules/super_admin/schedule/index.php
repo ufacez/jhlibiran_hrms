@@ -353,7 +353,8 @@ try {
                 <form method="GET" action="" id="filterForm">
                     <div class="filter-row">
                         <div class="filter-group">
-                            <select name="project" onchange="this.form.submit()">
+                            <label>Project</label>
+                            <select name="project">
                                 <option value="">All Projects</option>
                                 <?php foreach ($allProjects as $proj): ?>
                                 <option value="<?php echo $proj['project_id']; ?>" <?php echo $project_filter == $proj['project_id'] ? 'selected' : ''; ?>>
@@ -364,7 +365,8 @@ try {
                         </div>
 
                         <div class="filter-group">
-                            <select name="worker" onchange="this.form.submit()">
+                            <label>Worker</label>
+                            <select name="worker">
                                 <option value="">All Workers</option>
                                 <?php foreach ($allWorkers as $w): ?>
                                 <option value="<?php echo $w['worker_id']; ?>" <?php echo $worker_filter == $w['worker_id'] ? 'selected' : ''; ?>>
@@ -375,26 +377,36 @@ try {
                         </div>
 
                         <div class="filter-group">
-                            <select name="status" onchange="this.form.submit()">
+                            <label>Status</label>
+                            <select name="status">
                                 <option value="all"      <?php echo $status_filter === 'all'      ? 'selected' : ''; ?>>All Schedules</option>
                                 <option value="active"   <?php echo $status_filter === 'active'   ? 'selected' : ''; ?>>Active Only</option>
                                 <option value="inactive" <?php echo $status_filter === 'inactive' ? 'selected' : ''; ?>>Inactive Only</option>
                             </select>
                         </div>
 
-                        <!-- Schedule Legend -->
-                        <div style="margin-left:auto;display:flex;align-items:center;gap:16px;font-size:12px;font-weight:500;">
-                            <div style="display:flex;align-items:center;gap:5px;">
-                                <span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#e8f5e9;border:1px solid #c8e6c9;"></span>
-                                <span style="color:#2e7d32;">Regular Day</span>
-                            </div>
-                            <div style="display:flex;align-items:center;gap:5px;">
-                                <span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#e3f2fd;border:1px solid #90caf9;"></span>
-                                <span style="color:#1565c0;">Overtime Day</span>
-                            </div>
+                        <div class="filter-actions">
+                            <button type="submit" class="btn-filter-apply">
+                                <i class="fas fa-filter"></i> Apply
+                            </button>
+                            <button type="button" class="btn-filter-reset" onclick="window.location.href='index.php'">
+                                <i class="fas fa-undo"></i> Reset
+                            </button>
                         </div>
                     </div>
                 </form>
+            </div>
+
+            <!-- Schedule Legend -->
+            <div style="display:flex;align-items:center;gap:16px;font-size:12px;font-weight:500;margin-bottom:15px;">
+                <div style="display:flex;align-items:center;gap:5px;">
+                    <span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#e8f5e9;border:1px solid #c8e6c9;"></span>
+                    <span style="color:#2e7d32;">Regular Day</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:5px;">
+                    <span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#e3f2fd;border:1px solid #90caf9;"></span>
+                    <span style="color:#1565c0;">Overtime Day</span>
+                </div>
             </div>
 
             <div class="schedule-table-card">

@@ -123,6 +123,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     jsonError('Time in is required');
                 }
                 
+                // Prevent marking attendance for a future date/time
+                $now = new DateTime();
+                $attendance_dt = new DateTime($attendance_date);
+                $today_dt = new DateTime(date('Y-m-d'));
+                if ($attendance_dt > $today_dt) {
+                    http_response_code(400);
+                    jsonError('Cannot mark attendance for a future date.');
+                }
+                if ($attendance_date === date('Y-m-d')) {
+                    $time_in_dt = new DateTime($attendance_date . ' ' . $time_in);
+                    if ($time_in_dt > $now) {
+                        http_response_code(400);
+                        jsonError('Cannot mark a time-in in the future. Please select the current or a past time.');
+                    }
+                    if ($time_out) {
+                        $time_out_dt = new DateTime($attendance_date . ' ' . $time_out);
+                        if ($time_out_dt > $now) {
+                            http_response_code(400);
+                            jsonError('Cannot mark a time-out in the future. Please select the current or a past time.');
+                        }
+                    }
+                }
+                
                 // Check if attendance already exists
                 $stmt = $db->prepare("SELECT attendance_id FROM attendance 
                                      WHERE worker_id = ? AND attendance_date = ?");
@@ -135,11 +158,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 
                 // Calculate hours worked with enhanced calculator
                 $attendanceCalculator = new AttendanceCalculator($db);
-                $calculation = $attendanceCalculator->calculateWorkHours($time_in, $time_out, $attendance_date);
+                $calculation = $attendanceCalculator->calculateWorkHours($time_in, $time_out, $attendance_date, $worker_id);
                 
                 if (!$calculation['is_valid']) {
                     // Allow saving even if below minimum but flag it
                     $status = 'incomplete';
+                } else {
+                    // Use auto-calculated status from schedule comparison
+                    $status = $calculation['status'] ?? $status;
                 }
                 
                 $hours_worked = $calculation['worked_hours'];

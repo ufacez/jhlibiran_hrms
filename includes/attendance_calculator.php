@@ -3,10 +3,12 @@
  * Enhanced Attendance Calculator
  * TrackSite Construction Management System
  * 
- * Handles hourly calculations with grace periods for face recognition systems.
- * Provides accurate time calculations with break deductions and overtime.
+ * Handles hourly calculations with schedule-based status determination.
+ * - Overtime: if worker works beyond 9 hours (raw, including 1-hr break)
+ * - Late: if worker does not meet scheduled hours for that day
+ * - Present: normal attendance matching schedule
  * 
- * @version 2.0.0
+ * @version 3.0.0
  * @author TrackSite Team
  */
 
@@ -14,6 +16,10 @@ class AttendanceCalculator {
     
     private $pdo;
     private $settings = [];
+    
+    // Standard break deduction (1 hour) and overtime threshold (9 raw hours)
+    const BREAK_HOURS = 1.0;
+    const OVERTIME_RAW_THRESHOLD = 9.0; // 9 raw hours = 8 worked + 1 break → overtime
     
     /**
      * Constructor - Initialize with database connection
@@ -28,14 +34,12 @@ class AttendanceCalculator {
      */
     private function loadSettings() {
         try {
-            // Load from attendance_settings table
             $stmt = $this->pdo->query("SELECT * FROM attendance_settings ORDER BY setting_id DESC LIMIT 1");
             $result = $stmt->fetch(PDO::FETCH_ASSOC);
             
             if ($result) {
                 $this->settings = $result;
             } else {
-                // Default fallback values
                 $this->settings = [
                     'grace_period_minutes' => 15,
                     'min_work_hours' => 1.00,
@@ -46,7 +50,6 @@ class AttendanceCalculator {
             }
         } catch (PDOException $e) {
             error_log("AttendanceCalculator: Failed to load settings - " . $e->getMessage());
-            // Use default values
             $this->settings = [
                 'grace_period_minutes' => 15,
                 'min_work_hours' => 1.00,
@@ -58,14 +61,72 @@ class AttendanceCalculator {
     }
     
     /**
-     * Calculate hours worked with grace period and breaks
+     * Get the worker's schedule for a specific date (by day_of_week)
      * 
-     * @param string $timeIn Time in (H:i:s format)
-     * @param string $timeOut Time out (H:i:s format)
-     * @param string $date Work date (Y-m-d format)
-     * @return array Calculation details
+     * @param int $workerId Worker ID
+     * @param string $date Date (Y-m-d)
+     * @return array|null Schedule record or null if no schedule
      */
-    public function calculateWorkHours($timeIn, $timeOut, $date = null) {
+    public function getWorkerScheduleForDate($workerId, $date) {
+        try {
+            $dayOfWeek = strtolower(date('l', strtotime($date))); // e.g. 'monday'
+            
+            $stmt = $this->pdo->prepare("
+                SELECT schedule_id, start_time, end_time, is_active
+                FROM schedules 
+                WHERE worker_id = ? 
+                  AND day_of_week = ? 
+                  AND is_active = 1
+                ORDER BY updated_at DESC 
+                LIMIT 1
+            ");
+            $stmt->execute([$workerId, $dayOfWeek]);
+            return $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
+        } catch (PDOException $e) {
+            error_log("AttendanceCalculator: Failed to get schedule - " . $e->getMessage());
+            return null;
+        }
+    }
+    
+    /**
+     * Calculate scheduled hours for a given schedule record
+     * 
+     * @param array $schedule Schedule record with start_time & end_time
+     * @return float Scheduled work hours (minus break)
+     */
+    public function getScheduledHours($schedule) {
+        if (!$schedule) return 8.0; // Default 8-hour day
+        
+        $startTs = strtotime($schedule['start_time']);
+        $endTs = strtotime($schedule['end_time']);
+        
+        if ($endTs <= $startTs) {
+            $endTs = strtotime('+1 day', $endTs);
+        }
+        
+        $rawScheduled = ($endTs - $startTs) / 3600;
+        // Deduct break for shifts >= 8 raw hours
+        $breakDeduction = ($rawScheduled >= 8) ? self::BREAK_HOURS : 0;
+        return $rawScheduled - $breakDeduction;
+    }
+    
+    /**
+     * Calculate work hours and determine status based on schedule
+     * 
+     * Rules:
+     * - Raw hours = time_out - time_in
+     * - Break deducted (1 hr) for shifts >= 8 raw hours
+     * - Overtime: raw hours > 9 (i.e., worked > 8 net hours after break)
+     * - Late: net worked hours < scheduled hours for that day
+     * - Present: everything else (meets schedule, no overtime)
+     * 
+     * @param string $timeIn Time in (H:i:s or H:i format)
+     * @param string $timeOut Time out (H:i:s or H:i format)
+     * @param string $date Work date (Y-m-d format)
+     * @param int|null $workerId Worker ID for schedule lookup
+     * @return array Calculation details including determined status
+     */
+    public function calculateWorkHours($timeIn, $timeOut, $date = null, $workerId = null) {
         if (empty($timeIn) || empty($timeOut)) {
             return [
                 'raw_hours' => 0,
@@ -74,151 +135,120 @@ class AttendanceCalculator {
                 'late_minutes' => 0,
                 'overtime_hours' => 0,
                 'regular_hours' => 0,
+                'scheduled_hours' => 0,
+                'status' => 'absent',
                 'is_valid' => false,
                 'calculation_details' => 'Missing time in or time out'
             ];
         }
-        // Use date if provided, else today
+        
         $date = $date ?: date('Y-m-d');
+        
+        // Parse timestamps
         $inTs = strtotime($date . ' ' . $timeIn);
         $outTs = strtotime($date . ' ' . $timeOut);
-        // If time out is less than or equal to time in, add 1 day to outTs
         if ($outTs <= $inTs) {
             $outTs = strtotime('+1 day', $outTs);
         }
-        // Calculate raw hours
+        
+        // Raw hours (total clock time)
         $rawHours = ($outTs - $inTs) / 3600;
         
-        // Apply grace period for late arrivals
-        $lateMinutes = $this->calculateLateMinutes($timeIn, $date);
-        $gracePeriod = $this->settings['grace_period_minutes'];
-        // If late is within grace period, don't penalize
-        $adjustedTimeIn = $inTs;
+        // Break deduction: 1 hour for shifts of 8+ raw hours
+        $breakHours = ($rawHours >= 8) ? self::BREAK_HOURS : 0;
+        
+        // Net worked hours
+        $workedHours = max(0, $rawHours - $breakHours);
+        
+        // Get worker schedule for the day
+        $schedule = null;
+        $scheduledHours = 8.0; // Default
+        $scheduledStart = '08:00:00';
+        
+        if ($workerId) {
+            $schedule = $this->getWorkerScheduleForDate($workerId, $date);
+            if ($schedule) {
+                $scheduledHours = $this->getScheduledHours($schedule);
+                $scheduledStart = $schedule['start_time'];
+            }
+        }
+        
+        // Calculate late minutes (arrival after scheduled start)
+        $scheduledStartTs = strtotime($date . ' ' . $scheduledStart);
+        $lateMinutes = max(0, ($inTs - $scheduledStartTs) / 60);
+        
+        // Apply grace period
+        $gracePeriod = $this->settings['grace_period_minutes'] ?? 15;
         if ($lateMinutes > 0 && $lateMinutes <= $gracePeriod) {
-            // Don't adjust time - grace period covers it
-            $lateMinutes = 0;
-        } elseif ($lateMinutes > $gracePeriod) {
-            // Penalize only the amount beyond grace period
-            $lateMinutes = $lateMinutes - $gracePeriod;
-            $adjustedTimeIn = $inTs + ($lateMinutes * 60);
-        }
-        // Recalculate hours after grace period adjustment
-        $adjustedHours = ($outTs - $adjustedTimeIn) / 3600;
-        
-        // Apply break deduction for full day shifts (8+ hours)
-        $breakHours = 0;
-        if ($adjustedHours >= 8) {
-            $breakHours = $this->settings['break_deduction_hours'];
+            $lateMinutes = 0; // Within grace period
         }
         
-        // Calculate net worked hours
-        $workedHours = max(0, $adjustedHours - $breakHours);
+        // Determine status based on schedule
+        // Rule 1: Overtime if raw hours > 9 (i.e., beyond 9 hours including break)
+        // Rule 2: Late if worked hours < scheduled hours
+        // Rule 3: Present otherwise
+        $status = 'present';
+        $overtimeHours = 0;
+        $regularHours = $workedHours;
         
-        // Round to nearest hour if enabled
-        if ($this->settings['round_to_nearest_hour']) {
+        if ($rawHours > self::OVERTIME_RAW_THRESHOLD) {
+            // Overtime: beyond 9 raw hours (8 worked + 1 break)
+            $status = 'overtime';
+            $regularHours = min($workedHours, $scheduledHours);
+            $overtimeHours = max(0, $workedHours - $scheduledHours);
+        } elseif ($workedHours < $scheduledHours) {
+            // Late: didn't meet scheduled hours
+            $status = 'late';
+            $regularHours = $workedHours;
+            $overtimeHours = 0;
+        }
+        
+        // Round if setting enabled
+        if ($this->settings['round_to_nearest_hour'] ?? false) {
             $workedHours = round($workedHours);
+            $regularHours = round($regularHours);
+            $overtimeHours = round($overtimeHours);
         }
         
-        // Apply minimum work hours
-        if ($workedHours < $this->settings['min_work_hours']) {
-            $workedHours = 0;
+        // Build details string
+        $details = [];
+        $details[] = sprintf("Raw hours: %.2f", $rawHours);
+        if ($breakHours > 0) {
+            $details[] = sprintf("Break: -%.2f hr", $breakHours);
         }
-        
-        // Calculate regular and overtime hours
-        $regularHours = min($workedHours, 8);
-        $overtimeHours = max(0, $workedHours - 8);
+        $details[] = sprintf("Worked: %.2f hrs", $workedHours);
+        $details[] = sprintf("Scheduled: %.2f hrs", $scheduledHours);
+        if ($lateMinutes > 0) {
+            $details[] = sprintf("Late: %d min", round($lateMinutes));
+        }
+        if ($overtimeHours > 0) {
+            $details[] = sprintf("OT: %.2f hrs", $overtimeHours);
+        }
+        $details[] = sprintf("Status: %s", ucfirst($status));
         
         return [
             'raw_hours' => round($rawHours, 2),
             'worked_hours' => round($workedHours, 2),
-            'break_hours' => $breakHours,
-            'late_minutes' => $lateMinutes,
+            'break_hours' => round($breakHours, 2),
+            'late_minutes' => round($lateMinutes),
             'overtime_hours' => round($overtimeHours, 2),
             'regular_hours' => round($regularHours, 2),
-            'grace_period_applied' => $lateMinutes == 0 && $this->calculateLateMinutes($timeIn, $date) > 0,
-            'is_valid' => $workedHours >= $this->settings['min_work_hours'],
-            'calculation_details' => $this->getCalculationDetails($rawHours, $adjustedHours, $breakHours, $workedHours, $lateMinutes)
+            'scheduled_hours' => round($scheduledHours, 2),
+            'status' => $status,
+            'grace_period_applied' => ($lateMinutes == 0 && ($inTs > $scheduledStartTs)),
+            'is_valid' => $workedHours >= ($this->settings['min_work_hours'] ?? 1.0),
+            'calculation_details' => implode(' | ', $details)
         ];
     }
     
     /**
-     * Calculate late minutes based on scheduled start time
-     * 
-     * @param string $timeIn Actual time in
-     * @param string $date Work date (optional, defaults to today)
-     * @return int Minutes late (0 if on time or early)
-     */
-    private function calculateLateMinutes($timeIn, $date = null) {
-        if (!$date) {
-            $date = date('Y-m-d');
-        }
-        
-        try {
-            // Try to get scheduled start time from schedule
-            $stmt = $this->pdo->prepare("
-                SELECT start_time 
-                FROM schedules 
-                WHERE schedule_date = ? 
-                AND is_active = 1
-                ORDER BY created_at DESC 
-                LIMIT 1
-            ");
-            $stmt->execute([$date]);
-            $schedule = $stmt->fetch(PDO::FETCH_ASSOC);
-            
-            $scheduledStart = $schedule ? $schedule['start_time'] : '08:00:00'; // Default to 8 AM
-            
-            $scheduledTs = strtotime($scheduledStart);
-            $actualTs = strtotime($timeIn);
-            
-            // Calculate difference in minutes
-            $diffMinutes = ($actualTs - $scheduledTs) / 60;
-            
-            return max(0, $diffMinutes); // Return 0 if early/on time
-            
-        } catch (PDOException $e) {
-            error_log("AttendanceCalculator: Failed to get schedule - " . $e->getMessage());
-            // Default: assume 8 AM start, calculate lateness
-            $scheduledTs = strtotime('08:00:00');
-            $actualTs = strtotime($timeIn);
-            $diffMinutes = ($actualTs - $scheduledTs) / 60;
-            return max(0, $diffMinutes);
-        }
-    }
-    
-    /**
-     * Generate calculation details for transparency
-     */
-    private function getCalculationDetails($rawHours, $adjustedHours, $breakHours, $workedHours, $lateMinutes) {
-        $details = [];
-        $details[] = sprintf("Raw hours: %.2f", $rawHours);
-        
-        if ($lateMinutes > 0) {
-            $details[] = sprintf("Late penalty: %d minutes", $lateMinutes);
-            $details[] = sprintf("After late adjustment: %.2f hours", $adjustedHours);
-        }
-        
-        if ($breakHours > 0) {
-            $details[] = sprintf("Break deduction: %.2f hours", $breakHours);
-        }
-        
-        $details[] = sprintf("Net worked hours: %.2f", $workedHours);
-        
-        if ($this->settings['round_to_nearest_hour']) {
-            $details[] = "Rounded to nearest hour";
-        }
-        
-        return implode(" | ", $details);
-    }
-    
-    /**
-     * Update attendance record with calculated hours
+     * Update attendance record with calculated hours and status
      * 
      * @param int $attendanceId Attendance record ID
      * @param array $calculation Calculation result from calculateWorkHours()
      * @return bool Success status
      */
-    public function updateAttendanceHours($attendanceId, $calculation) {
+    public function updateAttendanceRecord($attendanceId, $calculation) {
         try {
             $stmt = $this->pdo->prepare("
                 UPDATE attendance SET
@@ -227,6 +257,7 @@ class AttendanceCalculator {
                     break_hours = ?,
                     late_minutes = ?,
                     overtime_hours = ?,
+                    status = ?,
                     calculated_at = NOW(),
                     notes = CONCAT(COALESCE(notes, ''), ' | Auto-calculated: ', ?)
                 WHERE attendance_id = ?
@@ -234,10 +265,11 @@ class AttendanceCalculator {
             
             return $stmt->execute([
                 $calculation['worked_hours'],
-                $calculation['raw_hours'], 
+                $calculation['raw_hours'],
                 $calculation['break_hours'],
                 $calculation['late_minutes'],
                 $calculation['overtime_hours'],
+                $calculation['status'],
                 $calculation['calculation_details'],
                 $attendanceId
             ]);
@@ -250,6 +282,7 @@ class AttendanceCalculator {
     
     /**
      * Batch recalculate attendance for a date range
+     * Connects each record to the worker's schedule for proper status
      * 
      * @param string $startDate Start date (Y-m-d)
      * @param string $endDate End date (Y-m-d)
@@ -283,10 +316,11 @@ class AttendanceCalculator {
                 $calculation = $this->calculateWorkHours(
                     $record['time_in'], 
                     $record['time_out'], 
-                    $record['attendance_date']
+                    $record['attendance_date'],
+                    $record['worker_id']
                 );
                 
-                if ($this->updateAttendanceHours($record['attendance_id'], $calculation)) {
+                if ($this->updateAttendanceRecord($record['attendance_id'], $calculation)) {
                     $processed++;
                 } else {
                     $errors++;
@@ -343,7 +377,7 @@ class AttendanceCalculator {
             ]);
             
             if ($success) {
-                $this->loadSettings(); // Reload settings
+                $this->loadSettings();
             }
             
             return $success;

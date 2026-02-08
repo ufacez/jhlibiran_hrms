@@ -28,16 +28,22 @@ $status_filter = isset($_GET['status']) ? sanitizeString($_GET['status']) : '';
 $date_filter = isset($_GET['date']) ? sanitizeString($_GET['date']) : date('Y-m-d');
 $project_filter = isset($_GET['project']) ? intval($_GET['project']) : 0;
 
-// Build query for attendance - FIXED to exclude archived records
+// Build query for attendance - joins schedule for the day
+
+$day_of_week_expr = "LOWER(DAYNAME(a.attendance_date))";
 
 $sql = "SELECT a.*, w.worker_code, w.first_name, w.last_name,
            COALESCE(wc.classification_name, wct.classification_name) AS classification_name,
-           wt.work_type_name
+           wt.work_type_name,
+           s.start_time AS sched_start, s.end_time AS sched_end
     FROM attendance a
         JOIN workers w ON a.worker_id = w.worker_id
         LEFT JOIN worker_classifications wc ON w.classification_id = wc.classification_id
         LEFT JOIN work_types wt ON w.work_type_id = wt.work_type_id
-        LEFT JOIN worker_classifications wct ON wt.classification_id = wct.classification_id 
+        LEFT JOIN worker_classifications wct ON wt.classification_id = wct.classification_id
+        LEFT JOIN schedules s ON s.worker_id = a.worker_id 
+            AND s.day_of_week = {$day_of_week_expr}
+            AND s.is_active = 1
         WHERE a.attendance_date = ? AND a.is_archived = FALSE AND w.is_archived = FALSE";
 $params = [$date_filter];
 
@@ -111,8 +117,6 @@ try {
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <link rel="stylesheet" href="https://pro.fontawesome.com/releases/v5.10.0/css/all.css" />
-    <link rel="stylesheet" href="https://pro.fontawesome.com/releases/v5.10.0/css/all.css" />
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Worker Attendance - <?php echo SYSTEM_NAME; ?></title>
@@ -120,8 +124,16 @@ try {
           integrity="sha384-AYmEC3Yw5cVb3ZcuHtOA93w35dYTsvhLPVnYs9eStHfGJvOvKxVfELGroGkvsg+p" 
           crossorigin="anonymous" />
     <link rel="stylesheet" href="<?php echo CSS_URL; ?>/dashboard.css">
+    <link rel="stylesheet" href="<?php echo CSS_URL; ?>/workers.css">
     <link rel="stylesheet" href="<?php echo CSS_URL; ?>/attendance.css">
-    <link rel="stylesheet" href="<?php echo CSS_URL; ?>/schedule.css">
+    <link rel="stylesheet" href="<?php echo CSS_URL; ?>/buttons.css">
+    <style>
+        /* Attendance page: 5 filter groups + actions */
+        .filter-row-5 { grid-template-columns: repeat(5, 1fr) auto; }
+        @media (max-width: 1200px) { .filter-row-5 { grid-template-columns: repeat(3, 1fr) auto; } }
+        @media (max-width: 900px) { .filter-row-5 { grid-template-columns: 1fr 1fr; } }
+        @media (max-width: 768px) { .filter-row-5 { grid-template-columns: 1fr; } }
+    </style>
 </head>
 <body>
     <div class="container">
@@ -137,7 +149,7 @@ try {
         <div class="main">
             <?php include __DIR__ . '/../../../includes/topbar.php'; ?>
             
-            <div class="attendance-content">
+            <div class="workers-content">
                 
                 <!-- Flash Message -->
                 <?php if ($flash): ?>
@@ -156,7 +168,7 @@ try {
                         <h1>Worker Attendance</h1>
                         <p class="subtitle">Track and manage worker attendance records</p>
                     </div>
-                    <button class="btn btn-mark-attendance" onclick="window.location.href='mark.php'">
+                    <button class="btn btn-add-worker" onclick="window.location.href='mark.php'">
                         <i class="fas fa-plus"></i> Mark Attendance
                     </button>
                 </div>
@@ -164,10 +176,10 @@ try {
                 <!-- Filters -->
                 <div class="filter-card">
                     <form method="GET" action="" id="filterForm">
-                        <div class="filter-row">
+                        <div class="filter-row filter-row-5">
                             <div class="filter-group">
                                 <label>Project</label>
-                                <select name="project" id="projectFilter" onchange="submitFilter()">
+                                <select name="project" id="projectFilter">
                                     <option value="">All Projects</option>
                                     <?php foreach ($projects as $proj): ?>
                                         <option value="<?php echo $proj['project_id']; ?>" <?php echo $project_filter == $proj['project_id'] ? 'selected' : ''; ?>>
@@ -178,7 +190,7 @@ try {
                             </div>
                             <div class="filter-group">
                                 <label>Classification</label>
-                                <select name="classification" id="classificationFilter" onchange="submitFilter()">
+                                <select name="classification" id="classificationFilter">
                                     <option value="">All Classifications</option>
                                     <?php foreach ($classifications as $c): ?>
                                         <option value="<?php echo $c['classification_id']; ?>" <?php echo $classification_filter == $c['classification_id'] ? 'selected' : ''; ?>>
@@ -199,7 +211,7 @@ try {
                             
                             <div class="filter-group">
                                 <label>Attendance Status</label>
-                                <select name="status" id="statusFilter" onchange="document.getElementById('filterForm').submit()">
+                                <select name="status" id="statusFilter">
                                     <option value="">All Status</option>
                                     <option value="present" <?php echo $status_filter === 'present' ? 'selected' : ''; ?>>Present</option>
                                     <option value="late" <?php echo $status_filter === 'late' ? 'selected' : ''; ?>>Late</option>
@@ -209,41 +221,44 @@ try {
                             </div>
                             
                             <div class="filter-group">
-                                <label>Date Range</label>
-                                <div style="display:flex;align-items:end;gap:8px;">
-                                    <input type="date" name="date" id="dateFilter" value="<?php echo htmlspecialchars($date_filter); ?>">
-                                    <button type="submit" class="btn btn-primary" style="height:36px;padding:0 18px;font-size:14px;">Apply</button>
-                                </div>
+                                <label>Date</label>
+                                <input type="date" name="date" id="dateFilter" value="<?php echo htmlspecialchars($date_filter); ?>" max="<?php echo date('Y-m-d'); ?>">
                             </div>
-                            <?php if (!empty($position_filter) || !empty($status_filter) || $date_filter !== date('Y-m-d')): ?>
-                            <button type="button" 
-                                    class="btn btn-secondary" 
-                                    onclick="window.location.href='index.php'">
-                                <i class="fas fa-times"></i> Clear
-                            </button>
-                            <?php endif; ?>
+
+                            <div class="filter-actions">
+                                <button type="submit" class="btn-filter-apply">
+                                    <i class="fas fa-filter"></i> Apply
+                                </button>
+                                <button type="button" class="btn-filter-reset" onclick="window.location.href='index.php'">
+                                    <i class="fas fa-undo"></i> Reset
+                                </button>
+                            </div>
                         </div>
                     </form>
                 </div>
                 
                 <!-- Attendance Table -->
-                <div class="attendance-table-card">
-                    <div class="table-header-row">
-                        <div class="table-info">
-                            <span>Showing <?php echo $total_records; ?> of <?php echo $total_workers_today; ?> workers</span>
+                <div class="workers-table-card">
+                    <div class="table-info">
+                        <span>Showing <?php echo $total_records; ?> of <?php echo $total_workers_today; ?> workers</span>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <button class="btn btn-recalculate" onclick="recalculateAttendance()" title="Recalculate all attendance statuses based on worker schedules">
+                                <i class="fas fa-sync-alt"></i> Recalculate
+                            </button>
+                            <button class="btn btn-export" onclick="exportAttendance()">
+                                <i class="fas fa-download"></i> Export
+                            </button>
                         </div>
-                        <button class="btn btn-export" onclick="exportAttendance()">
-                            <i class="fas fa-download"></i> Export
-                        </button>
                     </div>
                     
                     <div class="table-wrapper">
-                        <table class="attendance-table">
+                        <table class="workers-table">
                             <thead>
                                 <tr>
                                     <th>Worker</th>
                                     <th>Classification</th>
                                     <th>Role</th>
+                                    <th>Schedule</th>
                                     <th>Time In</th>
                                     <th>Time Out</th>
                                     <th>Hours Worked</th>
@@ -254,7 +269,7 @@ try {
                             <tbody>
                                 <?php if (empty($attendance_records)): ?>
                                 <tr>
-                                    <td colspan="7" class="no-data">
+                                    <td colspan="9" class="no-data">
                                         <i class="fas fa-clipboard-list"></i>
                                         <p>No attendance records for <?php echo formatDate($date_filter); ?></p>
                                         <button class="btn btn-sm btn-primary" onclick="window.location.href='mark.php'">
@@ -282,6 +297,15 @@ try {
                                         </td>
                                         <td><?php echo htmlspecialchars($record['classification_name'] ?? ''); ?></td>
                                         <td><?php echo htmlspecialchars($record['work_type_name'] ?? ''); ?></td>
+                                        <td>
+                                            <?php if ($record['sched_start'] && $record['sched_end']): ?>
+                                                <span class="schedule-chip">
+                                                    <?php echo date('g:i A', strtotime($record['sched_start'])); ?> – <?php echo date('g:i A', strtotime($record['sched_end'])); ?>
+                                                </span>
+                                            <?php else: ?>
+                                                <span class="no-schedule">No schedule</span>
+                                            <?php endif; ?>
+                                        </td>
                                         <td>
                                             <?php echo $record['time_in'] ? formatTime($record['time_in']) : '--'; ?>
                                         </td>
@@ -330,7 +354,7 @@ try {
                     </div>
                 </div>
                 
-            </div>
+            </div><!-- /.workers-content -->
         </div>
     </div>
     
@@ -338,7 +362,7 @@ try {
     <div id="viewModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h2>Attendance Details</h2>
+                <h2><i class="fas fa-calendar-check"></i> Attendance Details</h2>
                 <button class="modal-close" onclick="closeModal('viewModal')">
                     <i class="fas fa-times"></i>
                 </button>
@@ -354,6 +378,17 @@ try {
     
     <script src="<?php echo JS_URL; ?>/dashboard.js"></script>
     <script>
+    // Format schedule time (HH:MM:SS or HH:MM) to 12-hour AM/PM
+    function formatScheduleTime(timeStr) {
+        if (!timeStr) return '';
+        const parts = timeStr.split(':');
+        let hour = parseInt(parts[0], 10);
+        const min = parts[1];
+        const ampm = hour >= 12 ? 'PM' : 'AM';
+        hour = hour % 12 || 12;
+        return hour + ':' + min + ' ' + ampm;
+    }
+
     // Archive Attendance Function with improved error handling
     function archiveAttendance(clickedBtn, id, workerName) {
         if (confirm(`Archive attendance record for ${workerName}?\n\nThis will move the record to the archive. You can restore it later if needed.`)) {
@@ -436,8 +471,16 @@ try {
                                 <span style="font-size: 14px; color: #1a1a1a; font-weight: 500;">${attendance.worker_code}</span>
                             </div>
                             <div style="background: #f8f9fa; padding: 15px; border-radius: 8px;">
-                                <label style="font-size: 11px; color: #666; text-transform: uppercase; font-weight: 600; display: block; margin-bottom: 5px;">Position</label>
-                                <span style="font-size: 14px; color: #1a1a1a; font-weight: 500;">${attendance.position}</span>
+                                <label style="font-size: 11px; color: #666; text-transform: uppercase; font-weight: 600; display: block; margin-bottom: 5px;">Classification</label>
+                                <span style="font-size: 14px; color: #1a1a1a; font-weight: 500;">${attendance.classification_name || 'N/A'}</span>
+                            </div>
+                            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px;">
+                                <label style="font-size: 11px; color: #666; text-transform: uppercase; font-weight: 600; display: block; margin-bottom: 5px;">Role</label>
+                                <span style="font-size: 14px; color: #1a1a1a; font-weight: 500;">${attendance.work_type_name || 'N/A'}</span>
+                            </div>
+                            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px;">
+                                <label style="font-size: 11px; color: #666; text-transform: uppercase; font-weight: 600; display: block; margin-bottom: 5px;">Schedule</label>
+                                <span style="font-size: 14px; color: #1a1a1a; font-weight: 500;">${attendance.sched_start && attendance.sched_end ? formatScheduleTime(attendance.sched_start) + ' – ' + formatScheduleTime(attendance.sched_end) : 'No schedule'}</span>
                             </div>
                             <div style="background: #f8f9fa; padding: 15px; border-radius: 8px;">
                                 <label style="font-size: 11px; color: #666; text-transform: uppercase; font-weight: 600; display: block; margin-bottom: 5px;">Date</label>
@@ -535,7 +578,7 @@ try {
             </button>
         `;
         
-        const content = document.querySelector('.attendance-content');
+        const content = document.querySelector('.workers-content');
         content.insertBefore(alertDiv, content.firstChild);
         
         // Auto remove after 5 seconds

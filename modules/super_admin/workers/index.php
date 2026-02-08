@@ -183,6 +183,11 @@ try {
     <link rel="stylesheet" href="<?php echo CSS_URL; ?>/buttons.css">
     <link rel="stylesheet" href="<?php echo CSS_URL; ?>/payroll.css">
     <style>
+        /* Workers page: 4 filter groups + actions */
+        .filter-row-4 { grid-template-columns: repeat(4, 1fr) auto; }
+        @media (max-width: 900px) { .filter-row-4 { grid-template-columns: 1fr 1fr; } }
+        @media (max-width: 768px) { .filter-row-4 { grid-template-columns: 1fr; } }
+
         /* Enhanced Modal Styles */
         .modal-body-content {
             max-height: 70vh;
@@ -310,10 +315,10 @@ try {
                 <!-- Filters -->
                 <div class="filter-card">
                     <form method="GET" action="" id="filterForm">
-                        <div class="filter-row">
+                        <div class="filter-row filter-row-4">
                             <div class="filter-group">
-                                <label style="font-size:11px;font-weight:600;color:#666;letter-spacing:0.5px;text-transform:uppercase;margin-bottom:6px;">Project</label>
-                                <select name="project" id="projectFilter" onchange="submitFilter()">
+                                <label>Project</label>
+                                <select name="project" id="projectFilter">
                                     <option value="">All Projects</option>
                                     <?php foreach ($projects_list as $proj): ?>
                                         <option value="<?php echo $proj['project_id']; ?>" <?php echo $project_filter == $proj['project_id'] ? 'selected' : ''; ?>>
@@ -323,8 +328,8 @@ try {
                                 </select>
                             </div>
                             <div class="filter-group">
-                                <label style="font-size:11px;font-weight:600;color:#666;letter-spacing:0.5px;text-transform:uppercase;margin-bottom:6px;">Classification</label>
-                                <select name="classification" id="classificationFilter" onchange="submitFilter()">
+                                <label>Classification</label>
+                                <select name="classification" id="classificationFilter">
                                     <option value="">All Classifications</option>
                                     <?php foreach ($classifications as $c): ?>
                                         <option value="<?php echo $c['classification_id']; ?>" <?php echo $classification_filter == $c['classification_id'] ? 'selected' : ''; ?>>
@@ -334,8 +339,8 @@ try {
                                 </select>
                             </div>
                             <div class="filter-group">
-                                <label style="font-size:11px;font-weight:600;color:#666;letter-spacing:0.5px;text-transform:uppercase;margin-bottom:6px;">Role</label>
-                                <select name="work_type" id="workTypeFilter" onchange="submitFilter()">
+                                <label>Role</label>
+                                <select name="work_type" id="workTypeFilter">
                                     <option value="">All Roles</option>
                                     <?php foreach ($work_types as $wt): ?>
                                         <option value="<?php echo $wt['work_type_id']; ?>" <?php echo $work_type_filter == $wt['work_type_id'] ? 'selected' : ''; ?>>
@@ -346,8 +351,8 @@ try {
                             </div>
                             
                             <div class="filter-group">
-                                <label style="font-size:11px;font-weight:600;color:#666;letter-spacing:0.5px;text-transform:uppercase;margin-bottom:6px;">Employment Status</label>
-                                <select name="status" id="statusFilter" onchange="submitFilter()">
+                                <label>Employment Status</label>
+                                <select name="status" id="statusFilter">
                                     <option value="">All Status</option>
                                     <option value="active" <?php echo $status_filter === 'active' ? 'selected' : ''; ?>>Active</option>
                                     <option value="on_leave" <?php echo $status_filter === 'on_leave' ? 'selected' : ''; ?>>On Leave</option>
@@ -356,8 +361,13 @@ try {
                                 </select>
                             </div>
                             
-                            <div class="filter-group" style="display:flex;align-items:end;">
-                                <button type="submit" class="btn btn-primary" style="height:36px;padding:0 18px;font-size:14px;">Apply</button>
+                            <div class="filter-actions">
+                                <button type="submit" class="btn-filter-apply">
+                                    <i class="fas fa-filter"></i> Apply
+                                </button>
+                                <button type="button" class="btn-filter-reset" onclick="window.location.href='index.php'">
+                                    <i class="fas fa-undo"></i> Reset
+                                </button>
                             </div>
                         </div>
                     </form>

@@ -361,11 +361,11 @@ function getEnhancedActivityDescription($activity) {
                                 <span style="display: inline-flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.85); padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 500;">
                                     <i class="fas fa-calendar-week"></i> Payroll Period: <?php echo $currentPeriodLabel; ?>
                                 </span>
-                                <span style="display: inline-flex; align-items: center; gap: 4px; color: rgba(255,255,255,0.5); font-size: 14px; align-self: center;">→</span>
+                                <span style="display: inline-flex; align-items: center; gap: 4px; color: rgba(255,255,255,0.5); font-size: 14px; align-self: center;"></span>
                                 <span style="display: inline-flex; align-items: center; gap: 6px; background: rgba(39,174,96,0.2); color: #6dffb0; padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 500;">
                                     <i class="fas fa-money-check-alt"></i> Release: <?php echo $payrollReleaseLabel; ?>
                                 </span>
-                                <span style="display: inline-flex; align-items: center; gap: 4px; color: rgba(255,255,255,0.5); font-size: 14px; align-self: center;">→</span>
+                                <span style="display: inline-flex; align-items: center; gap: 4px; color: rgba(255,255,255,0.5); font-size: 14px; align-self: center;"></span>
                                 <span style="display: inline-flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.85); padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 500;">
                                     <i class="fas fa-calendar-alt"></i> Next Period: <?php echo $nextPeriodLabel; ?>
                                 </span>
@@ -667,8 +667,8 @@ function getEnhancedActivityDescription($activity) {
                             <?php else: ?>
                                 <?php foreach ($recent_activities as $activity): ?>
                                 <div class="activity-item">
-                                    <div class="activity-icon activity-icon-<?php echo getActivityColor($activity['action_type'] ?? 'other'); ?>">
-                                        <i class="fas fa-<?php echo getActivityIcon($activity['action_type'] ?? 'other'); ?>"></i>
+                                    <div class="activity-icon activity-icon-<?php echo getActivityColor($activity['action_type'] ?? 'update'); ?>">
+                                        <i class="fas fa-<?php echo getActivityIcon($activity['action_type'] ?? 'update'); ?>"></i>
                                     </div>
                                     <div class="activity-content">
                                         <div class="activity-text">
@@ -683,8 +683,8 @@ function getEnhancedActivityDescription($activity) {
                                                 <i class="far fa-clock"></i>
                                                 <?php echo timeAgo($activity['created_at']); ?>
                                             </span>
-                                            <span class="activity-badge badge-<?php echo $activity['action_type'] ?? 'other'; ?>">
-                                                <?php echo strtoupper(str_replace('_', ' ', $activity['action_type'] ?? 'other')); ?>
+                                            <span class="activity-badge badge-<?php echo $activity['action_type'] ?? 'update'; ?>">
+                                                <?php echo strtoupper(str_replace('_', ' ', $activity['action_type'] ?? 'update')); ?>
                                             </span>
                                         </div>
                                     </div>

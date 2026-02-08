@@ -112,7 +112,7 @@ try {
             $trend_sql = "SELECT 
                 DATE(created_at) as date,
                 COUNT(*) as total,
-                SUM(CASE WHEN severity = 'critical' THEN 1 ELSE 0 END) as critical
+                SUM(CASE WHEN severity = 'high' THEN 1 ELSE 0 END) as high_severity
             FROM audit_trail 
             WHERE created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
             GROUP BY DATE(created_at)
@@ -160,7 +160,7 @@ try {
             
             // Log this action
             logAudit($db, [
-                'action_type' => 'other',
+                'action_type' => 'delete',
                 'module' => 'system',
                 'table_name' => 'audit_trail',
                 'changes_summary' => "Cleaned {$deleted} old audit records (retention: {$retention_days} days)",

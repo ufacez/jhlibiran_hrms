@@ -67,23 +67,100 @@ $flash = getFlashMessage();
         }
         .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(218,165,32,0.3); }
 
-        /* Filter Tabs */
-        .filter-bar {
-            display: flex; gap: 10px; margin-bottom: 20px; align-items: center; flex-wrap: wrap;
+        /* Filter Card - matches Worker Manager design */
+        .filter-card {
+            background: #fff;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+            margin-bottom: 25px;
         }
-        .filter-btn {
-            padding: 7px 16px; background: #f5f5f5; border: 1.5px solid transparent; border-radius: 8px;
-            cursor: pointer; font-size: 13px; font-weight: 500; color: #666;
-            transition: all 0.2s; display: flex; align-items: center; gap: 6px;
+        .filter-row {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr) auto;
+            gap: 15px;
+            align-items: end;
         }
-        .filter-btn:hover { color: #333; background: #eee; }
-        .filter-btn.active { background: #fff; color: #1a1a1a; border-color: #ddd; box-shadow: 0 1px 4px rgba(0,0,0,0.06); font-weight: 600; }
-        .filter-search {
-            margin-left: auto;
-            padding: 8px 14px; border: 1.5px solid #e0e0e0; border-radius: 8px;
-            font-size: 13px; width: 200px; background: #fafbfc;
+        .filter-group {
+            position: relative;
         }
-        .filter-search:focus { outline: none; border-color: #DAA520; box-shadow: 0 0 0 3px rgba(218,165,32,0.1); }
+        .filter-group label {
+            display: block;
+            font-size: 11px;
+            font-weight: 600;
+            color: #666;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            margin-bottom: 6px;
+        }
+        .filter-group select,
+        .filter-group input[type="text"] {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            background: #f8f9fa;
+            cursor: pointer;
+            outline: none;
+            transition: all 0.3s ease;
+            appearance: none;
+            box-sizing: border-box;
+        }
+        .filter-group select {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23666' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 15px center;
+            padding-right: 40px;
+        }
+        .filter-group select:focus,
+        .filter-group input[type="text"]:focus {
+            border-color: #DAA520;
+            background: #fff;
+        }
+        .filter-actions {
+            display: flex;
+            gap: 8px;
+            align-items: end;
+            padding-bottom: 1px;
+        }
+        .btn-filter-apply {
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #DAA520, #B8860B);
+            color: #1a1a1a;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+            height: 46px;
+        }
+        .btn-filter-apply:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(218,165,32,0.3);
+        }
+        .btn-filter-reset {
+            padding: 12px 18px;
+            background: #f0f0f0;
+            color: #666;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+            height: 46px;
+        }
+        .btn-filter-reset:hover { background: #e0e0e0; }
 
         /* Projects Table - matches standard table design across all pages */
         .projects-table-wrap {
@@ -242,6 +319,7 @@ $flash = getFlashMessage();
 
         @media (max-width: 900px) {
             .form-row, .form-row-3 { grid-template-columns: 1fr; }
+            .filter-row { grid-template-columns: 1fr; }
             .projects-table { font-size: 13px; }
             .projects-table thead th, .projects-table td { padding: 12px 14px; }
         }
@@ -282,14 +360,43 @@ $flash = getFlashMessage();
                     </div>
                 </div>
 
-                <!-- Filter Bar -->
-                <div class="filter-bar">
-                    <button class="filter-btn active" data-filter="all">All</button>
-                    <button class="filter-btn" data-filter="active">Active</button>
-                    <button class="filter-btn" data-filter="planning">Planning</button>
-                    <button class="filter-btn" data-filter="on_hold">On Hold</button>
-                    <button class="filter-btn" data-filter="completed">Completed</button>
-                    <input type="text" class="filter-search" id="projectSearchInput" placeholder="Search projects..." oninput="searchProjects(this.value)">
+                <!-- Filter Card -->
+                <div class="filter-card">
+                    <div class="filter-row">
+                        <div class="filter-group">
+                            <label>Status</label>
+                            <select id="filterStatus" onchange="applyProjectFilters()">
+                                <option value="">All Status</option>
+                                <option value="active">Active</option>
+                                <option value="planning">Planning</option>
+                                <option value="in_progress">In Progress</option>
+                                <option value="on_hold">On Hold</option>
+                                <option value="completed">Completed</option>
+                                <option value="cancelled">Cancelled</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label>Date Range</label>
+                            <select id="filterDateRange" onchange="applyProjectFilters()">
+                                <option value="">All Time</option>
+                                <option value="this_month">This Month</option>
+                                <option value="last_3_months">Last 3 Months</option>
+                                <option value="this_year">This Year</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label>Search</label>
+                            <input type="text" id="projectSearchInput" placeholder="Search by name or location..." oninput="applyProjectFilters()">
+                        </div>
+                        <div class="filter-actions">
+                            <button type="button" class="btn-filter-apply" onclick="applyProjectFilters()">
+                                <i class="fas fa-filter"></i> Apply
+                            </button>
+                            <button type="button" class="btn-filter-reset" onclick="resetProjectFilters()">
+                                <i class="fas fa-redo"></i> Reset
+                            </button>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Projects Table -->
@@ -452,24 +559,112 @@ $flash = getFlashMessage();
 
     <script src="<?php echo JS_URL; ?>/projects.js"></script>
     <script>
-        // Filter tab switching
-        document.querySelectorAll('.filter-bar .filter-btn').forEach(btn => {
-            btn.addEventListener('click', function() {
-                document.querySelectorAll('.filter-bar .filter-btn').forEach(b => b.classList.remove('active'));
-                this.classList.add('active');
-                filterProjects(this.dataset.filter);
-            });
-        });
+        // Apply project filters from dropdown selects
+        function applyProjectFilters() {
+            const status = document.getElementById('filterStatus').value;
+            const dateRange = document.getElementById('filterDateRange').value;
+            const search = document.getElementById('projectSearchInput').value.toLowerCase();
 
-        // Search projects
-        function searchProjects(query) {
-            const q = query.toLowerCase();
-            document.querySelectorAll('#projectsTableBody tr[data-project-id]').forEach(row => {
-                const name = row.dataset.name || '';
-                const loc = row.dataset.location || '';
-                const show = !q || name.includes(q) || loc.includes(q);
-                row.style.display = show ? '' : 'none';
-            });
+            // Set global filter used by renderProjects
+            currentFilter = status || 'all';
+
+            // Store date range filter globally for renderProjects to use
+            window._projectDateFilter = dateRange;
+            window._projectSearchFilter = search;
+
+            renderProjectsFiltered();
+        }
+
+        function resetProjectFilters() {
+            document.getElementById('filterStatus').value = '';
+            document.getElementById('filterDateRange').value = '';
+            document.getElementById('projectSearchInput').value = '';
+            currentFilter = 'all';
+            window._projectDateFilter = '';
+            window._projectSearchFilter = '';
+            renderProjects();
+        }
+
+        // Enhanced render with date range filtering
+        function renderProjectsFiltered() {
+            const tbody = document.getElementById('projectsTableBody');
+            if (!tbody) return;
+
+            let filtered = allProjects;
+
+            // Status filter
+            const status = document.getElementById('filterStatus').value;
+            if (status) {
+                filtered = filtered.filter(p => p.status === status);
+            }
+
+            // Date range filter
+            const dateRange = document.getElementById('filterDateRange').value;
+            if (dateRange) {
+                const now = new Date();
+                filtered = filtered.filter(p => {
+                    const startDate = new Date(p.start_date);
+                    if (dateRange === 'this_month') {
+                        return startDate.getMonth() === now.getMonth() && startDate.getFullYear() === now.getFullYear();
+                    } else if (dateRange === 'last_3_months') {
+                        const threeMonthsAgo = new Date(now);
+                        threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+                        return startDate >= threeMonthsAgo;
+                    } else if (dateRange === 'this_year') {
+                        return startDate.getFullYear() === now.getFullYear();
+                    }
+                    return true;
+                });
+            }
+
+            // Search filter
+            const q = (document.getElementById('projectSearchInput').value || '').toLowerCase();
+            if (q) {
+                filtered = filtered.filter(p => {
+                    const name = (p.project_name || '').toLowerCase();
+                    const loc = (p.location || '').toLowerCase();
+                    return name.includes(q) || loc.includes(q);
+                });
+            }
+
+            const countEl = document.getElementById('projectsCount');
+            if (filtered.length === 0) {
+                if (countEl) countEl.textContent = `Showing 0 of ${allProjects.length} projects`;
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" style="text-align:center;padding:50px;color:#888;">
+                            <i class="fas fa-hard-hat" style="font-size:36px;display:block;margin-bottom:10px;color:#ddd;"></i>
+                            <div style="font-size:15px;font-weight:500;color:#666;">No Projects Found</div>
+                            <div style="font-size:13px;margin-top:4px;">No projects match the current filters.</div>
+                        </td>
+                    </tr>`;
+                return;
+            }
+
+            if (countEl) countEl.textContent = `Showing ${filtered.length} of ${allProjects.length} projects`;
+
+            tbody.innerHTML = filtered.map(p => {
+                const start = formatDate(p.start_date);
+                const end   = p.end_date ? formatDate(p.end_date) : '—';
+                const loc   = p.location || '—';
+                const st    = (p.status || '').replace(/_/g, ' ');
+
+                return `
+                <tr data-project-id="${p.project_id}" data-name="${escHtml(p.project_name).toLowerCase()}" data-location="${escHtml(p.location || '').toLowerCase()}" onclick="openProjectDetail(${p.project_id})" style="cursor:pointer;">
+                    <td class="name-cell">${escHtml(p.project_name)}</td>
+                    <td class="location-cell">${escHtml(loc)}</td>
+                    <td class="date-cell">${start}</td>
+                    <td class="date-cell">${end}</td>
+                    <td><span class="status-pill ${p.status}">${st}</span></td>
+                    <td>
+                        <div class="action-buttons" onclick="event.stopPropagation()">
+                            <button class="action-btn btn-view" onclick="openProjectDetail(${p.project_id})" title="View Details"><i class="fas fa-eye"></i></button>
+                            <button class="action-btn btn-edit" onclick="openEditModal(${p.project_id})" title="Edit"><i class="fas fa-pen"></i></button>
+                            <button class="action-btn btn-archive" onclick="archiveProject(${p.project_id}, '${escAttr(p.project_name)}')" title="Archive"><i class="fas fa-archive"></i></button>
+                        </div>
+                    </td>
+                </tr>`;
+            }).join('');
         }
 
         // Auto-hide flash messages

@@ -71,9 +71,18 @@ if (empty($type_filter) || $type_filter === 'workers') {
     $sql = "SELECT 'worker' as archive_type, w.worker_id as id, w.worker_code as code,
             CONCAT(w.first_name, ' ', w.last_name) as name, w.position,
             w.archived_at, w.archive_reason,
-            CONCAT(u.username) as archived_by_name
+            COALESCE(
+                CASE 
+                    WHEN u.user_level = 'super_admin' THEN CONCAT(sa.first_name, ' ', sa.last_name)
+                    WHEN u.user_level = 'admin' THEN CONCAT(ap.first_name, ' ', ap.last_name)
+                    ELSE u.username
+                END,
+                u.username
+            ) as archived_by_name
             FROM workers w
             LEFT JOIN users u ON w.archived_by = u.user_id
+            LEFT JOIN super_admin_profile sa ON u.user_id = sa.user_id AND u.user_level = 'super_admin'
+            LEFT JOIN admin_profile ap ON u.user_id = ap.user_id AND u.user_level = 'admin'
             WHERE w.is_archived = TRUE";
     
     if (!empty($date_filter)) {
@@ -109,10 +118,20 @@ if (empty($type_filter) || $type_filter === 'attendance') {
     $sql = "SELECT 'attendance' as archive_type, a.attendance_id as id, 
             CONCAT(w.first_name, ' ', w.last_name) as name, w.worker_code as code,
             w.position, a.attendance_date, a.status,
-            a.archived_at, u.username as archived_by_name
+            a.archived_at,
+            COALESCE(
+                CASE 
+                    WHEN u.user_level = 'super_admin' THEN CONCAT(sa.first_name, ' ', sa.last_name)
+                    WHEN u.user_level = 'admin' THEN CONCAT(ap.first_name, ' ', ap.last_name)
+                    ELSE u.username
+                END,
+                u.username
+            ) as archived_by_name
             FROM attendance a
             JOIN workers w ON a.worker_id = w.worker_id
             LEFT JOIN users u ON a.archived_by = u.user_id
+            LEFT JOIN super_admin_profile sa ON u.user_id = sa.user_id AND u.user_level = 'super_admin'
+            LEFT JOIN admin_profile ap ON u.user_id = ap.user_id AND u.user_level = 'admin'
             WHERE a.is_archived = TRUE";
     
     if (!empty($date_filter)) {
@@ -197,7 +216,7 @@ $total_archived = count($archived_items);
                         <div class="filter-row">
                             <div class="filter-group">
                                 <label>Type</label>
-                                <select name="type" id="typeFilter" onchange="document.getElementById('filterForm').submit()">
+                                <select name="type" id="typeFilter">
                                     <option value="">All Types</option>
                                     <option value="workers" <?php echo $type_filter === 'workers' ? 'selected' : ''; ?>>Workers</option>
                                     <option value="attendance" <?php echo $type_filter === 'attendance' ? 'selected' : ''; ?>>Attendance</option>
@@ -205,7 +224,7 @@ $total_archived = count($archived_items);
                             </div>
                             
                             <div class="filter-group">
-                                <label>Date range</label>
+                                <label>Date</label>
                                 <input type="date" 
                                        name="date" 
                                        id="dateFilter" 
@@ -213,7 +232,7 @@ $total_archived = count($archived_items);
                                        placeholder="Filter by date">
                             </div>
                             
-                            <div class="filter-group" style="flex: 2;">
+                            <div class="filter-group">
                                 <label>Search</label>
                                 <input type="text" 
                                        name="search" 
@@ -222,17 +241,14 @@ $total_archived = count($archived_items);
                                        placeholder="Search archived items...">
                             </div>
                             
-                            <button type="submit" class="btn btn-filter">
-                                <i class="fas fa-filter"></i> Apply
-                            </button>
-                            
-                            <?php if (!empty($date_filter) || !empty($search_query) || !empty($type_filter)): ?>
-                            <button type="button" 
-                                    class="btn btn-secondary" 
-                                    onclick="window.location.href='index.php'">
-                                <i class="fas fa-times"></i> Clear
-                            </button>
-                            <?php endif; ?>
+                            <div class="filter-actions">
+                                <button type="submit" class="btn-filter-apply">
+                                    <i class="fas fa-filter"></i> Apply
+                                </button>
+                                <button type="button" class="btn-filter-reset" onclick="window.location.href='index.php'">
+                                    <i class="fas fa-undo"></i> Reset
+                                </button>
+                            </div>
                         </div>
                     </form>
                 </div>

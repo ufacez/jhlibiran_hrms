@@ -12,6 +12,7 @@ require_once __DIR__ . '/../../../config/session.php';
 require_once __DIR__ . '/../../../includes/functions.php';
 require_once __DIR__ . '/../../../includes/auth.php';
 require_once __DIR__ . '/../../../includes/admin_functions.php';
+require_once __DIR__ . '/../../../includes/attendance_calculator.php';
 
 
 // Allow both super_admin and admin with attendance mark permission
@@ -25,10 +26,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $worker_id = isset($_POST['worker_id']) ? intval($_POST['worker_id']) : 0;
     $time_in = isset($_POST['time_in']) ? sanitizeString($_POST['time_in']) : '';
     $time_out = isset($_POST['time_out']) ? sanitizeString($_POST['time_out']) : null;
-    $status = isset($_POST['status']) ? sanitizeString($_POST['status']) : 'present';
     
     if ($worker_id > 0 && !empty($time_in)) {
         try {
+            // Prevent marking attendance for a future time
+            $now = new DateTime();
+            $time_in_dt = new DateTime($today . ' ' . $time_in);
+            if ($time_in_dt > $now) {
+                echo json_encode(['success' => false, 'message' => 'Cannot mark attendance for a future time. Please select the current or a past time.']);
+                exit();
+            }
+            if ($time_out) {
+                $time_out_dt = new DateTime($today . ' ' . $time_out);
+                if ($time_out_dt > $now) {
+                    echo json_encode(['success' => false, 'message' => 'Cannot mark a time out in the future. Please select the current or a past time.']);
+                    exit();
+                }
+            }
+
             // Check if attendance already exists
             $stmt = $db->prepare("SELECT attendance_id FROM attendance WHERE worker_id = ? AND attendance_date = ?");
             $stmt->execute([$worker_id, $today]);
@@ -36,16 +51,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($stmt->fetch()) {
                 echo json_encode(['success' => false, 'message' => 'Attendance already marked for this worker today']);
             } else {
-                // Calculate hours worked
+                // Use AttendanceCalculator for proper hours & status
+                $calculator = new AttendanceCalculator($db);
+                
                 $hours_worked = 0;
+                $status = 'present';
+                $overtime_hours = 0;
+                $raw_hours = 0;
+                $break_hours = 0;
+                $late_minutes = 0;
+                
                 if ($time_out) {
-                    $hours_worked = calculateHours($time_in, $time_out);
+                    $calc = $calculator->calculateWorkHours($time_in, $time_out, $today, $worker_id);
+                    $hours_worked = $calc['worked_hours'];
+                    $status = $calc['status'];
+                    $overtime_hours = $calc['overtime_hours'];
+                    $raw_hours = $calc['raw_hours'];
+                    $break_hours = $calc['break_hours'];
+                    $late_minutes = $calc['late_minutes'];
+                } else {
+                    // No time out yet — just mark as present (will be recalculated when time_out is set)
+                    $status = 'present';
                 }
                 
-                // Insert attendance
-                $stmt = $db->prepare("INSERT INTO attendance (worker_id, attendance_date, time_in, time_out, status, hours_worked) 
-                                      VALUES (?, ?, ?, ?, ?, ?)");
-                $stmt->execute([$worker_id, $today, $time_in, $time_out, $status, $hours_worked]);
+                // Insert attendance with calculated values
+                $stmt = $db->prepare("INSERT INTO attendance 
+                    (worker_id, attendance_date, time_in, time_out, status, hours_worked, raw_hours_worked, break_hours, late_minutes, overtime_hours, calculated_at) 
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())");
+                $stmt->execute([$worker_id, $today, $time_in, $time_out, $status, $hours_worked, $raw_hours, $break_hours, $late_minutes, $overtime_hours]);
                 
                 // Log activity
                 $wStmt = $db->prepare("SELECT CONCAT(first_name, ' ', last_name) AS name FROM workers WHERE worker_id = ?");
@@ -54,7 +87,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 logActivity($db, getCurrentUserId(), 'mark_attendance', 'attendance', $db->lastInsertId(), 
                            "Marked attendance for {$wName} (Time In: {$time_in}" . ($time_out ? ", Time Out: {$time_out}" : '') . ", Status: {$status})");
                 
-                echo json_encode(['success' => true, 'message' => 'Attendance marked successfully']);
+                echo json_encode(['success' => true, 'message' => 'Attendance marked successfully — Status: ' . ucfirst($status)]);
             }
         } catch (PDOException $e) {
             error_log("Mark Attendance Error: " . $e->getMessage());
@@ -162,22 +195,19 @@ try {
                                 <div class="time-input-group">
                                     <div class="time-input-wrapper">
                                         <label>Time In</label>
-                                        <input type="time" name="time_in" required value="<?php echo date('H:i'); ?>">
+                                        <input type="time" name="time_in" required value="<?php echo date('H:i'); ?>" max="<?php echo date('H:i'); ?>">
                                     </div>
                                     <div class="time-input-wrapper">
                                         <label>Time Out</label>
-                                        <input type="time" name="time_out">
+                                        <input type="time" name="time_out" max="<?php echo date('H:i'); ?>">
                                     </div>
                                 </div>
                                 
-                                <div class="status-select-group">
+                                <div class="status-info-group">
                                     <label>Status</label>
-                                    <select name="status">
-                                        <option value="present">Present</option>
-                                        <option value="late">Late</option>
-                                        <option value="absent">Absent</option>
-                                        <option value="overtime">Overtime</option>
-                                    </select>
+                                    <span class="auto-status-note">
+                                        <i class="fas fa-info-circle"></i> Auto-calculated from schedule
+                                    </span>
                                 </div>
                                 
                                 <input type="hidden" name="worker_id" value="<?php echo $worker['worker_id']; ?>">

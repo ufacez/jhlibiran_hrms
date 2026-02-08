@@ -143,7 +143,7 @@ try {
                 SELECT audit_id, action_type, module, table_name, record_identifier, 
                        changes_summary, username, created_at
                 FROM audit_trail
-                WHERE severity IN ('warning','critical')
+                WHERE severity = 'high'
                   AND created_at >= NOW() - INTERVAL ? DAY
                 ORDER BY created_at DESC
                 LIMIT 20

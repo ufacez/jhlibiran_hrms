@@ -85,7 +85,7 @@ function getActionBadge($action) {
         'reject' => ['icon' => 'times-circle', 'color' => '#F44336', 'bg' => '#FFEBEE'],
         'password_change' => ['icon' => 'key', 'color' => '#FF9800', 'bg' => '#FFF3E0'],
         'status_change' => ['icon' => 'toggle-on', 'color' => '#2196F3', 'bg' => '#E3F2FD'],
-        'other' => ['icon' => 'info-circle', 'color' => '#607D8B', 'bg' => '#ECEFF1'],
+        'export' => ['icon' => 'file-export', 'color' => '#3F51B5', 'bg' => '#E8EAF6'],
     ];
     return $badges[$action] ?? ['icon' => 'info-circle', 'color' => '#607D8B', 'bg' => '#ECEFF1'];
 }
@@ -346,45 +346,6 @@ function formatActivityTime($datetime) {
                     <div class="header-left">
                         <h1><i class="fas fa-cogs"></i> System Settings</h1>
                         <p class="subtitle">Manage system configuration and administrators</p>
-                    </div>
-                </div>
-                
-                <!-- Statistics -->
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="stat-header">
-                            <div>
-                                <h3 class="stat-value"><?php echo $admin_stats['total']; ?></h3>
-                                <p class="stat-label">Total Administrators</p>
-                            </div>
-                            <div class="stat-icon gold">
-                                <i class="fas fa-users-cog"></i>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="stat-card">
-                        <div class="stat-header">
-                            <div>
-                                <h3 class="stat-value"><?php echo $admin_stats['active']; ?></h3>
-                                <p class="stat-label">Active Admins</p>
-                            </div>
-                            <div class="stat-icon green">
-                                <i class="fas fa-user-check"></i>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="stat-card">
-                        <div class="stat-header">
-                            <div>
-                                <h3 class="stat-value"><?php echo $worker_count; ?></h3>
-                                <p class="stat-label">Total Workers</p>
-                            </div>
-                            <div class="stat-icon blue">
-                                <i class="fas fa-hard-hat"></i>
-                            </div>
-                        </div>
                     </div>
                 </div>
                 

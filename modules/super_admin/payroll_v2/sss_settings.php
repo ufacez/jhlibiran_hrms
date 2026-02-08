@@ -47,7 +47,7 @@ $pageTitle = 'SSS Contribution Settings';
         .page-subtitle { margin: 0; }
         .page-subtitle { color: #666; font-size: 13px; margin-top: 5px; }
         
-        .settings-card { background: #fff; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); padding: 25px; max-width: 800px; }
+        .settings-card { background: #fff; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); padding: 25px; max-width: 800px; margin: 0 auto; }
         
         .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 25px; margin-bottom: 20px; }
         @media (max-width: 768px) { .settings-grid { grid-template-columns: 1fr; } }

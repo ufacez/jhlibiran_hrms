@@ -242,6 +242,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     jsonError('Time in is required');
                 }
                 
+                // Prevent marking attendance for a future date/time
+                $now = new DateTime();
+                $attendance_dt = new DateTime($attendance_date);
+                $today_dt = new DateTime(date('Y-m-d'));
+                if ($attendance_dt > $today_dt) {
+                    http_response_code(400);
+                    jsonError('Cannot mark attendance for a future date.');
+                }
+                if ($attendance_date === date('Y-m-d')) {
+                    $time_in_dt = new DateTime($attendance_date . ' ' . $time_in);
+                    if ($time_in_dt > $now) {
+                        http_response_code(400);
+                        jsonError('Cannot mark a time-in in the future. Please select the current or a past time.');
+                    }
+                    if ($time_out) {
+                        $time_out_dt = new DateTime($attendance_date . ' ' . $time_out);
+                        if ($time_out_dt > $now) {
+                            http_response_code(400);
+                            jsonError('Cannot mark a time-out in the future. Please select the current or a past time.');
+                        }
+                    }
+                }
+                
                 // Check if attendance already exists
                 $stmt = $db->prepare("SELECT attendance_id FROM attendance 
                                      WHERE worker_id = ? AND attendance_date = ?");
@@ -254,7 +277,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 
                 // Calculate hours worked with enhanced calculator
                 $attendanceCalculator = new AttendanceCalculator($db);
-                $calculation = $attendanceCalculator->calculateWorkHours($time_in, $time_out, $attendance_date);
+                $calculation = $attendanceCalculator->calculateWorkHours($time_in, $time_out, $attendance_date, $worker_id);
                 
                 if (!$calculation['is_valid']) {
                     http_response_code(400);
@@ -263,6 +286,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 
                 $hours_worked = $calculation['worked_hours'];
                 $overtime_hours = $calculation['overtime_hours'];
+                $status = $calculation['status'] ?? $status;
                 
                 // Insert attendance with enhanced calculation details
                 $stmt = $db->prepare("INSERT INTO attendance 
@@ -323,11 +347,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     jsonError('Invalid attendance ID');
                 }
                 
-                // Get attendance details with worker info
+                // Get attendance details with worker info, role, classification, and schedule
+                $day_of_week_expr = "LOWER(DAYNAME(a.attendance_date))";
                 $stmt = $db->prepare("SELECT a.*, w.worker_code, w.first_name, w.last_name, w.position,
+                                     COALESCE(wc.classification_name, wct.classification_name) AS classification_name,
+                                     wt.work_type_name,
+                                     s.start_time AS sched_start, s.end_time AS sched_end,
                                      u.username as verified_by_name
                                      FROM attendance a
                                      JOIN workers w ON a.worker_id = w.worker_id
+                                     LEFT JOIN worker_classifications wc ON w.classification_id = wc.classification_id
+                                     LEFT JOIN work_types wt ON w.work_type_id = wt.work_type_id
+                                     LEFT JOIN worker_classifications wct ON wt.classification_id = wct.classification_id
+                                     LEFT JOIN schedules s ON s.worker_id = a.worker_id
+                                         AND s.day_of_week = {$day_of_week_expr}
+                                         AND s.is_active = 1
                                      LEFT JOIN users u ON a.verified_by = u.user_id
                                      WHERE a.attendance_id = ?");
                 $stmt->execute([$attendance_id]);

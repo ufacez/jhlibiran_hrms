@@ -12,9 +12,10 @@
     box-shadow: 0 2px 8px rgba(0,0,0,0.07);
     margin: 4px 0;
 }
-/* Match filter label font size to attendance filter */
+/* Match filter label to Project Management page */
 .filter-group label {
-    font-size: 12px;
+    display: block;
+    font-size: 11px;
     font-weight: 600;
     color: #666;
     letter-spacing: 0.5px;
@@ -140,14 +141,16 @@
     display: grid;
     grid-template-columns: repeat(3, 1fr) auto;
     gap: 15px;
-    align-items: center;
+    align-items: end;
 }
 
 .filter-group {
     position: relative;
 }
 
-.filter-group select {
+.filter-group select,
+.filter-group input[type="text"],
+.filter-group input[type="date"] {
     width: 100%;
     padding: 12px 15px;
     border: 2px solid #e0e0e0;
@@ -158,17 +161,74 @@
     outline: none;
     transition: all 0.3s ease;
     appearance: none;
+    box-sizing: border-box;
+}
+
+.filter-group select {
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23666' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
     background-position: right 15px center;
     padding-right: 40px;
 }
 
-.filter-group select:focus {
+.filter-group select:focus,
+.filter-group input[type="text"]:focus,
+.filter-group input[type="date"]:focus {
     border-color: #DAA520;
     background: #fff;
 }
 
+.filter-actions {
+    display: flex;
+    gap: 8px;
+    align-items: end;
+    padding-bottom: 1px;
+}
+
+.btn-filter-apply {
+    padding: 12px 24px;
+    background: linear-gradient(135deg, #DAA520, #B8860B);
+    color: #1a1a1a;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+    height: 46px;
+}
+
+.btn-filter-apply:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(218, 165, 32, 0.3);
+}
+
+.btn-filter-reset {
+    padding: 12px 18px;
+    background: #f0f0f0;
+    color: #666;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    height: 46px;
+}
+
+.btn-filter-reset:hover {
+    background: #e0e0e0;
+}
+
+/* Legacy support */
 .btn-filter {
     padding: 12px 24px;
     background: linear-gradient(135deg, #DAA520, #B8860B);
@@ -597,11 +657,16 @@
    RESPONSIVE DESIGN
    ============================================ */
 
-@media (max-width: 1200px) {
+@media (max-width: 900px) {
     .filter-row {
-        grid-template-columns: 1fr 1fr 1fr;
+        grid-template-columns: 1fr 1fr;
     }
     
+    .filter-actions {
+        grid-column: 1 / -1;
+        justify-self: start;
+    }
+
     .btn-filter {
         grid-column: 1 / -1;
         justify-self: start;

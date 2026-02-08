@@ -161,7 +161,7 @@ function getActivityIcon($action) {
         'update_user_status' => 'user-check',
         'clock_in' => 'clock',
         'clock_out' => 'clock',
-        'other' => 'info-circle'
+        'export' => 'file-export'
     ];
     
     return $icons[$action] ?? 'info-circle';
@@ -185,7 +185,7 @@ function getActivityColor($action) {
         'update_user_status' => 'info',
         'clock_in' => 'success',
         'clock_out' => 'info',
-        'other' => 'secondary'
+        'export' => 'primary'
     ];
     
     return $colors[$action] ?? 'secondary';
@@ -551,42 +551,76 @@ function logActivity($db, $user_id, $action, $table_name = null, $record_id = nu
 
     // Map the simple action string to an audit_trail action_type enum value
     $actionTypeMap = [
+        // Authentication
         'login' => 'login', 'logout' => 'logout',
-        'create' => 'create', 'add_worker' => 'create', 'add_admin' => 'create',
-        'add_schedule' => 'create', 'create_backup' => 'create',
-        'create_project' => 'create', 'assign_worker_project' => 'create',
-        'update' => 'update', 'update_worker' => 'update', 'update_admin' => 'update',
-        'update_schedule' => 'update', 'update_settings' => 'update',
-        'update_profile' => 'update', 'update_admin_permissions' => 'update',
-        'update_project' => 'update', 'remove_worker_project' => 'update',
-        'update_user_status' => 'status_change', 'toggle_admin_status' => 'status_change',
-        'delete' => 'delete', 'delete_worker' => 'delete', 'delete_admin' => 'delete',
-        'delete_backup' => 'delete', 'delete_project' => 'delete',
-        'archive' => 'archive', 'archive_attendance' => 'archive',
-        'restore' => 'restore', 'restore_attendance' => 'restore',
+
+        // Generic CRUD
+        'create' => 'create', 'update' => 'update', 'delete' => 'delete',
+        'archive' => 'archive', 'restore' => 'restore',
         'approve' => 'approve', 'reject' => 'reject',
-        'change_password' => 'password_change',
-        'download_backup' => 'other',
-        // Attendance actions
+
+        // Worker management
+        'add_worker' => 'create', 'update_worker' => 'update', 'delete_worker' => 'delete',
+        'archive_worker' => 'archive', 'restore_worker' => 'restore',
+
+        // Admin management
+        'add_admin' => 'create', 'update_admin' => 'update', 'delete_admin' => 'delete',
+        'update_admin_permissions' => 'update',
+
+        // User / admin status
+        'update_user_status' => 'status_change', 'toggle_admin_status' => 'status_change',
+
+        // Schedule management
+        'add_schedule' => 'create', 'create_schedule' => 'create',
+        'update_schedule' => 'update', 'delete_schedule' => 'delete',
+
+        // Project management
+        'create_project' => 'create', 'update_project' => 'update',
+        'assign_worker_project' => 'create', 'remove_worker_project' => 'update',
+
+        // Attendance
         'mark_attendance' => 'create', 'mark_attendance_enhanced' => 'create',
         'update_attendance' => 'update', 'delete_attendance' => 'delete',
+        'archive_attendance' => 'archive', 'restore_attendance' => 'restore',
         'recalculate_attendance' => 'update', 'update_attendance_settings' => 'update',
-        // Payroll actions
+        'export_attendance' => 'export',
+
+        // Holidays
+        'add_holiday' => 'create', 'update_holiday' => 'update', 'delete_holiday' => 'delete',
+
+        // Deductions
+        'create_deduction' => 'create', 'add_deduction' => 'create',
+        'update_deduction' => 'update', 'delete_deduction' => 'delete',
+
+        // Payroll operations
         'generate_payroll' => 'create', 'generate_batch_payroll' => 'create',
         'approved_payroll' => 'approve', 'paid_payroll' => 'approve',
         'cancelled_payroll' => 'reject',
         'batch_approved_payroll' => 'approve', 'batch_paid_payroll' => 'approve',
         'batch_cancelled_payroll' => 'reject',
+
+        // Payroll / compliance settings
         'update_payroll_setting' => 'update', 'update_payroll_settings' => 'update',
         'update_sss_rates' => 'update', 'update_sss_settings' => 'update',
         'update_sss_matrix' => 'update', 'update_philhealth_settings' => 'update',
         'update_pagibig_settings' => 'update', 'update_tax_brackets' => 'update',
         'delete_tax_bracket' => 'delete',
-        'add_holiday' => 'create', 'update_holiday' => 'update', 'delete_holiday' => 'delete',
-        // Deduction actions
-        'add_deduction' => 'create', 'update_deduction' => 'update', 'delete_deduction' => 'delete',
+
+        // System settings
+        'update_settings' => 'update',
+
+        // Profile
+        'update_profile' => 'update', 'update_profile_picture' => 'update',
+        'remove_profile_picture' => 'update',
+
+        // Backup & export
+        'create_backup' => 'create', 'download_backup' => 'export',
+        'delete_backup' => 'delete',
+
+        // Security
+        'change_password' => 'password_change',
     ];
-    $action_type = $actionTypeMap[$action] ?? 'other';
+    $action_type = $actionTypeMap[$action] ?? 'update';
 
     // Derive module from table_name
     $moduleMap = [
@@ -630,9 +664,37 @@ function logActivity($db, $user_id, $action, $table_name = null, $record_id = nu
                 session_id, request_method, request_url, severity
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
-    $severity = in_array($action_type, ['delete', 'password_change', 'status_change']) ? 'high' : 'medium';
-    if ($action_type === 'login' || $action_type === 'logout') {
+    // === Severity Classification ===
+    // LOW  – Informational events (login/logout)
+    // HIGH – Payroll ops, system/compliance settings, backups, security & irreversible actions
+    // MEDIUM – All other operational / reversible actions (default)
+
+    $highSeverityActions = [
+        // Payroll operations
+        'generate_payroll', 'generate_batch_payroll',
+        'approved_payroll', 'paid_payroll', 'cancelled_payroll',
+        'batch_approved_payroll', 'batch_paid_payroll', 'batch_cancelled_payroll',
+        // System & compliance settings
+        'update_payroll_setting', 'update_payroll_settings',
+        'update_sss_rates', 'update_sss_settings', 'update_sss_matrix',
+        'update_philhealth_settings', 'update_pagibig_settings',
+        'update_tax_brackets', 'delete_tax_bracket',
+        'update_admin_permissions', 'update_settings',
+        // Backup operations
+        'create_backup', 'download_backup', 'delete_backup',
+        // Security-sensitive & irreversible
+        'change_password',
+        'delete', 'delete_worker', 'delete_admin', 'delete_project',
+        'delete_schedule', 'delete_attendance', 'delete_deduction', 'delete_holiday',
+        'toggle_admin_status', 'update_user_status',
+    ];
+
+    if ($action === 'login' || $action === 'logout') {
         $severity = 'low';
+    } elseif (in_array($action, $highSeverityActions)) {
+        $severity = 'high';
+    } else {
+        $severity = 'medium';
     }
 
     $params = [
@@ -675,7 +737,7 @@ function logFullAudit($db, $params) {
 
     // Fallback: use logActivity if audit_trail.php is not loaded
     $user_id = $params['user_id'] ?? getCurrentUserId();
-    $action  = $params['action_type'] ?? 'other';
+    $action  = $params['action_type'] ?? 'update';
     $table   = $params['table_name'] ?? null;
     $recId   = $params['record_id'] ?? null;
     $desc    = $params['changes_summary'] ?? $params['record_identifier'] ?? null;
