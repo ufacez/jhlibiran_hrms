@@ -20,8 +20,61 @@ requireAdminWithPermission($db, 'can_view_payroll', 'You do not have permission 
 
 $pdo = getDBConnection();
 
-// Get record ID
+// Check if batch download (multiple IDs)
+$batchIds = $_GET['ids'] ?? null;
 $recordId = $_GET['id'] ?? null;
+
+if ($batchIds) {
+    // Batch download - multiple payslips in one PDF
+    $ids = array_filter(array_map('intval', explode(',', $batchIds)));
+    if (empty($ids)) {
+        http_response_code(400);
+        die('No valid record IDs provided');
+    }
+
+    // Get project name for the filename
+    try {
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+        $stmt = $pdo->prepare("
+            SELECT DISTINCT proj.project_name, p.period_start, p.period_end
+            FROM payroll_records pr
+            JOIN payroll_periods p ON pr.period_id = p.period_id
+            LEFT JOIN projects proj ON pr.project_id = proj.project_id
+            WHERE pr.record_id IN ($placeholders)
+            LIMIT 1
+        ");
+        $stmt->execute($ids);
+        $batchInfo = $stmt->fetch(PDO::FETCH_ASSOC);
+    } catch (Exception $e) {
+        $batchInfo = null;
+    }
+
+    // Generate combined PDF
+    try {
+        $pdfGen = new PayrollPDFGenerator($pdo);
+        $pdfContent = $pdfGen->generateBatchPayrollSlips($ids);
+
+        if ($pdfContent !== false) {
+            header('Content-Type: application/pdf');
+            $projectSlug = preg_replace('/[^a-zA-Z0-9_-]/', '_', $batchInfo['project_name'] ?? 'batch');
+            $periodDate = $batchInfo ? date('Ymd', strtotime($batchInfo['period_end'])) : date('Ymd');
+            $filename = 'payslips_' . $projectSlug . '_' . $periodDate . '.pdf';
+            header('Content-Disposition: attachment; filename="' . $filename . '"');
+            header('Content-Length: ' . strlen($pdfContent));
+            echo $pdfContent;
+            exit;
+        } else {
+            http_response_code(500);
+            die('Failed to generate batch PDF. TCPDF may not be available.');
+        }
+    } catch (Exception $e) {
+        error_log('Batch Payroll PDF Generation Error: ' . $e->getMessage());
+        http_response_code(500);
+        die('Error generating batch PDF: ' . $e->getMessage());
+    }
+}
+
+// Single record download
 if (!$recordId || !is_numeric($recordId)) {
     http_response_code(400);
     die('Invalid record ID');

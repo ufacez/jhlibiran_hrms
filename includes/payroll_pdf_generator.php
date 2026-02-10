@@ -111,6 +111,124 @@ class PayrollPDFGenerator {
     }
     
     /**
+     * Generate batch payroll slips PDF - grouped by project
+     * Each worker gets their own page, with project separator pages
+     * 
+     * @param array $recordIds Array of payroll record IDs
+     * @return bool|string PDF content or false on error
+     */
+    public function generateBatchPayrollSlips($recordIds) {
+        try {
+            if (empty($recordIds)) {
+                throw new Exception('No record IDs provided');
+            }
+            
+            // Fetch all records with project info, grouped by project
+            $placeholders = implode(',', array_fill(0, count($recordIds), '?'));
+            $stmt = $this->pdo->prepare("
+                SELECT pr.record_id, pr.project_id, 
+                       COALESCE(proj.project_name, 'No Project') AS project_name
+                FROM payroll_records pr
+                LEFT JOIN projects proj ON pr.project_id = proj.project_id
+                WHERE pr.record_id IN ($placeholders)
+                ORDER BY proj.project_name ASC, pr.record_id ASC
+            ");
+            $stmt->execute($recordIds);
+            $recordsInfo = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+            
+            if (empty($recordsInfo)) {
+                throw new Exception('No payroll records found');
+            }
+            
+            // Group by project
+            $grouped = [];
+            foreach ($recordsInfo as $ri) {
+                $key = $ri['project_id'] ?? 0;
+                if (!isset($grouped[$key])) {
+                    $grouped[$key] = [
+                        'project_name' => $ri['project_name'],
+                        'record_ids' => []
+                    ];
+                }
+                $grouped[$key]['record_ids'][] = $ri['record_id'];
+            }
+            
+            // Initialize TCPDF once for all pages
+            $this->initializePDF();
+            if (!$this->pdfAvailable) {
+                return false;
+            }
+            
+            $isFirstSlip = true;
+            
+            foreach ($grouped as $projectId => $projectGroup) {
+                // Add project separator page
+                if (!$isFirstSlip) {
+                    $this->pdf->AddPage();
+                } else {
+                    // The first page was already added in initializePDF, use it as separator
+                }
+                
+                // Project cover/separator
+                $this->pdf->SetFont('dejavusans', 'B', 18);
+                $this->pdf->Ln(40);
+                $this->pdf->Cell(0, 12, $this->companyName, 0, 1, 'C');
+                $this->pdf->SetFont('dejavusans', '', 12);
+                if (!empty($this->companyAddress)) {
+                    $this->pdf->Cell(0, 8, $this->companyAddress, 0, 1, 'C');
+                }
+                $this->pdf->Ln(10);
+                $this->pdf->SetFont('dejavusans', 'B', 16);
+                $this->pdf->SetTextColor(218, 165, 32);
+                $this->pdf->Cell(0, 10, 'PAYROLL SLIPS', 0, 1, 'C');
+                $this->pdf->Ln(5);
+                $this->pdf->SetFont('dejavusans', 'B', 14);
+                $this->pdf->Cell(0, 10, 'Project: ' . $projectGroup['project_name'], 0, 1, 'C');
+                $this->pdf->SetTextColor(0, 0, 0);
+                $this->pdf->Ln(5);
+                $this->pdf->SetFont('dejavusans', '', 11);
+                $this->pdf->Cell(0, 8, count($projectGroup['record_ids']) . ' payroll slip(s)', 0, 1, 'C');
+                
+                $isFirstSlip = false;
+                
+                // Generate each worker's payslip on a new page
+                foreach ($projectGroup['record_ids'] as $recId) {
+                    $record = $this->getPayrollRecord($recId);
+                    if (!$record) continue;
+                    
+                    $worker = $this->getWorkerDetails($record['worker_id']);
+                    if (!$worker) continue;
+                    
+                    $period = $this->getPeriodDetails($record['period_id']);
+                    if (!$period) continue;
+                    
+                    $earnings = $this->getEarningsDetails($recId);
+                    
+                    // New page for each worker's payslip
+                    $this->pdf->AddPage();
+                    
+                    // Add project name subtitle before the payslip header
+                    $this->pdf->SetFont('dejavusans', '', 8);
+                    $this->pdf->SetTextColor(100, 100, 100);
+                    $this->pdf->Cell(0, 4, 'Project: ' . $projectGroup['project_name'], 0, 1, 'R');
+                    $this->pdf->SetTextColor(0, 0, 0);
+                    
+                    $this->addPayslipHeader($worker, $period, $record);
+                    $this->addEarningsSection($record, $earnings);
+                    $this->addDeductionsSection($record);
+                    $this->addSignatureSection($worker);
+                }
+            }
+            
+            return $this->pdf->Output('', 'S');
+            
+        } catch (Exception $e) {
+            error_log('PayrollPDFGenerator Batch Error: ' . $e->getMessage());
+            return false;
+        }
+    }
+    
+    /**
      * Get payroll record from database
      * 
      * @param int $recordId Record ID

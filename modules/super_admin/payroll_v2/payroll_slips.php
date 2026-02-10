@@ -33,6 +33,7 @@ $filter_period = $_GET['period'] ?? '';
 $filter_status = $_GET['status'] ?? '';
 $filter_classification = $_GET['classification'] ?? '';
 $filter_role = $_GET['role'] ?? '';
+$filter_project = $_GET['project'] ?? '';
 
 // Build query
 $query = "
@@ -75,7 +76,12 @@ if (!empty($filter_role)) {
     $params[] = $filter_role;
 }
 
-$query .= " ORDER BY p.period_end DESC, w.first_name ASC";
+if (!empty($filter_project)) {
+    $query .= " AND pr.project_id = ?";
+    $params[] = $filter_project;
+}
+
+$query .= " ORDER BY proj.project_name ASC, p.period_end DESC, w.first_name ASC";
 
 try {
     $stmt = $pdo->prepare($query);
@@ -126,6 +132,36 @@ try {
     $roles = $stmt->fetchAll(PDO::FETCH_COLUMN);
 } catch (Exception $e) {
     $roles = [];
+}
+
+// Get projects for filter dropdown
+try {
+    $stmt = $pdo->query("SELECT DISTINCT p.project_id, p.project_name FROM projects p INNER JOIN payroll_records pr ON pr.project_id = p.project_id ORDER BY p.project_name");
+    $projectsFilter = $stmt->fetchAll(PDO::FETCH_ASSOC);
+} catch (Exception $e) {
+    $projectsFilter = [];
+}
+
+// Group payroll records by project for display
+$groupedByProject = [];
+foreach ($payrollRecords as $record) {
+    $projName = $record['project_name'] ?? 'No Project';
+    $projId = $record['project_id'] ?? 0;
+    $key = $projId . '_' . $projName;
+    if (!isset($groupedByProject[$key])) {
+        $groupedByProject[$key] = [
+            'project_id' => $projId,
+            'project_name' => $projName,
+            'records' => [],
+            'total_gross' => 0,
+            'total_deductions' => 0,
+            'total_net' => 0,
+        ];
+    }
+    $groupedByProject[$key]['records'][] = $record;
+    $groupedByProject[$key]['total_gross'] += floatval($record['gross_pay']);
+    $groupedByProject[$key]['total_deductions'] += floatval($record['total_deductions']);
+    $groupedByProject[$key]['total_net'] += floatval($record['net_pay']);
 }
 
 $pageTitle = 'Payroll Slips';
@@ -602,6 +638,18 @@ $pageTitle = 'Payroll Slips';
                     </select>
                 </div>
                 
+                <div class="filter-group">
+                    <label for="project">Project</label>
+                    <select name="project" id="project">
+                        <option value="">All Projects</option>
+                        <?php foreach ($projectsFilter as $pf): ?>
+                            <option value="<?php echo $pf['project_id']; ?>" <?php echo $filter_project == $pf['project_id'] ? 'selected' : ''; ?>>
+                                <?php echo htmlspecialchars($pf['project_name']); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                
                 <!-- Filter controls removed: filters auto-apply on change -->
             </form>
             
@@ -610,90 +658,123 @@ $pageTitle = 'Payroll Slips';
                 Found <?php echo count($payrollRecords); ?> payroll record<?php echo count($payrollRecords) !== 1 ? 's' : ''; ?>
             </div>
             
-            <!-- Payroll List -->
-            <div class="payroll-list">
-                <?php if (count($payrollRecords) > 0): ?>
-                    <div class="list-header">
-                        <div>Period</div>
-                        <div>Employee</div>
-                        <div>Project</div>
-                        <div>Gross Pay</div>
-                        <div>Deductions</div>
-                        <div>Net Pay</div>
-                        <div>Status</div>
-                        <div>Actions</div>
-                    </div>
-                    
-                    <?php foreach ($payrollRecords as $record): ?>
-                        <div class="list-item">
+            <!-- Payroll List - Grouped by Project -->
+            <?php if (count($payrollRecords) > 0): ?>
+                <?php foreach ($groupedByProject as $groupKey => $group): ?>
+                <div class="project-group" style="margin-bottom: 25px;">
+                    <!-- Project Header -->
+                    <div class="project-group-header" style="background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%); color: white; padding: 14px 20px; border-radius: 8px 8px 0 0; display: flex; align-items: center; justify-content: space-between;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <i class="fas fa-project-diagram" style="color: #DAA520; font-size: 18px;"></i>
                             <div>
-                                <div class="item-period">
-                                    <?php echo date('M', strtotime($record['period_start'])) . ' ' . date('d', strtotime($record['period_start'])) . '-' . date('d', strtotime($record['period_end'])); ?>
+                                <div style="font-size: 16px; font-weight: 700;"><?php echo htmlspecialchars($group['project_name']); ?></div>
+                                <div style="font-size: 12px; color: #aaa; margin-top: 2px;">
+                                    <?php echo count($group['records']); ?> worker<?php echo count($group['records']) !== 1 ? 's' : ''; ?>
+                                    &bull; Gross: ₱<?php echo number_format($group['total_gross'], 2); ?>
+                                    &bull; Deductions: ₱<?php echo number_format($group['total_deductions'], 2); ?>
+                                    &bull; <span style="color: #DAA520; font-weight: 600;">Net: ₱<?php echo number_format($group['total_net'], 2); ?></span>
                                 </div>
-                                <div class="item-period-dates">
-                                    <?php echo date('Y', strtotime($record['period_start'])); ?>
-                                </div>
-                            </div>
-                            
-                            <div>
-                                <div class="item-employee">
-                                    <?php echo $record['first_name'] . ' ' . $record['last_name']; ?>
-                                </div>
-                                <div class="item-code">
-                                    <?php echo $record['worker_code']; ?>
-                                </div>
-                            </div>
-                            
-                            <div style="font-size:12px;color:#555;">
-                                <?php echo htmlspecialchars($record['project_name'] ?? '—'); ?>
-                            </div>
-                            
-                            <div class="item-amount">
-                                ₱<?php echo number_format($record['gross_pay'], 2); ?>
-                            </div>
-                            
-                            <div class="item-amount">
-                                ₱<?php echo number_format($record['total_deductions'], 2); ?>
-                            </div>
-                            
-                            <div class="item-amount" style="color: #DAA520; font-weight: 700;">
-                                ₱<?php echo number_format($record['net_pay'], 2); ?>
-                            </div>
-                            
-                            <div class="item-status">
-                                <span class="status-badge <?php echo $record['status']; ?>">
-                                    <?php echo ucfirst($record['status']); ?>
-                                </span>
-                            </div>
-                            
-                            <div class="item-actions">
-                                <a href="#" class="btn-action btn-view" onclick="viewPayslip(<?php echo $record['record_id']; ?>); return false;" title="View Details">
-                                    <i class="fas fa-eye"></i>
-                                </a>
-                                <a href="download_pdf.php?id=<?php echo $record['record_id']; ?>" class="btn-action btn-download" title="Download PDF">
-                                    <i class="fas fa-download"></i>
-                                </a>
-                                <?php if ($canApprovePayroll && ($record['status'] === 'draft' || $record['status'] === 'pending')): ?>
-                                <a href="#" class="btn-action btn-approve" onclick="updatePayrollStatus(<?php echo $record['record_id']; ?>, 'approved'); return false;" title="Approve Payroll">
-                                    <i class="fas fa-check"></i>
-                                </a>
-                                <?php endif; ?>
-                                <?php if ($canMarkPaid && $record['status'] === 'approved'): ?>
-                                <a href="#" class="btn-action btn-paid" onclick="updatePayrollStatus(<?php echo $record['record_id']; ?>, 'paid'); return false;" title="Mark as Paid">
-                                    <i class="fas fa-money-bill"></i>
-                                </a>
-                                <?php endif; ?>
                             </div>
                         </div>
-                    <?php endforeach; ?>
-                <?php else: ?>
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <?php
+                            $groupRecordIds = array_column($group['records'], 'record_id');
+                            $idsParam = implode(',', $groupRecordIds);
+                            ?>
+                            <a href="download_pdf.php?ids=<?php echo urlencode($idsParam); ?>" 
+                               class="btn-action" style="background: #DAA520; color: white; border-color: #DAA520; padding: 8px 14px; font-weight: 600; font-size: 12px; text-decoration: none; border-radius: 6px; display: inline-flex; align-items: center; gap: 6px;"
+                               title="Download all payslips for this project">
+                                <i class="fas fa-file-pdf"></i> Batch Download
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <div class="payroll-list" style="border-radius: 0 0 8px 8px;">
+                        <div class="list-header" style="border-radius: 0;">
+                            <div>Period</div>
+                            <div>Employee</div>
+                            <div>Project</div>
+                            <div>Gross Pay</div>
+                            <div>Deductions</div>
+                            <div>Net Pay</div>
+                            <div>Status</div>
+                            <div>Actions</div>
+                        </div>
+                        
+                        <?php foreach ($group['records'] as $record): ?>
+                            <div class="list-item">
+                                <div>
+                                    <div class="item-period">
+                                        <?php echo date('M', strtotime($record['period_start'])) . ' ' . date('d', strtotime($record['period_start'])) . '-' . date('d', strtotime($record['period_end'])); ?>
+                                    </div>
+                                    <div class="item-period-dates">
+                                        <?php echo date('Y', strtotime($record['period_start'])); ?>
+                                    </div>
+                                </div>
+                                
+                                <div>
+                                    <div class="item-employee">
+                                        <?php echo $record['first_name'] . ' ' . $record['last_name']; ?>
+                                    </div>
+                                    <div class="item-code">
+                                        <?php echo $record['worker_code']; ?>
+                                    </div>
+                                </div>
+                                
+                                <div style="font-size:12px;color:#555;">
+                                    <?php echo htmlspecialchars($record['project_name'] ?? '—'); ?>
+                                </div>
+                                
+                                <div class="item-amount">
+                                    ₱<?php echo number_format($record['gross_pay'], 2); ?>
+                                </div>
+                                
+                                <div class="item-amount">
+                                    ₱<?php echo number_format($record['total_deductions'], 2); ?>
+                                </div>
+                                
+                                <div class="item-amount" style="color: #DAA520; font-weight: 700;">
+                                    ₱<?php echo number_format($record['net_pay'], 2); ?>
+                                </div>
+                                
+                                <div class="item-status">
+                                    <span class="status-badge <?php echo $record['status']; ?>">
+                                        <?php echo ucfirst($record['status']); ?>
+                                    </span>
+                                </div>
+                                
+                                <div class="item-actions">
+                                    <a href="#" class="btn-action btn-view" onclick="viewPayslip(<?php echo $record['record_id']; ?>); return false;" title="View Details">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <a href="download_pdf.php?id=<?php echo $record['record_id']; ?>" class="btn-action btn-download" title="Download PDF">
+                                        <i class="fas fa-download"></i>
+                                    </a>
+                                    <?php if ($canApprovePayroll && ($record['status'] === 'draft' || $record['status'] === 'pending')): ?>
+                                    <a href="#" class="btn-action btn-approve" onclick="updatePayrollStatus(<?php echo $record['record_id']; ?>, 'approved'); return false;" title="Approve Payroll">
+                                        <i class="fas fa-check"></i>
+                                    </a>
+                                    <?php endif; ?>
+                                    <?php if ($canMarkPaid && $record['status'] === 'approved'): ?>
+                                    <a href="#" class="btn-action btn-paid" onclick="updatePayrollStatus(<?php echo $record['record_id']; ?>, 'paid'); return false;" title="Mark as Paid">
+                                        <i class="fas fa-money-bill"></i>
+                                    </a>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+                <?php endforeach; ?>
+            <?php else: ?>
+                <div class="payroll-list">
                     <div class="empty-state">
                         <i class="fas fa-inbox"></i>
                         <h3>No Payroll Slips Found</h3>
                         <p>Try adjusting your filters or generate new payroll records.</p>
                     </div>
-                <?php endif; ?>
-            </div>
+                </div>
+            <?php endif; ?>
         </div>
     </div>
     

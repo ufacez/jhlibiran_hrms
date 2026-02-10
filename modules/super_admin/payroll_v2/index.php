@@ -81,16 +81,21 @@ $projectStmt = $pdo->query("
 ");
 $projects = $projectStmt->fetchAll(PDO::FETCH_ASSOC);
 
-// Get recent payroll periods with project info
+// Get recent payroll per project (one row per period + project combination)
 $stmt = $pdo->query("
-    SELECT pp.*,
-           GROUP_CONCAT(DISTINCT proj.project_name ORDER BY proj.project_name SEPARATOR ', ') AS project_names
-    FROM payroll_periods pp
-    LEFT JOIN payroll_records pr ON pr.period_id = pp.period_id
+    SELECT pp.period_id, pp.period_start, pp.period_end, pp.status AS period_status,
+           COALESCE(proj.project_id, 0) AS project_id,
+           COALESCE(proj.project_name, 'No Project') AS project_name,
+           COUNT(pr.record_id) AS total_workers,
+           SUM(pr.gross_pay) AS total_gross,
+           SUM(pr.total_deductions) AS total_deductions,
+           SUM(pr.net_pay) AS total_net
+    FROM payroll_records pr
+    JOIN payroll_periods pp ON pr.period_id = pp.period_id
     LEFT JOIN projects proj ON pr.project_id = proj.project_id
-    GROUP BY pp.period_id
-    ORDER BY pp.period_end DESC 
-    LIMIT 10
+    GROUP BY pp.period_id, COALESCE(proj.project_id, 0)
+    ORDER BY pp.period_end DESC, proj.project_name ASC
+    LIMIT 15
 ");
 $recentPeriods = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -1020,14 +1025,19 @@ $pageTitle = 'Payroll Management';
                                         <?php foreach ($recentPeriods as $period): ?>
                                         <tr>
                                             <td><?php echo date('M d', strtotime($period['period_start'])); ?> - <?php echo date('M d, Y', strtotime($period['period_end'])); ?></td>
-                                            <td style="font-size:12px; color:#555;"><?php echo htmlspecialchars($period['project_names'] ?? '—'); ?></td>
+                                            <td style="font-size:12px; color:#555;">
+                                                <span style="display:inline-flex; align-items:center; gap:5px;">
+                                                    <i class="fas fa-project-diagram" style="color:#DAA520; font-size:11px;"></i>
+                                                    <?php echo htmlspecialchars($period['project_name']); ?>
+                                                </span>
+                                            </td>
                                             <td><?php echo $period['total_workers']; ?></td>
                                             <td class="amount positive">₱<?php echo number_format($period['total_net'], 2); ?></td>
                                             <td>
-                                                <button class="action-btn" style="padding: 5px 10px; background:#111; color:#fff; border-radius:8px; border:none; display:flex; align-items:center; justify-content:center;"
-                                                        onclick="viewPeriod(<?php echo $period['period_id']; ?>)">
+                                                <a href="project_payslips.php?period=<?php echo $period['period_id']; ?>&project=<?php echo $period['project_id']; ?>"
+                                                   class="action-btn" style="padding: 5px 10px; background:#111; color:#fff; border-radius:8px; border:none; display:flex; align-items:center; justify-content:center; text-decoration:none;">
                                                     <i class="fas fa-eye" style="color:#fff;"></i>
-                                                </button>
+                                                </a>
                                             </td>
                                         </tr>
                                         <?php endforeach; ?>
@@ -1991,9 +2001,13 @@ $pageTitle = 'Payroll Management';
             });
         }
         
-        // View period details
-        function viewPeriod(periodId) {
-            window.location.href = 'payroll_slips.php?period=' + periodId;
+        // View period details (legacy - now uses direct links)
+        function viewPeriod(periodId, projectId) {
+            if (projectId) {
+                window.location.href = 'project_payslips.php?period=' + periodId + '&project=' + projectId;
+            } else {
+                window.location.href = 'payroll_slips.php?period=' + periodId;
+            }
         }
         
         // Helpers
