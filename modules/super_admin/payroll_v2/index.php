@@ -828,14 +828,6 @@ $pageTitle = 'Payroll Management';
                         </div>
                     </div>
                 </div>
-                
-                <!-- Rates Banner -->
-                <div class="rates-banner">
-                    <h3><i class="fas fa-coins"></i> Current Payroll Rates <a href="payroll_v2/configure.php">Edit Rates</a></h3>
-                    <div class="rates-display" id="ratesDisplay">
-                        <!-- Populated by JS -->
-                    </div>
-                </div>
                 <!-- Main Layout -->
                 <div class="payroll-grid">
                     <!-- Left Panel: Worker Selection & Payroll List -->
