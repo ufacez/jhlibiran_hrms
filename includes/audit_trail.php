@@ -279,41 +279,105 @@ function getAuditByModule($db, $days = 30) {
 }
 
 /**
- * Export audit trail to CSV
+ * Export audit trail to Excel (.xls) - Modern styled format
  */
 function exportAuditTrail($db, $filters = []) {
     $records = getAuditTrail($db, $filters, 10000, 0);
     
-    $filename = "audit_trail_" . date('Y-m-d_His') . ".csv";
+    $filename = "audit_trail_" . date('Y-m-d_His') . ".xls";
     
-    header('Content-Type: text/csv');
+    header('Content-Type: application/vnd.ms-excel');
     header('Content-Disposition: attachment; filename="' . $filename . '"');
+    header('Pragma: no-cache');
+    header('Expires: 0');
+    header('Cache-Control: must-revalidate, post-check=0, pre-check=0');
     
-    $output = fopen('php://output', 'w');
-    
-    // Headers
-    fputcsv($output, [
-        'Audit ID', 'Date/Time', 'User', 'Action', 'Module', 
-        'Record', 'Changes', 'Severity', 'IP Address', 'Status'
-    ]);
-    
-    // Data
-    foreach ($records as $record) {
-        fputcsv($output, [
-            $record['audit_id'],
-            $record['created_at'],
-            $record['username'] ?? 'System',
-            ucfirst($record['action_type']),
-            ucfirst($record['module']),
-            $record['record_identifier'],
-            $record['changes_summary'],
-            ucfirst($record['severity']),
-            $record['ip_address'],
-            $record['success'] ? 'Success' : 'Failed'
-        ]);
+    // Count summary stats
+    $totalRecords = count($records);
+    $successCount = 0;
+    $failedCount = 0;
+    $severityCounts = ['low' => 0, 'medium' => 0, 'high' => 0];
+    foreach ($records as $r) {
+        if ($r['success']) $successCount++; else $failedCount++;
+        $sev = $r['severity'] ?? 'low';
+        if (isset($severityCounts[$sev])) $severityCounts[$sev]++;
     }
     
-    fclose($output);
+    $systemName = defined('SYSTEM_NAME') ? SYSTEM_NAME : 'TrackSite';
+    
+    // Excel HTML output
+    echo '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">';
+    echo '<head><meta charset="UTF-8"><style>';
+    echo 'table { border-collapse: collapse; width: 100%; margin-bottom: 20px; }';
+    echo 'th, td { border: 1px solid #999; padding: 6px 10px; font-family: Calibri, Arial, sans-serif; font-size: 11pt; }';
+    echo 'th { background-color: #1a1a1a; color: #DAA520; font-weight: bold; text-align: center; }';
+    echo '.title { font-size: 14pt; font-weight: bold; color: #1a1a1a; border: none; }';
+    echo '.subtitle { font-size: 10pt; color: #666; border: none; }';
+    echo '.summary-label { font-weight: bold; background-color: #f5f5f5; }';
+    echo '.summary-value { font-weight: bold; }';
+    echo '.success { color: #28a745; font-weight: bold; }';
+    echo '.failed { color: #e53935; font-weight: bold; }';
+    echo '.low { color: #28a745; }';
+    echo '.medium { color: #f57f17; }';
+    echo '.high { color: #e53935; font-weight: bold; }';
+    echo '.num { text-align: right; }';
+    echo '</style></head><body>';
+    
+    // Title section
+    echo '<table>';
+    echo '<tr><td class="title" colspan="10">' . htmlspecialchars($systemName) . ' - Audit Trail Report</td></tr>';
+    echo '<tr><td class="subtitle" colspan="10">Exported: ' . date('F d, Y h:i A') . '</td></tr>';
+    echo '<tr><td colspan="10" style="border:none;"></td></tr>';
+    echo '</table>';
+    
+    // Summary table
+    echo '<table>';
+    echo '<tr><td colspan="4" style="font-size:12pt;font-weight:bold;border:none;padding-top:10px;">Summary</td></tr>';
+    echo '<tr><td class="summary-label">Total Records</td><td class="summary-value">' . $totalRecords . '</td>';
+    echo '<td class="summary-label">Successful</td><td class="summary-value success">' . $successCount . '</td></tr>';
+    echo '<tr><td class="summary-label">Failed</td><td class="summary-value failed">' . $failedCount . '</td>';
+    echo '<td class="summary-label">High Severity</td><td class="summary-value high">' . $severityCounts['high'] . '</td></tr>';
+    echo '<tr><td class="summary-label">Medium Severity</td><td class="summary-value medium">' . $severityCounts['medium'] . '</td>';
+    echo '<td class="summary-label">Low Severity</td><td class="summary-value low">' . $severityCounts['low'] . '</td></tr>';
+    echo '</table>';
+    
+    // Main data table
+    echo '<table>';
+    echo '<thead><tr>';
+    echo '<th>No.</th>';
+    echo '<th>Date/Time</th>';
+    echo '<th>User</th>';
+    echo '<th>Action</th>';
+    echo '<th>Module</th>';
+    echo '<th>Record</th>';
+    echo '<th>Changes</th>';
+    echo '<th>Severity</th>';
+    echo '<th>IP Address</th>';
+    echo '<th>Status</th>';
+    echo '</tr></thead><tbody>';
+    
+    $rowNum = 1;
+    foreach ($records as $record) {
+        $statusClass = $record['success'] ? 'success' : 'failed';
+        $statusLabel = $record['success'] ? 'Success' : 'Failed';
+        $sevClass = $record['severity'] ?? 'low';
+        
+        echo '<tr>';
+        echo '<td style="text-align:center;">' . $rowNum++ . '</td>';
+        echo '<td>' . htmlspecialchars($record['created_at']) . '</td>';
+        echo '<td>' . htmlspecialchars($record['username'] ?? 'System') . '</td>';
+        echo '<td>' . htmlspecialchars(ucfirst($record['action_type'])) . '</td>';
+        echo '<td>' . htmlspecialchars(ucfirst($record['module'])) . '</td>';
+        echo '<td>' . htmlspecialchars($record['record_identifier'] ?? '') . '</td>';
+        echo '<td>' . htmlspecialchars($record['changes_summary'] ?? '') . '</td>';
+        echo '<td class="' . $sevClass . '" style="text-align:center;">' . htmlspecialchars(ucfirst($record['severity'] ?? 'low')) . '</td>';
+        echo '<td>' . htmlspecialchars($record['ip_address'] ?? '') . '</td>';
+        echo '<td class="' . $statusClass . '" style="text-align:center;">' . $statusLabel . '</td>';
+        echo '</tr>';
+    }
+    
+    echo '</tbody></table>';
+    echo '</body></html>';
     exit;
 }
 

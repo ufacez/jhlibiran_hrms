@@ -121,6 +121,7 @@ $flash = getFlashMessage();
                                     <th>Amount</th>
                                     <th>Description</th>
                                     <th>Frequency</th>
+                                    <th>Deduction Date</th>
                                     <th>Status</th>
                                     <th>Date Added</th>
                                     <th>Actions</th>
@@ -153,10 +154,30 @@ $flash = getFlashMessage();
                     <input type="hidden" id="deductionId" value="">
                     
                     <div class="form-group">
-                        <label for="workerSelect">Worker <span class="required">*</span></label>
-                        <select id="workerSelect" required>
-                            <option value="">-- Select Worker --</option>
-                        </select>
+                        <label for="workerSelect">Worker(s) <span class="required">*</span></label>
+                        <div id="workerSelectWrapper">
+                            <select id="workerSelect" required>
+                                <option value="">-- Select Worker --</option>
+                            </select>
+                        </div>
+                        <div id="multiWorkerWrapper" style="display:none;">
+                            <div class="assign-search" style="display:flex;gap:10px;align-items:center;margin-bottom:14px;">
+                                <input type="text" placeholder="Search workers…" oninput="filterDeductionWorkers(this)" style="flex:1;padding:10px 14px;border-radius:8px;border:1px solid #ddd;font-size:14px;box-sizing:border-box;">
+                                <label style="display:flex;align-items:center;gap:6px;font-size:13px;white-space:nowrap;cursor:pointer;color:#555;">
+                                    <input type="checkbox" id="selectAllWorkersCheckbox" onchange="toggleSelectAllWorkers(this)"> Select All
+                                </label>
+                            </div>
+                            <div class="aw-list" id="workerCheckboxList" style="max-height:300px;overflow-y:auto;"></div>
+                            <div style="display:flex;justify-content:flex-end;padding-top:10px;">
+                                <span id="selectedCount" style="font-size:13px;color:#888;">0 selected</span>
+                            </div>
+                        </div>
+                        <div style="margin-top:6px;">
+                            <label style="font-size:12px;color:#666;cursor:pointer;display:inline-flex;align-items:center;gap:6px;">
+                                <input type="checkbox" id="multiWorkerToggle" onchange="toggleMultiWorker()" style="accent-color:#DAA520;"> 
+                                Apply to multiple workers
+                            </label>
+                        </div>
                     </div>
 
                     <div class="form-row-2">
@@ -187,6 +208,14 @@ $flash = getFlashMessage();
                                 <option value="per_payroll">Per Payroll (Recurring)</option>
                             </select>
                         </div>
+                        <div class="form-group">
+                            <label for="deductionDate">Deduction Date</label>
+                            <input type="date" id="deductionDate" placeholder="When to deduct">
+                            <small style="color:#888;font-size:11px;">When this amount should be deducted</small>
+                        </div>
+                    </div>
+
+                    <div class="form-row-2">
                         <div class="form-group" id="statusGroup" style="display:none;">
                             <label for="deductionStatus">Status</label>
                             <select id="deductionStatus">

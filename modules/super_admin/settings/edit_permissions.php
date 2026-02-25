@@ -661,7 +661,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_permissions'])
                 'deductions': ['can_view_deductions', 'can_manage_deductions'],
                 'cashadvance': ['can_view_cashadvance', 'can_approve_cashadvance'],
                 'projects': ['can_view_projects', 'can_manage_projects'],
-                'reports': ['can_view_reports', 'can_export_data', 'can_view_analytics', 'can_export_reports']
+                'reports': ['can_view_reports', 'can_export_data', 'can_view_analytics', 'can_export_reports'],
+                'government': ['can_view_bir', 'can_edit_bir', 'can_view_sss', 'can_edit_sss', 'can_view_philhealth', 'can_edit_philhealth', 'can_view_pagibig', 'can_edit_pagibig']
             };
             
             if (sections[section]) {

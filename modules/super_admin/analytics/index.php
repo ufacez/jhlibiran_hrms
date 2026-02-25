@@ -68,11 +68,8 @@ $flash      = getFlashMessage();
                         <p class="subtitle">Calculated insights and workforce distributions</p>
                     </div>
                     <div class="header-actions">
-                        <button class="btn btn-add-worker" onclick="exportReport('csv')">
-                            <i class="fas fa-file-csv"></i> Export CSV
-                        </button>
-                        <button class="btn btn-add-worker" onclick="window.print()" style="background:linear-gradient(135deg,#1a1a1a,#2d2d2d);color:#DAA520;">
-                            <i class="fas fa-print"></i> Print
+                        <button class="btn btn-add-worker" onclick="exportReport()">
+                            <i class="fas fa-file-excel"></i> Export Excel
                         </button>
                     </div>
                 </div>

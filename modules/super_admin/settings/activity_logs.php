@@ -404,8 +404,8 @@ function getSeverityBadge($severity) {
                         <p class="subtitle">Unified log of all system activities and changes</p>
                     </div>
                     <div class="header-actions">
-                        <a href="<?php echo BASE_URL; ?>/api/audit.php?action=export" class="btn-export" title="Export all records to CSV">
-                            <i class="fas fa-file-export"></i> Export CSV
+                        <a href="<?php echo BASE_URL; ?>/api/audit.php?action=export" class="btn-export" title="Export audit trail to Excel">
+                            <i class="fas fa-file-excel"></i> Export Excel
                         </a>
                     </div>
                 </div>

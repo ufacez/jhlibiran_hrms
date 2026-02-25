@@ -193,8 +193,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $can_manage) {
                 $classification_code = strtoupper(sanitizeString($_POST['classification_code'] ?? ''));
                 $classification_name = sanitizeString($_POST['classification_name'] ?? '');
                 $skill_level = sanitizeString($_POST['skill_level'] ?? 'entry');
-                $min_exp = intval($_POST['minimum_experience_years'] ?? 0);
-                $min_exp = max(0, $min_exp);
                 $description = sanitizeString($_POST['description'] ?? '');
 
                 if (empty($classification_code) || empty($classification_name)) {
@@ -216,8 +214,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $can_manage) {
                 $stmt = $db->query("SELECT COALESCE(MAX(display_order), 0) + 1 FROM worker_classifications");
                 $display_order = $stmt ? (int)$stmt->fetchColumn() : 1;
 
-                $ins = $db->prepare("INSERT INTO worker_classifications (classification_code, classification_name, description, skill_level, minimum_experience_years, is_active, display_order, created_at) VALUES (?, ?, ?, ?, ?, 1, ?, NOW())");
-                $ins->execute([$classification_code, $classification_name, $description, $skill_level, $min_exp, $display_order]);
+                $ins = $db->prepare("INSERT INTO worker_classifications (classification_code, classification_name, description, skill_level, minimum_experience_years, is_active, display_order, created_at) VALUES (?, ?, ?, ?, 0, 1, ?, NOW())");
+                $ins->execute([$classification_code, $classification_name, $description, $skill_level, $display_order]);
                 $new_id = $db->lastInsertId();
                 logActivity($db, $user_id, 'create', 'worker_classifications', $new_id, "Added classification: $classification_name ($classification_code)");
                 setFlashMessage('Classification added successfully', 'success');
@@ -1005,7 +1003,7 @@ $skill_levels = ['entry' => 'Entry Level', 'skilled' => 'Skilled', 'senior' => '
                 </div>
                 
                 <!-- Work Types Tab -->
-                <div class="tab-content active" id="work-types">
+                <div class="tab-content active" id="roles">
                     <?php if (empty($work_types)): ?>
                     <div class="empty-state">
                         <i class="fas fa-hard-hat"></i>
@@ -1100,15 +1098,10 @@ $skill_levels = ['entry' => 'Entry Level', 'skilled' => 'Skilled', 'senior' => '
                             <?php if (!empty($class['description'])): ?>
                             <p class="description"><?php echo htmlspecialchars($class['description']); ?></p>
                             <?php endif; ?>
-                            <?php if ($class['minimum_experience_years'] > 0): ?>
-                            <p style="font-size: 12px; color: #888; margin-top: 10px;">
-                                <i class="fas fa-calendar-alt"></i> 
-                                Min. <?php echo $class['minimum_experience_years']; ?> year<?php echo $class['minimum_experience_years'] != 1 ? 's' : ''; ?> experience
-                            </p>
-                            <?php endif; ?>
+
                         </div>
                         <?php endforeach; ?>
-                    </script>
+                    </div>
                     <script>
                         function deleteClassification(classificationId, classificationName) {
                             if (!confirm('Are you sure you want to delete classification: ' + classificationName + '? This action cannot be undone.')) return;
@@ -1131,7 +1124,6 @@ $skill_levels = ['entry' => 'Entry Level', 'skilled' => 'Skilled', 'senior' => '
                             form.submit();
                         }
                     </script>
-                    </div>
                     <?php endif; ?>
                 </div>
                 
@@ -1319,10 +1311,6 @@ $skill_levels = ['entry' => 'Entry Level', 'skilled' => 'Skilled', 'senior' => '
                     <div class="form-group">
                         <label>Classification Name <span class="required">*</span></label>
                         <input type="text" name="classification_name" class="form-control" placeholder="e.g., Skilled Worker" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Minimum Experience (Years)</label>
-                        <input type="number" name="minimum_experience_years" class="form-control" value="0" min="0">
                     </div>
                     <div class="form-group">
                         <label>Description</label>

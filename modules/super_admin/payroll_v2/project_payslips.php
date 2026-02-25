@@ -116,10 +116,6 @@ foreach ($payrollRecords as $r) {
     $totalNet += floatval($r['net_pay']);
 }
 
-// Record IDs for batch download
-$allRecordIds = array_column($payrollRecords, 'record_id');
-$idsParam = implode(',', $allRecordIds);
-
 $pageTitle = htmlspecialchars($project['project_name']) . ' - Payroll Slips';
 ?>
 <!DOCTYPE html>
@@ -177,23 +173,7 @@ $pageTitle = htmlspecialchars($project['project_name']) . ' - Payroll Slips';
 
         .btn-back:hover { background: #2d2d2d; }
 
-        .btn-batch-download {
-            padding: 10px 16px;
-            background: #DAA520;
-            color: #fff;
-            text-decoration: none;
-            border-radius: 6px;
-            font-weight: 600;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 13px;
-            transition: background 0.2s;
-            border: none;
-            cursor: pointer;
-        }
 
-        .btn-batch-download:hover { background: #c99019; }
 
         /* Project info banner */
         .project-banner {
@@ -425,11 +405,6 @@ $pageTitle = htmlspecialchars($project['project_name']) . ' - Payroll Slips';
                         Project Payroll
                     </h1>
                     <div class="header-actions">
-                        <?php if (!empty($allRecordIds)): ?>
-                        <a href="download_pdf.php?ids=<?php echo urlencode($idsParam); ?>" class="btn-batch-download">
-                            <i class="fas fa-file-pdf"></i> Batch Download All (<?php echo count($allRecordIds); ?>)
-                        </a>
-                        <?php endif; ?>
                         <a href="index.php" class="btn-back">
                             <i class="fas fa-arrow-left"></i> Back to Payroll
                         </a>

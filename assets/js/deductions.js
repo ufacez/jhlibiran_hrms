@@ -63,12 +63,33 @@ function loadWorkers() {
                 filterSel.innerHTML += `<option value="${w.worker_id}">${esc(w.last_name)}, ${esc(w.first_name)} (${esc(w.worker_code)})</option>`;
             });
 
-            // Populate modal dropdown
+            // Populate modal dropdown (single worker)
             const modalSel = document.getElementById('workerSelect');
             modalSel.innerHTML = '<option value="">-- Select Worker --</option>';
             allWorkers.forEach(w => {
                 modalSel.innerHTML += `<option value="${w.worker_id}">${esc(w.last_name)}, ${esc(w.first_name)} (${esc(w.worker_code)}) – ${esc(w.position || '')}</option>`;
             });
+
+            // Populate multi-worker list (assign workers pattern)
+            const checkboxList = document.getElementById('workerCheckboxList');
+            if (checkboxList) {
+                checkboxList.innerHTML = allWorkers.map(w => {
+                    const initials = getInitials(w.first_name + ' ' + w.last_name);
+                    const fullName = esc(w.first_name) + ' ' + esc(w.last_name);
+                    return `<div class="aw-item" data-worker-id="${w.worker_id}" data-name="${(w.first_name + ' ' + w.last_name).toLowerCase()}">
+                        <div class="aw-info">
+                            <label style="display:flex;align-items:center;gap:12px;cursor:pointer;margin:0;width:100%;">
+                                <input type="checkbox" class="worker-cb" value="${w.worker_id}" onchange="updateSelectedCount()" style="width:18px;height:18px;accent-color:#DAA520;cursor:pointer;">
+                                <div class="aw-avatar">${initials}</div>
+                                <div>
+                                    <div class="aw-name">${fullName}</div>
+                                    <div class="aw-code">${esc(w.worker_code)} · ${esc(w.position || 'No position')}</div>
+                                </div>
+                            </label>
+                        </div>
+                    </div>`;
+                }).join('');
+            }
         })
         .catch(() => {
             console.error('Failed to load workers');
@@ -86,20 +107,20 @@ function loadDeductions() {
     if (status) url += `&status=${status}`;
 
     const tbody = document.getElementById('deductionsBody');
-    tbody.innerHTML = '<tr><td colspan="8" class="loading-cell"><i class="fas fa-spinner fa-spin"></i> Loading deductions...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="9" class="loading-cell"><i class="fas fa-spinner fa-spin"></i> Loading deductions...</td></tr>';
 
     fetch(url)
         .then(r => r.json())
         .then(res => {
             if (!res.success) {
-                tbody.innerHTML = `<tr><td colspan="8" class="empty-cell"><i class="fas fa-exclamation-triangle"></i> ${esc(res.message)}</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="9" class="empty-cell"><i class="fas fa-exclamation-triangle"></i> ${esc(res.message)}</td></tr>`;
                 return;
             }
 
             allDeductions = res.data.deductions;
 
             if (allDeductions.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="8" class="empty-cell">
+                tbody.innerHTML = `<tr><td colspan="9" class="empty-cell">
                     <i class="fas fa-file-invoice-dollar empty-icon"></i>
                     No deductions found matching the current filters.
                 </td></tr>`;
@@ -111,6 +132,7 @@ function loadDeductions() {
                 const typeLabel = formatType(d.deduction_type);
                 const freqLabel = d.frequency === 'per_payroll' ? 'Per Payroll' : 'One-Time';
                 const date = formatDate(d.created_at);
+                const dedDate = d.deduction_date ? formatDate(d.deduction_date) : '—';
 
                 return `<tr>
                     <td>
@@ -126,6 +148,7 @@ function loadDeductions() {
                     <td class="amount-cell">-₱${parseFloat(d.amount).toLocaleString('en-PH', {minimumFractionDigits:2})}</td>
                     <td class="desc-cell" title="${escAttr(d.description || '')}">${esc(d.description || '—')}</td>
                     <td class="freq-cell">${freqLabel}</td>
+                    <td class="date-cell">${dedDate}</td>
                     <td><span class="status-pill ${d.status}">${capitalize(d.status)}</span></td>
                     <td class="date-cell">${date}</td>
                     <td>
@@ -143,7 +166,7 @@ function loadDeductions() {
             }).join('');
         })
         .catch(() => {
-            tbody.innerHTML = '<tr><td colspan="8" class="empty-cell"><i class="fas fa-exclamation-triangle"></i> Network error. Please refresh the page.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="9" class="empty-cell"><i class="fas fa-exclamation-triangle"></i> Network error. Please refresh the page.</td></tr>';
         });
 }
 
@@ -172,6 +195,15 @@ function openAddModal() {
     document.getElementById('deductionId').value = '';
     document.getElementById('statusGroup').style.display = 'none';
     document.getElementById('workerSelect').disabled = false;
+    document.getElementById('deductionDate').value = '';
+    // Reset multi-worker mode
+    const multiToggle = document.getElementById('multiWorkerToggle');
+    if (multiToggle) {
+        multiToggle.checked = false;
+        toggleMultiWorker();
+    }
+    document.getElementById('workerSelectWrapper').style.display = '';
+    document.getElementById('multiWorkerWrapper').style.display = 'none';
     document.getElementById('deductionModal').classList.add('active');
     document.body.style.overflow = 'hidden';
 }
@@ -188,8 +220,17 @@ function openEditModal(id) {
     document.getElementById('deductionAmount').value = parseFloat(d.amount).toFixed(2);
     document.getElementById('deductionFrequency').value = d.frequency;
     document.getElementById('deductionDescription').value = d.description || '';
+    document.getElementById('deductionDate').value = d.deduction_date || '';
     document.getElementById('deductionStatus').value = d.status;
     document.getElementById('statusGroup').style.display = '';
+    // Disable multi-worker in edit mode
+    const multiToggle = document.getElementById('multiWorkerToggle');
+    if (multiToggle) {
+        multiToggle.checked = false;
+        multiToggle.disabled = true;
+    }
+    document.getElementById('workerSelectWrapper').style.display = '';
+    document.getElementById('multiWorkerWrapper').style.display = 'none';
 
     document.getElementById('deductionModal').classList.add('active');
     document.body.style.overflow = 'hidden';
@@ -198,22 +239,37 @@ function openEditModal(id) {
 function closeDeductionModal() {
     document.getElementById('deductionModal').classList.remove('active');
     document.body.style.overflow = '';
+    // Re-enable multi-worker toggle
+    const multiToggle = document.getElementById('multiWorkerToggle');
+    if (multiToggle) multiToggle.disabled = false;
 }
 
 /* ================================================================
    SAVE
    ================================================================ */
 function saveDeduction() {
-    const id          = document.getElementById('deductionId').value;
-    const worker_id   = document.getElementById('workerSelect').value;
-    const type        = document.getElementById('deductionType').value;
-    const amount      = document.getElementById('deductionAmount').value;
-    const frequency   = document.getElementById('deductionFrequency').value;
-    const description = document.getElementById('deductionDescription').value.trim();
-    const status      = document.getElementById('deductionStatus').value;
+    const id            = document.getElementById('deductionId').value;
+    const type          = document.getElementById('deductionType').value;
+    const amount        = document.getElementById('deductionAmount').value;
+    const frequency     = document.getElementById('deductionFrequency').value;
+    const description   = document.getElementById('deductionDescription').value.trim();
+    const status        = document.getElementById('deductionStatus').value;
+    const deductionDate = document.getElementById('deductionDate').value;
+    const isMulti       = document.getElementById('multiWorkerToggle')?.checked && !id;
+
+    // Get worker ID(s)
+    let worker_id = '';
+    let worker_ids = '';
+    if (isMulti) {
+        const checked = document.querySelectorAll('#workerCheckboxList .worker-cb:checked');
+        worker_ids = Array.from(checked).map(cb => cb.value).join(',');
+        if (!worker_ids) { showToast('Please select at least one worker', 'error'); return; }
+    } else {
+        worker_id = document.getElementById('workerSelect').value;
+        if (!worker_id) { showToast('Please select a worker', 'error'); return; }
+    }
 
     // Client-side validation
-    if (!worker_id) { showToast('Please select a worker', 'error'); return; }
     if (!type)      { showToast('Please select a deduction type', 'error'); return; }
     if (!amount || parseFloat(amount) <= 0) { showToast('Amount must be greater than zero', 'error'); return; }
 
@@ -222,12 +278,17 @@ function saveDeduction() {
     if (id) {
         data.append('deduction_id', id);
         data.append('status', status);
+        data.append('worker_id', worker_id);
+    } else if (isMulti) {
+        data.append('worker_ids', worker_ids);
+    } else {
+        data.append('worker_id', worker_id);
     }
-    data.append('worker_id', worker_id);
     data.append('deduction_type', type);
     data.append('amount', amount);
     data.append('frequency', frequency);
     data.append('description', description);
+    if (deductionDate) data.append('deduction_date', deductionDate);
 
     // Disable save button to prevent double-submit
     const saveBtn = document.querySelector('#deductionModal .btn-save');
@@ -382,4 +443,55 @@ function showToast(msg, type) {
         toast.classList.add('fade-out');
         setTimeout(() => toast.remove(), 400);
     }, 3500);
+}
+
+/* ================================================================
+   MULTI-WORKER HELPERS
+   ================================================================ */
+function toggleMultiWorker() {
+    const isMulti = document.getElementById('multiWorkerToggle')?.checked;
+    const singleWrapper = document.getElementById('workerSelectWrapper');
+    const multiWrapper = document.getElementById('multiWorkerWrapper');
+    if (isMulti) {
+        singleWrapper.style.display = 'none';
+        multiWrapper.style.display = '';
+    } else {
+        singleWrapper.style.display = '';
+        multiWrapper.style.display = 'none';
+    }
+}
+
+function toggleSelectAllWorkers(masterCheckbox) {
+    const cbs = document.querySelectorAll('#workerCheckboxList .worker-cb');
+    const allChecked = masterCheckbox ? masterCheckbox.checked : !Array.from(cbs).every(cb => cb.checked);
+    // Only toggle visible (non-hidden by search) items
+    document.querySelectorAll('#workerCheckboxList .aw-item').forEach(item => {
+        if (item.style.display !== 'none') {
+            const cb = item.querySelector('.worker-cb');
+            if (cb) cb.checked = allChecked;
+        }
+    });
+    updateSelectedCount();
+}
+
+function deselectAllWorkers() {
+    document.querySelectorAll('#workerCheckboxList .worker-cb').forEach(cb => cb.checked = false);
+    const selAll = document.getElementById('selectAllWorkersCheckbox');
+    if (selAll) selAll.checked = false;
+    updateSelectedCount();
+}
+
+function updateSelectedCount() {
+    const checked = document.querySelectorAll('#workerCheckboxList .worker-cb:checked').length;
+    const el = document.getElementById('selectedCount');
+    if (el) el.textContent = checked + ' selected';
+}
+
+function filterDeductionWorkers(input) {
+    const query = input.value.toLowerCase().trim();
+    document.querySelectorAll('#workerCheckboxList .aw-item').forEach(item => {
+        const name = item.getAttribute('data-name') || '';
+        const code = item.querySelector('.aw-code')?.textContent?.toLowerCase() || '';
+        item.style.display = (name.includes(query) || code.includes(query)) ? '' : 'none';
+    });
 }

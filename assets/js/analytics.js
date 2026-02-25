@@ -409,11 +409,7 @@ function escHtml(str) {
 /* ================================================================
    EXPORT
    ================================================================ */
-function exportReport(format) {
+function exportReport() {
     const params = buildParams();
-    if (format === 'csv') {
-        window.location.href = `${ANALYTICS_API}?action=export_csv&report=overview${params ? '&' + params : ''}`;
-    } else {
-        window.print();
-    }
+    window.location.href = `${ANALYTICS_API}?action=export_excel&report=overview${params ? '&' + params : ''}`;
 }

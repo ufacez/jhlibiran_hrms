@@ -212,10 +212,6 @@ $pageTitle = 'PhilHealth Settings';
                                     <span class="calc-label">Employer Share (<span id="previewER">2.50</span>%):</span>
                                     <span class="calc-value" id="erShare">₱625.00</span>
                                 </div>
-                                <div class="calc-row">
-                                    <span class="calc-label">Weekly Employee Deduction:</span>
-                                    <span class="calc-value" id="weeklyDeduction">₱156.25</span>
-                                </div>
                             </div>
                         </div>
                         
@@ -258,7 +254,6 @@ $pageTitle = 'PhilHealth Settings';
             const monthlyPremium = cappedSalary * (rate / 100);
             const eeShare = cappedSalary * (eeRate / 100);
             const erShare = cappedSalary * (erRate / 100);
-            const weeklyDeduction = eeShare / 4;
             
             document.getElementById('previewRate').textContent = rate.toFixed(2);
             document.getElementById('previewEE').textContent = eeRate.toFixed(2);
@@ -266,7 +261,6 @@ $pageTitle = 'PhilHealth Settings';
             document.getElementById('monthlyPremium').textContent = '₱' + monthlyPremium.toLocaleString('en-PH', {minimumFractionDigits: 2, maximumFractionDigits: 2});
             document.getElementById('eeShare').textContent = '₱' + eeShare.toLocaleString('en-PH', {minimumFractionDigits: 2, maximumFractionDigits: 2});
             document.getElementById('erShare').textContent = '₱' + erShare.toLocaleString('en-PH', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-            document.getElementById('weeklyDeduction').textContent = '₱' + weeklyDeduction.toLocaleString('en-PH', {minimumFractionDigits: 2, maximumFractionDigits: 2});
         }
         
         // Listen for input changes

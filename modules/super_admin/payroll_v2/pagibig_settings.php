@@ -195,7 +195,7 @@ $pageTitle = 'Pag-IBIG Settings';
                             
                             <div class="form-row">
                                 <div class="form-group">
-                                    <label class="form-label">Salary Threshold <small>(Rate change point)</small></label>
+                                    <label class="form-label">Salary Threshold <small>(Floor)</small></label>
                                     <div class="input-group">
                                         <span class="input-addon-left">₱</span>
                                         <input type="number" class="form-input has-left-addon" id="salaryThreshold" name="salary_threshold" 
@@ -235,10 +235,6 @@ $pageTitle = 'Pag-IBIG Settings';
                                 <div class="calc-row">
                                     <span class="calc-label">Employer Contribution (<span id="previewERRate">2.00</span>%):</span>
                                     <span class="calc-value" id="monthlyEmployer">₱100.00</span>
-                                </div>
-                                <div class="calc-row">
-                                    <span class="calc-label">Weekly Employee Deduction:</span>
-                                    <span class="calc-value" id="weeklyEmployee">₱25.00</span>
                                 </div>
                             </div>
                         </div>
@@ -295,7 +291,6 @@ $pageTitle = 'Pag-IBIG Settings';
             // Calculate contributions
             const monthlyEE = applicableSalary * (eeRate / 100);
             const monthlyER = applicableSalary * (erRate / 100);
-            const weeklyEE = monthlyEE / 4;
             
             // Update display
             document.getElementById('sampleSalary').textContent = '₱' + sampleMonthlySalary.toLocaleString('en-PH', {minimumFractionDigits: 2});
@@ -304,7 +299,6 @@ $pageTitle = 'Pag-IBIG Settings';
             document.getElementById('previewERRate').textContent = erRate.toFixed(2);
             document.getElementById('monthlyEmployee').textContent = '₱' + monthlyEE.toLocaleString('en-PH', {minimumFractionDigits: 2});
             document.getElementById('monthlyEmployer').textContent = '₱' + monthlyER.toLocaleString('en-PH', {minimumFractionDigits: 2});
-            document.getElementById('weeklyEmployee').textContent = '₱' + weeklyEE.toLocaleString('en-PH', {minimumFractionDigits: 2});
         }
         
         // Initial preview update

@@ -677,15 +677,6 @@ $pageTitle = 'Payroll Slips';
                             </div>
                         </div>
                         <div style="display: flex; gap: 8px; align-items: center;">
-                            <?php
-                            $groupRecordIds = array_column($group['records'], 'record_id');
-                            $idsParam = implode(',', $groupRecordIds);
-                            ?>
-                            <a href="download_pdf.php?ids=<?php echo urlencode($idsParam); ?>" 
-                               class="btn-action" style="background: #DAA520; color: white; border-color: #DAA520; padding: 8px 14px; font-weight: 600; font-size: 12px; text-decoration: none; border-radius: 6px; display: inline-flex; align-items: center; gap: 6px;"
-                               title="Download all payslips for this project">
-                                <i class="fas fa-file-pdf"></i> Batch Download
-                            </a>
                         </div>
                     </div>
                     

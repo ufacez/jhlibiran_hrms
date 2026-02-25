@@ -96,14 +96,23 @@ try {
         // CREATE deduction
         // ──────────────────────────────────────────────
         case 'create':
-            $worker_id      = intval($_POST['worker_id'] ?? 0);
+            $worker_ids     = [];
+            // Support multiple workers
+            if (!empty($_POST['worker_ids'])) {
+                $worker_ids = array_map('intval', explode(',', $_POST['worker_ids']));
+                $worker_ids = array_filter($worker_ids, fn($id) => $id > 0);
+            } else {
+                $wid = intval($_POST['worker_id'] ?? 0);
+                if ($wid > 0) $worker_ids = [$wid];
+            }
             $deduction_type = trim($_POST['deduction_type'] ?? '');
             $amount         = floatval($_POST['amount'] ?? 0);
             $description    = trim($_POST['description'] ?? '');
             $frequency      = trim($_POST['frequency'] ?? 'one_time');
+            $deduction_date = !empty($_POST['deduction_date']) ? trim($_POST['deduction_date']) : null;
 
             // Validation
-            if (!$worker_id) jsonResponse(false, 'Please select a worker');
+            if (empty($worker_ids)) jsonResponse(false, 'Please select a worker');
             if (in_array($deduction_type, $GOVERNMENT_TYPES)) {
                 jsonResponse(false, 'Government contributions are managed in Payroll Settings');
             }
@@ -116,22 +125,28 @@ try {
                 jsonResponse(false, 'Invalid frequency');
             }
 
-            // Verify worker exists
-            $stmt = $db->prepare("SELECT worker_id FROM workers WHERE worker_id = ? AND is_archived = 0");
-            $stmt->execute([$worker_id]);
-            if (!$stmt->fetch()) jsonResponse(false, 'Worker not found');
-
-            $stmt = $db->prepare("
-                INSERT INTO deductions (worker_id, deduction_type, amount, description, frequency, status, is_active, created_by, created_at)
-                VALUES (?, ?, ?, ?, ?, 'pending', 1, ?, NOW())
+            // Insert for each selected worker
+            $insertStmt = $db->prepare("
+                INSERT INTO deductions (worker_id, deduction_type, amount, description, deduction_date, frequency, status, is_active, created_by, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, 'pending', 1, ?, NOW())
             ");
-            $stmt->execute([$worker_id, $deduction_type, $amount, $description, $frequency, $user_id]);
-            $new_id = $db->lastInsertId();
+            $verifyStmt = $db->prepare("SELECT worker_id FROM workers WHERE worker_id = ? AND is_archived = 0");
 
-            logActivity($db, $user_id, 'create_deduction', 'deductions', $new_id,
-                "Added $deduction_type deduction of ₱" . number_format($amount, 2) . " for worker #$worker_id");
+            $created = 0;
+            foreach ($worker_ids as $worker_id) {
+                $verifyStmt->execute([$worker_id]);
+                if (!$verifyStmt->fetch()) continue;
 
-            jsonResponse(true, 'Deduction added successfully');
+                $insertStmt->execute([$worker_id, $deduction_type, $amount, $description, $deduction_date, $frequency, $user_id]);
+                $new_id = $db->lastInsertId();
+                logActivity($db, $user_id, 'create_deduction', 'deductions', $new_id,
+                    "Added $deduction_type deduction of ₱" . number_format($amount, 2) . " for worker #$worker_id");
+                $created++;
+            }
+
+            if ($created === 0) jsonResponse(false, 'No valid workers found');
+            $msg = $created > 1 ? "Deduction added for $created workers" : 'Deduction added successfully';
+            jsonResponse(true, $msg);
             break;
 
         // ──────────────────────────────────────────────
@@ -170,13 +185,15 @@ try {
 
             $is_active = ($status === 'cancelled') ? 0 : 1;
 
+            $deduction_date_upd = !empty($_POST['deduction_date']) ? trim($_POST['deduction_date']) : null;
+
             $stmt = $db->prepare("
                 UPDATE deductions SET
-                    deduction_type = ?, amount = ?, description = ?, frequency = ?,
+                    deduction_type = ?, amount = ?, description = ?, deduction_date = ?, frequency = ?,
                     status = ?, is_active = ?, updated_at = NOW()
                 WHERE deduction_id = ?
             ");
-            $stmt->execute([$deduction_type, $amount, $description, $frequency, $status, $is_active, $deduction_id]);
+            $stmt->execute([$deduction_type, $amount, $description, $deduction_date_upd, $frequency, $status, $is_active, $deduction_id]);
 
             logActivity($db, $user_id, 'update_deduction', 'deductions', $deduction_id,
                 "Updated deduction #$deduction_id");

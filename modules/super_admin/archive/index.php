@@ -79,6 +79,65 @@ if (isset($_POST['restore'])) {
     redirect($_SERVER['PHP_SELF']);
 }
 
+// Handle batch restore action
+if (isset($_POST['batch_restore'])) {
+    $items = json_decode($_POST['restore_items'] ?? '[]', true);
+    $restoredCount = 0;
+    $errors = 0;
+    
+    if (!empty($items) && is_array($items)) {
+        foreach ($items as $item) {
+            $type = sanitizeString($item['type'] ?? '');
+            $id = intval($item['id'] ?? 0);
+            if (!$type || !$id) { $errors++; continue; }
+            
+            try {
+                if ($type === 'worker') {
+                    $stmt = $db->prepare("UPDATE workers SET is_archived = FALSE, archived_at = NULL, 
+                                          archived_by = NULL, archive_reason = NULL, 
+                                          employment_status = 'active', updated_at = NOW()
+                                          WHERE worker_id = ? AND is_archived = TRUE");
+                    $stmt->execute([$id]);
+                    if ($stmt->rowCount() > 0) {
+                        $restoredCount++;
+                        logActivity($db, getCurrentUserId(), 'restore_worker', 'workers', $id, "Batch restored worker #{$id}");
+                    }
+                } elseif ($type === 'attendance') {
+                    $stmt = $db->prepare("UPDATE attendance SET is_archived = FALSE, archived_at = NULL, 
+                                          archived_by = NULL WHERE attendance_id = ? AND is_archived = TRUE");
+                    $stmt->execute([$id]);
+                    if ($stmt->rowCount() > 0) {
+                        $restoredCount++;
+                        logActivity($db, getCurrentUserId(), 'restore_attendance', 'attendance', $id, "Batch restored attendance #{$id}");
+                    }
+                } elseif ($type === 'project') {
+                    $stmt = $db->prepare("UPDATE projects SET is_archived = 0, archived_at = NULL, 
+                                          archived_by = NULL, archive_reason = NULL, updated_at = NOW()
+                                          WHERE project_id = ? AND is_archived = 1");
+                    $stmt->execute([$id]);
+                    if ($stmt->rowCount() > 0) {
+                        $restoredCount++;
+                        logActivity($db, getCurrentUserId(), 'restore', 'projects', $id, "Batch restored project #{$id}");
+                    }
+                }
+            } catch (PDOException $e) {
+                error_log("Batch Restore Error: " . $e->getMessage());
+                $errors++;
+            }
+        }
+        
+        if ($restoredCount > 0) {
+            setFlashMessage("Successfully restored {$restoredCount} item" . ($restoredCount != 1 ? 's' : '') . ($errors > 0 ? " ({$errors} failed)" : ''), 'success');
+        } else {
+            setFlashMessage('No items were restored', 'error');
+        }
+    } else {
+        setFlashMessage('No items selected for restore', 'error');
+    }
+    
+    redirect($_SERVER['PHP_SELF']);
+}
+
 // Build query based on type filter
 $archived_items = [];
 
@@ -491,6 +550,61 @@ $total_archived = count($archived_items);
         .no-data i { font-size: 48px; opacity: 0.25; display: block; margin-bottom: 12px; }
         .no-data p { margin: 0 0 4px 0; font-size: 14px; color: #666; }
         .no-data small { font-size: 12px; color: #aaa; }
+
+        /* Checkbox column */
+        .archive-cb { width: 18px; height: 18px; accent-color: #DAA520; cursor: pointer; }
+        th.cb-col, td.cb-col { width: 40px; text-align: center; padding-left: 12px; padding-right: 4px; }
+
+        /* Floating batch restore bar */
+        .batch-bar {
+            position: fixed;
+            bottom: -80px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+            color: #fff;
+            padding: 14px 28px;
+            border-radius: 14px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.35);
+            display: flex;
+            align-items: center;
+            gap: 18px;
+            z-index: 1000;
+            transition: bottom 0.35s cubic-bezier(.4,0,.2,1);
+            font-size: 14px;
+        }
+        .batch-bar.visible { bottom: 30px; }
+        .batch-bar .batch-count {
+            font-weight: 700;
+            color: #DAA520;
+            font-size: 15px;
+        }
+        .batch-bar .btn-batch-restore {
+            padding: 10px 22px;
+            border: none;
+            border-radius: 8px;
+            background: linear-gradient(135deg, #DAA520, #B8860B);
+            color: #fff;
+            font-weight: 700;
+            font-size: 13px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+        .batch-bar .btn-batch-restore:hover { box-shadow: 0 4px 14px rgba(218,165,32,.5); }
+        .batch-bar .btn-batch-cancel {
+            padding: 8px 14px;
+            border: 1px solid rgba(255,255,255,.25);
+            border-radius: 8px;
+            background: transparent;
+            color: #ccc;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .batch-bar .btn-batch-cancel:hover { background: rgba(255,255,255,.1); color: #fff; }
     </style>
 </head>
 <body>
@@ -563,6 +677,9 @@ $total_archived = count($archived_items);
                     <table>
                         <thead>
                             <tr>
+                                <th class="cb-col">
+                                    <input type="checkbox" class="archive-cb" id="selectAllArchive" onchange="toggleSelectAll(this)" title="Select All">
+                                </th>
                                 <th>Type</th>
                                 <th>Item Details</th>
                                 <th>Position / Status</th>
@@ -575,6 +692,12 @@ $total_archived = count($archived_items);
                         <tbody>
                             <?php foreach ($archived_items as $item): ?>
                             <tr>
+                                <td class="cb-col">
+                                    <input type="checkbox" class="archive-cb item-cb" 
+                                           data-type="<?php echo $item['archive_type']; ?>" 
+                                           data-id="<?php echo $item['id']; ?>"
+                                           onchange="updateBatchBar()">
+                                </td>
                                 <td>
                                     <?php if ($item['archive_type'] === 'worker'): ?>
                                         <span class="type-badge worker">
@@ -675,7 +798,73 @@ $total_archived = count($archived_items);
             </div>
         </div>
     </div>
+
+    <!-- Batch restore hidden form -->
+    <form id="batchRestoreForm" method="POST" style="display:none;">
+        <input type="hidden" name="batch_restore" value="1">
+        <input type="hidden" name="restore_items" id="restoreItemsInput" value="">
+    </form>
+
+    <!-- Floating batch action bar -->
+    <div class="batch-bar" id="batchBar">
+        <span id="batchCount" style="color:#fff;font-size:14px;">0 items selected</span>
+        <div>
+            <button type="button" class="batch-restore-btn" onclick="submitBatchRestore()">
+                <i class="fas fa-undo"></i> Restore Selected
+            </button>
+            <button type="button" class="batch-cancel-btn" onclick="clearSelection()">
+                Cancel
+            </button>
+        </div>
+    </div>
     
     <script src="<?php echo JS_URL; ?>/dashboard.js"></script>
+    <script>
+    function toggleSelectAll(master) {
+        document.querySelectorAll('.item-cb').forEach(cb => cb.checked = master.checked);
+        updateBatchBar();
+    }
+
+    function updateBatchBar() {
+        const checked = document.querySelectorAll('.item-cb:checked');
+        const bar = document.getElementById('batchBar');
+        const countEl = document.getElementById('batchCount');
+        const master = document.getElementById('selectAllArchive');
+        const all = document.querySelectorAll('.item-cb');
+
+        if (checked.length > 0) {
+            bar.classList.add('visible');
+            countEl.textContent = checked.length + ' item' + (checked.length > 1 ? 's' : '') + ' selected';
+        } else {
+            bar.classList.remove('visible');
+        }
+
+        if (master) {
+            master.checked = all.length > 0 && checked.length === all.length;
+        }
+    }
+
+    function submitBatchRestore() {
+        const checked = document.querySelectorAll('.item-cb:checked');
+        if (checked.length === 0) return;
+
+        if (!confirm('Restore ' + checked.length + ' selected item(s)?')) return;
+
+        const items = [];
+        checked.forEach(cb => {
+            items.push({ type: cb.dataset.type, id: cb.dataset.id });
+        });
+
+        document.getElementById('restoreItemsInput').value = JSON.stringify(items);
+        document.getElementById('batchRestoreForm').submit();
+    }
+
+    function clearSelection() {
+        document.querySelectorAll('.item-cb').forEach(cb => cb.checked = false);
+        const master = document.getElementById('selectAllArchive');
+        if (master) master.checked = false;
+        document.getElementById('batchBar').classList.remove('visible');
+    }
+    </script>
 </body>
 </html>
