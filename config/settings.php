@@ -149,7 +149,7 @@ define('USER_LEVEL_WORKER', 'worker');
 define('STATUS_ACTIVE', 'active');
 define('STATUS_ON_LEAVE', 'on_leave');
 define('STATUS_TERMINATED', 'terminated');
-define('STATUS_BLOCKLISTED', 'blocklisted');
+define('STATUS_BLACKLISTED', 'blacklisted');
 
 // ============================================
 // ATTENDANCE STATUS

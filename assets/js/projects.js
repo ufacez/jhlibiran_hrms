@@ -411,7 +411,7 @@ function saveProject() {
                 closeAllModals();
                 loadProjects();
                 // If the API redirected to complete_project, show the summary modal
-                if (res.data && res.data.workers_archived !== undefined) {
+                if (res.data && res.data.workers_terminated !== undefined) {
                     showCompletionSummary(res.data);
                 }
                 showToast(res.message, 'success');
@@ -460,14 +460,14 @@ function completeProject(id, name) {
         `This will:\n` +
         `• Mark the project as Completed\n` +
         `• Remove all worker assignments\n` +
-        `• Archive all project-based (non-permanent) employees\n` +
+        `• Terminate all project-based (non-permanent) employees\n` +
         `• Regular employees will remain active\n\n` +
         `This action cannot be easily undone. Continue?`;
 
     if (!confirm(msg)) return;
 
     // Double confirmation for safety
-    if (!confirm(`Final confirmation: Complete "${name}" and archive project-based workers?`)) return;
+    if (!confirm(`Final confirmation: Complete "${name}" and terminate project-based workers?`)) return;
 
     const data = new FormData();
     data.append('action', 'complete_project');
@@ -497,10 +497,10 @@ function completeProject(id, name) {
                 // Build a summary message
                 const d = res.data || {};
                 let summary = res.message;
-                if (d.workers_archived > 0 || d.workers_kept_active > 0) {
+                if (d.workers_terminated > 0 || d.workers_kept_active > 0) {
                     summary += `\n\n📊 Summary:\n`;
                     summary += `• ${d.assignments_removed || 0} assignment(s) removed\n`;
-                    summary += `• ${d.workers_archived || 0} project-based worker(s) archived\n`;
+                    summary += `• ${d.workers_terminated || 0} project-based worker(s) terminated\n`;
                     summary += `• ${d.workers_kept_active || 0} regular worker(s) kept active`;
                 }
 
@@ -522,8 +522,8 @@ function showCompletionSummary(data) {
     let existing = document.getElementById('completionSummaryModal');
     if (existing) existing.remove();
 
-    const archivedList = (data.archived_workers || []).map(w =>
-        `<div class="summary-worker archived"><i class="fas fa-archive"></i> ${escHtml(w.name)} <small>(${escHtml(w.code)})</small></div>`
+    const terminatedList = (data.terminated_workers || []).map(w =>
+        `<div class="summary-worker terminated"><i class="fas fa-user-times"></i> ${escHtml(w.name)} <small>(${escHtml(w.code)})</small></div>`
     ).join('');
 
     const activeList = (data.active_workers || []).map(w =>
@@ -539,7 +539,7 @@ function showCompletionSummary(data) {
             <div style="text-align:center;margin-bottom:20px;">
                 <i class="fas fa-check-circle" style="font-size:48px;color:#2e7d32;"></i>
                 <h2 style="margin:10px 0 5px;color:#333;">Project Completed</h2>
-                <p style="color:#666;font-size:14px;">"${escHtml(data.project_name || '')}" has been completed and archived.</p>
+                <p style="color:#666;font-size:14px;">"${escHtml(data.project_name || '')}" has been completed.</p>
             </div>
             <div style="background:#f5f5f5;border-radius:8px;padding:15px;margin-bottom:15px;">
                 <div style="display:flex;justify-content:space-around;text-align:center;">
@@ -548,8 +548,8 @@ function showCompletionSummary(data) {
                         <div style="font-size:12px;color:#666;">Assignments Removed</div>
                     </div>
                     <div>
-                        <div style="font-size:24px;font-weight:700;color:#e65100;">${data.workers_archived || 0}</div>
-                        <div style="font-size:12px;color:#666;">Workers Archived</div>
+                        <div style="font-size:24px;font-weight:700;color:#e65100;">${data.workers_terminated || 0}</div>
+                        <div style="font-size:12px;color:#666;">Workers Terminated</div>
                     </div>
                     <div>
                         <div style="font-size:24px;font-weight:700;color:#2e7d32;">${data.workers_kept_active || 0}</div>
@@ -557,9 +557,9 @@ function showCompletionSummary(data) {
                     </div>
                 </div>
             </div>
-            ${archivedList || activeList ? `
+            ${terminatedList || activeList ? `
             <div style="max-height:200px;overflow-y:auto;margin-bottom:15px;">
-                ${archivedList ? `<div style="margin-bottom:10px;"><strong style="font-size:13px;color:#e65100;"><i class="fas fa-archive"></i> Archived (Project-Based):</strong>${archivedList}</div>` : ''}
+                ${terminatedList ? `<div style="margin-bottom:10px;"><strong style="font-size:13px;color:#e65100;"><i class="fas fa-user-times"></i> Terminated (Project-Based):</strong>${terminatedList}</div>` : ''}
                 ${activeList ? `<div><strong style="font-size:13px;color:#2e7d32;"><i class="fas fa-user-check"></i> Kept Active (Regular):</strong>${activeList}</div>` : ''}
             </div>` : ''}
             <div style="text-align:center;">
@@ -581,7 +581,7 @@ function showCompletionSummary(data) {
         style.id = 'completionSummaryStyles';
         style.textContent = `
             .summary-worker { padding: 6px 10px; margin: 4px 0; border-radius: 6px; font-size: 13px; }
-            .summary-worker.archived { background: #fff3e0; color: #e65100; }
+            .summary-worker.terminated { background: #f8d7da; color: #721c24; }
             .summary-worker.active { background: #e8f5e9; color: #2e7d32; }
             .summary-worker i { margin-right: 6px; }
             .summary-worker small { color: #999; }
@@ -770,6 +770,13 @@ function toggleWorkerSelection(workerId, checked) {
         selectedWorkerIds.delete(workerId);
     }
     updateSelectedCount();
+    // Sync Select All checkbox
+    const master = document.getElementById('selectAllWorkers');
+    if (master) {
+        const all = document.querySelectorAll('#availableWorkersList .aw-item:not([style*="display: none"]) .aw-check');
+        const allChecked = document.querySelectorAll('#availableWorkersList .aw-item:not([style*="display: none"]) .aw-check:checked');
+        master.checked = all.length > 0 && all.length === allChecked.length;
+    }
 }
 
 function toggleSelectAllWorkers(masterCheckbox) {

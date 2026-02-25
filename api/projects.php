@@ -199,23 +199,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $deactStmt->execute([$project_id]);
                     $removedCount = $deactStmt->rowCount();
 
-                    // 4. Archive project-based workers; keep regular workers active
-                    $archivedWorkers = [];
+                    // 4. Terminate project-based workers; keep regular workers active
+                    $terminatedWorkers = [];
                     $keptActiveWorkers = [];
 
-                    $archiveStmt = $db->prepare("UPDATE workers SET 
-                        is_archived = TRUE, archived_at = NOW(), archived_by = ?, 
-                        archive_reason = ?, employment_status = 'end_of_contract',
+                    $terminateStmt = $db->prepare("UPDATE workers SET 
+                        employment_status = 'terminated',
                         updated_at = NOW() WHERE worker_id = ?");
 
                     foreach ($assignedWorkers as $w) {
                         if ($w['employment_type'] === 'project_based') {
-                            $reason = "End of contract - Project \"{$pName}\" completed";
-                            $archiveStmt->execute([$user_id, $reason, $w['worker_id']]);
-                            $archivedWorkers[] = $w;
+                            $terminateStmt->execute([$w['worker_id']]);
+                            $terminatedWorkers[] = $w;
 
-                            logActivity($db, $user_id, 'archive_worker', 'workers', $w['worker_id'],
-                                "Auto-archived project-based worker: {$w['first_name']} {$w['last_name']} ({$w['worker_code']}) - Project \"{$pName}\" completed");
+                            logActivity($db, $user_id, 'terminate_worker', 'workers', $w['worker_id'],
+                                "Auto-terminated project-based worker: {$w['first_name']} {$w['last_name']} ({$w['worker_code']}) - Project \"{$pName}\" completed");
                         } else {
                             $keptActiveWorkers[] = $w;
                         }
@@ -224,7 +222,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     // 5. Log the project completion
                     logActivity($db, $user_id, 'complete_project', 'projects', $project_id,
                         "Completed project: {$pName}. Removed {$removedCount} assignments. " .
-                        "Archived " . count($archivedWorkers) . " project-based worker(s). " .
+                        "Terminated " . count($terminatedWorkers) . " project-based worker(s). " .
                         "Kept " . count($keptActiveWorkers) . " regular worker(s) active.");
 
                     $db->commit();
@@ -233,11 +231,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         'project_id'       => $project_id,
                         'project_name'     => $pName,
                         'assignments_removed' => $removedCount,
-                        'workers_archived' => count($archivedWorkers),
+                        'workers_terminated' => count($terminatedWorkers),
                         'workers_kept_active' => count($keptActiveWorkers),
-                        'archived_workers' => array_map(function($w) {
+                        'terminated_workers' => array_map(function($w) {
                             return ['worker_id' => $w['worker_id'], 'name' => $w['first_name'] . ' ' . $w['last_name'], 'code' => $w['worker_code']];
-                        }, $archivedWorkers),
+                        }, $terminatedWorkers),
                         'active_workers' => array_map(function($w) {
                             return ['worker_id' => $w['worker_id'], 'name' => $w['first_name'] . ' ' . $w['last_name'], 'code' => $w['worker_code']];
                         }, $keptActiveWorkers)

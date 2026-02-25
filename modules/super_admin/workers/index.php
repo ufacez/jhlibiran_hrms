@@ -356,7 +356,7 @@ try {
                                     <option value="">All Status</option>
                                     <option value="active" <?php echo $status_filter === 'active' ? 'selected' : ''; ?>>Active</option>
                                     <option value="on_leave" <?php echo $status_filter === 'on_leave' ? 'selected' : ''; ?>>On Leave</option>
-                                    <option value="blocklisted" <?php echo $status_filter === 'blocklisted' ? 'selected' : ''; ?>>Blocklisted</option>
+                                    <option value="blacklisted" <?php echo $status_filter === 'blacklisted' ? 'selected' : ''; ?>>Blacklisted</option>
                                     <option value="terminated" <?php echo $status_filter === 'terminated' ? 'selected' : ''; ?>>Terminated</option>
                                 </select>
                             </div>
@@ -383,6 +383,7 @@ try {
                         <table class="workers-table">
                             <thead>
                                 <tr>
+                                    <th style="width:40px;text-align:center;"><input type="checkbox" id="selectAllWorkers" onchange="toggleSelectAllWorkers(this)" style="width:18px;height:18px;accent-color:#DAA520;cursor:pointer;"></th>
                                     <th>Worker</th>
                                     <th>Classification</th>
                                     <th>Role</th>
@@ -395,7 +396,7 @@ try {
                             <tbody>
                                 <?php if (empty($workers)): ?>
                                 <tr>
-                                    <td colspan="7" class="no-data">
+                                    <td colspan="8" class="no-data">
                                         <i class="fas fa-users"></i>
                                         <p>No workers found</p>
                                         <?php if ($permissions['can_add_workers']): ?>
@@ -408,6 +409,9 @@ try {
                                 <?php else: ?>
                                     <?php foreach ($workers as $worker): ?>
                                     <tr>
+                                        <td style="text-align:center;width:40px;">
+                                            <input type="checkbox" class="worker-cb" value="<?php echo $worker['worker_id']; ?>" data-status="<?php echo htmlspecialchars($worker['employment_status']); ?>" onchange="updateWorkerBatchBar()" style="width:18px;height:18px;accent-color:#DAA520;cursor:pointer;">
+                                        </td>
                                         <td>
                                             <div class="worker-info">
                                                 <div class="worker-avatar">
@@ -454,6 +458,13 @@ try {
                                                     <i class="fas fa-edit"></i>
                                                 </button>
                                                 <?php endif; ?>
+                                                <?php if ($worker['employment_status'] !== 'active'): ?>
+                                                <button class="action-btn btn-activate" 
+                                                    onclick="confirmActivate(<?php echo $worker['worker_id']; ?>, '<?php echo htmlspecialchars($worker['first_name'] . ' ' . $worker['last_name']); ?>')"
+                                                        title="Activate">
+                                                    <i class="fas fa-user-check"></i>
+                                                </button>
+                                                <?php endif; ?>
                                                 <?php if ($permissions['can_delete_workers']): ?>
                                                 <button class="action-btn btn-archive" 
                                                     onclick="confirmArchive(<?php echo $worker['worker_id']; ?>, '<?php echo htmlspecialchars($worker['first_name'] . ' ' . $worker['last_name']); ?>')"
@@ -490,6 +501,30 @@ try {
         </div>
     </div>
     
+    <!-- Batch action bar -->
+    <div class="worker-batch-bar" id="workerBatchBar">
+        <span id="workerBatchCount" style="color:#fff;font-size:14px;">0 selected</span>
+        <div style="display:flex;gap:10px;">
+            <button type="button" class="batch-activate-btn" onclick="batchActivateWorkers()">
+                <i class="fas fa-user-check"></i> Activate Selected
+            </button>
+            <button type="button" class="batch-cancel-btn" onclick="clearWorkerSelection()">
+                Cancel
+            </button>
+        </div>
+    </div>
+
+    <style>
+        .action-btn.btn-activate { background: #28a745; color: #fff; }
+        .action-btn.btn-activate:hover { background: #218838; }
+        .worker-batch-bar { position:fixed; bottom:0; left:0; right:0; z-index:9999; display:flex; justify-content:space-between; align-items:center; padding:14px 30px; background:linear-gradient(135deg,#1a1a1a,#2a2a2a); border-top:2px solid #DAA520; box-shadow:0 -4px 20px rgba(0,0,0,.3); transform:translateY(100%); transition:transform .3s ease; }
+        .worker-batch-bar.visible { transform:translateY(0); }
+        .batch-activate-btn { padding:8px 20px; background:linear-gradient(135deg,#28a745,#218838); color:#fff; border:none; border-radius:8px; cursor:pointer; font-weight:600; font-size:13px; display:inline-flex; align-items:center; gap:6px; transition:all .2s; }
+        .batch-activate-btn:hover { box-shadow:0 3px 12px rgba(40,167,69,.4); transform:translateY(-1px); }
+        .batch-cancel-btn { padding:8px 20px; background:#555; color:#fff; border:none; border-radius:8px; cursor:pointer; font-size:13px; transition:all .2s; }
+        .batch-cancel-btn:hover { background:#666; }
+    </style>
+
     <script src="<?php echo JS_URL; ?>/dashboard.js"></script>
     <script src="<?php echo JS_URL; ?>/workers.js"></script>
     <script>
@@ -738,6 +773,104 @@ try {
                     </div>
                 </div>
             </div>`;
+        }
+
+        // ===== Select All / Batch Activate =====
+        function toggleSelectAllWorkers(master) {
+            document.querySelectorAll('.worker-cb').forEach(cb => {
+                cb.checked = master.checked;
+            });
+            updateWorkerBatchBar();
+        }
+
+        function updateWorkerBatchBar() {
+            const checked = document.querySelectorAll('.worker-cb:checked');
+            const all = document.querySelectorAll('.worker-cb');
+            const bar = document.getElementById('workerBatchBar');
+            const countEl = document.getElementById('workerBatchCount');
+            const master = document.getElementById('selectAllWorkers');
+
+            if (checked.length > 0) {
+                bar.classList.add('visible');
+                countEl.textContent = checked.length + ' worker' + (checked.length > 1 ? 's' : '') + ' selected';
+            } else {
+                bar.classList.remove('visible');
+            }
+
+            if (master) {
+                master.checked = all.length > 0 && checked.length === all.length;
+            }
+        }
+
+        function clearWorkerSelection() {
+            document.querySelectorAll('.worker-cb').forEach(cb => cb.checked = false);
+            const master = document.getElementById('selectAllWorkers');
+            if (master) master.checked = false;
+            document.getElementById('workerBatchBar').classList.remove('visible');
+        }
+
+        function confirmActivate(workerId, workerName) {
+            if (confirm(`Activate worker "${workerName}"?\n\nThis will set their status back to Active.`)) {
+                activateWorker(workerId);
+            }
+        }
+
+        function activateWorker(workerId) {
+            showLoading('Activating worker...');
+            fetch('../../../api/workers.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: `action=activate&id=${workerId}`
+            })
+            .then(r => r.json())
+            .then(data => {
+                hideLoading();
+                if (data.success) {
+                    alert(data.message);
+                    window.location.reload();
+                } else {
+                    alert(data.message);
+                }
+            })
+            .catch(() => { hideLoading(); alert('Failed to activate worker'); });
+        }
+
+        function batchActivateWorkers() {
+            const checked = document.querySelectorAll('.worker-cb:checked');
+            if (checked.length === 0) return;
+
+            // Filter only non-active workers
+            const ids = [];
+            checked.forEach(cb => {
+                if (cb.dataset.status !== 'active') {
+                    ids.push(cb.value);
+                }
+            });
+
+            if (ids.length === 0) {
+                alert('All selected workers are already active.');
+                return;
+            }
+
+            if (!confirm(`Activate ${ids.length} selected worker(s)?\n\nTheir status will be set to Active.`)) return;
+
+            showLoading('Activating workers...');
+            fetch('../../../api/workers.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: `action=batch_activate&ids=${ids.join(',')}`
+            })
+            .then(r => r.json())
+            .then(data => {
+                hideLoading();
+                if (data.success) {
+                    alert(data.message);
+                    window.location.reload();
+                } else {
+                    alert(data.message);
+                }
+            })
+            .catch(() => { hideLoading(); alert('Failed to activate workers'); });
         }
     </script>
 </body>

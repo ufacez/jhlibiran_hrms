@@ -130,6 +130,51 @@ if ($action === 'view' && isset($_GET['id'])) {
     }
 } else {
     // Handle POST actions like delete
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'activate' && isset($_POST['id'])) {
+        $worker_id = intval($_POST['id']);
+        try {
+            $stmt = $db->prepare("SELECT first_name, last_name, worker_code FROM workers WHERE worker_id = ?");
+            $stmt->execute([$worker_id]);
+            $worker = $stmt->fetch(PDO::FETCH_ASSOC);
+            if (!$worker) {
+                echo json_encode(['success' => false, 'message' => 'Worker not found']);
+                exit;
+            }
+            $stmt = $db->prepare("UPDATE workers SET employment_status = 'active', updated_at = NOW() WHERE worker_id = ?");
+            $stmt->execute([$worker_id]);
+            logActivity($db, getCurrentUserId(), 'activate_worker', 'workers', $worker_id,
+                       "Activated worker: {$worker['first_name']} {$worker['last_name']} ({$worker['worker_code']})");
+            echo json_encode(['success' => true, 'message' => 'Worker activated successfully']);
+            exit;
+        } catch (PDOException $e) {
+            error_log('Worker API Activate Error: ' . $e->getMessage());
+            echo json_encode(['success' => false, 'message' => 'Failed to activate worker']);
+            exit;
+        }
+    }
+
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'batch_activate' && isset($_POST['ids'])) {
+        $ids = array_filter(array_map('intval', explode(',', $_POST['ids'])));
+        if (empty($ids)) {
+            echo json_encode(['success' => false, 'message' => 'No valid worker IDs provided']);
+            exit;
+        }
+        try {
+            $placeholders = implode(',', array_fill(0, count($ids), '?'));
+            $stmt = $db->prepare("UPDATE workers SET employment_status = 'active', updated_at = NOW() WHERE worker_id IN ($placeholders)");
+            $stmt->execute($ids);
+            $count = $stmt->rowCount();
+            logActivity($db, getCurrentUserId(), 'batch_activate_workers', 'workers', 0,
+                       "Batch activated {$count} worker(s): IDs " . implode(', ', $ids));
+            echo json_encode(['success' => true, 'message' => "{$count} worker(s) activated successfully"]);
+            exit;
+        } catch (PDOException $e) {
+            error_log('Worker API Batch Activate Error: ' . $e->getMessage());
+            echo json_encode(['success' => false, 'message' => 'Failed to activate workers']);
+            exit;
+        }
+    }
+
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'archive' && isset($_POST['id'])) {
         // Permission check (reuse delete permission for archive)
         $permissions = getAdminPermissions($db);
