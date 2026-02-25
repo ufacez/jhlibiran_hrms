@@ -400,7 +400,7 @@ function getSeverityBadge($severity) {
             <div class="logs-content">
                 <div class="page-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
                     <div class="header-left">
-                        <h1><i class="fas fa-shield-alt"></i> Audit Trail</h1>
+                        <h1>Audit Trail</h1>
                         <p class="subtitle">Unified log of all system activities and changes</p>
                     </div>
                     <div class="header-actions">

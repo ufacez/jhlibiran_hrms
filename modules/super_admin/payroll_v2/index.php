@@ -1664,11 +1664,22 @@ $pageTitle = 'Payroll Management';
                 
                 // Show monthly gross basis when government deductions are applied
                 if (payroll.deductions && payroll.deductions.is_last_payroll_of_month && payroll.deductions.monthly_gross_basis > 0) {
+                    let breakdownLines = '';
+                    if (payroll.deductions.monthly_gross_breakdown && payroll.deductions.monthly_gross_breakdown.length > 0) {
+                        payroll.deductions.monthly_gross_breakdown.forEach(p => {
+                            const sourceLabel = p.source === 'current' ? ' (this payroll)' : '';
+                            breakdownLines += `<div style="display:flex;justify-content:space-between;font-size:11px;color:#555;padding:2px 0;">
+                                <span>${p.label}${sourceLabel}</span>
+                                <span>₱${formatNum(p.gross)}</span>
+                            </div>`;
+                        });
+                    }
                     deductionsHtml += `
-                        <div class="info-note" style="background:#f0f7ff;border-left:3px solid #3b82f6;margin-bottom:10px;">
+                        <div class="info-note" style="background:#f0f7ff;border-left:3px solid #3b82f6;margin-bottom:10px;padding:8px 10px;">
                             <i class="fas fa-calculator" style="color:#3b82f6"></i> 
                             <strong>Monthly Gross Basis:</strong> ₱${formatNum(payroll.deductions.monthly_gross_basis)}
-                            <span style="display:block;font-size:10px;color:#666;margin-top:2px">Total computed salary for all weeks this month — used as basis for government deductions</span>
+                            <span style="display:block;font-size:10px;color:#666;margin-top:2px"</span>
+                            ${breakdownLines ? `<div style="margin-top:6px;border-top:1px solid #d4e4f7;padding-top:6px;">${breakdownLines}</div>` : ''}
                         </div>`;
                 }
                 

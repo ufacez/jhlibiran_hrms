@@ -274,10 +274,17 @@ function renderTopLateWorkers(workers) {
     }
 
     section.style.display = 'block';
-    const maxLate = Math.max(...workers.map(w => w.late_pct), 1);
 
     tbody.innerHTML = workers.map(w => {
-        const improvementOpp = (100 - w.late_pct).toFixed(1);
+        // Punctuality = present / total (how often they arrived on time)
+        const punctuality = w.punctuality ?? 0;
+        // Color coding based on punctuality rate
+        const barColor = punctuality >= 90 ? '#28a745' : punctuality >= 75 ? '#f57f17' : '#e53935';
+        const ratingLabel = punctuality >= 90 ? 'Good' : punctuality >= 75 ? 'Needs Work' : 'Critical';
+        const ratingColor = punctuality >= 90 ? '#28a745' : punctuality >= 75 ? '#f57f17' : '#e53935';
+        // Tardiness rate = (late + absent) / total
+        const tardinessRate = w.tardiness_rate ?? 0;
+
         return `
         <tr>
             <td>
@@ -291,12 +298,13 @@ function renderTopLateWorkers(workers) {
                     </div>
                 </div>
             </td>
-            <td style="font-weight:700;color:#f57f17;">${w.late_count} instance${w.late_count !== 1 ? 's' : ''}</td>
-            <td>${w.total}</td>
+            <td style="font-weight:700;color:#f57f17;text-align:center;">${w.late_count} day${w.late_count !== 1 ? 's' : ''}</td>
+            <td style="font-weight:700;color:#e53935;text-align:center;">${w.absent_count} day${w.absent_count !== 1 ? 's' : ''}</td>
+            <td style="text-align:center;">${w.total}</td>
             <td>
                 <div class="improvement-bar-cell">
-                    <div class="improvement-bar" style="width:${Math.round((w.late_pct / maxLate) * 100)}px;"></div>
-                    <span class="improvement-pct-text">${improvementOpp}% on-track</span>
+                    <div class="improvement-bar" style="width:${Math.min(Math.round(punctuality), 100)}px;background:${barColor};"></div>
+                    <span class="improvement-pct-text" style="color:${ratingColor};">${punctuality}% · ${ratingLabel}</span>
                 </div>
             </td>
         </tr>`;

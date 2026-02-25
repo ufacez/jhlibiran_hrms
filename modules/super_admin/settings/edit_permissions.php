@@ -83,6 +83,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_permissions'])
             'can_view_bir', 'can_edit_bir', 'can_view_sss', 'can_edit_sss', 'can_view_philhealth', 'can_edit_philhealth', 'can_view_pagibig', 'can_edit_pagibig',
             'can_view_deductions', 'can_manage_deductions',
             'can_view_cashadvance', 'can_approve_cashadvance',
+            // Projects
+            'can_view_projects', 'can_manage_projects',
+            // Reports & Analytics
+            'can_view_reports', 'can_export_data', 'can_view_analytics', 'can_export_reports',
+            // System access
             'can_access_settings', 'can_access_audit', 'can_access_archive', 'can_manage_admins'
         ];
         
@@ -522,11 +527,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_permissions'])
                         </div>
                     </div>
                     
-                    <!-- Reports Permissions -->
+                    <!-- Projects Permissions -->
                     <div class="form-card">
                         <div class="section-header">
                             <h3 class="section-title">
-                                <i class="fas fa-chart-bar"></i> Reports & Export
+                                <i class="fas fa-project-diagram"></i> Projects Management
+                            </h3>
+                            <button type="button" class="select-all-btn" onclick="toggleSection('projects')">
+                                Toggle All
+                            </button>
+                        </div>
+                        <div class="permissions-grid">
+                            <div class="permission-item" onclick="toggleCheckbox('can_view_projects')">
+                                <input type="checkbox" name="can_view_projects" id="can_view_projects" value="1"
+                                       <?php echo ($permissions['can_view_projects'] ?? 0) ? 'checked' : ''; ?>>
+                                <label for="can_view_projects">View Projects</label>
+                            </div>
+                            <div class="permission-item" onclick="toggleCheckbox('can_manage_projects')">
+                                <input type="checkbox" name="can_manage_projects" id="can_manage_projects" value="1"
+                                       <?php echo ($permissions['can_manage_projects'] ?? 0) ? 'checked' : ''; ?>>
+                                <label for="can_manage_projects">Manage Projects</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Reports & Analytics Permissions -->
+                    <div class="form-card">
+                        <div class="section-header">
+                            <h3 class="section-title">
+                                <i class="fas fa-chart-bar"></i> Reports & Analytics
                             </h3>
                             <button type="button" class="select-all-btn" onclick="toggleSection('reports')">
                                 Toggle All
@@ -542,6 +571,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_permissions'])
                                 <input type="checkbox" name="can_export_data" id="can_export_data" value="1"
                                        <?php echo ($permissions['can_export_data'] ?? 0) ? 'checked' : ''; ?>>
                                 <label for="can_export_data">Export Data</label>
+                            </div>
+                            <div class="permission-item" onclick="toggleCheckbox('can_view_analytics')">
+                                <input type="checkbox" name="can_view_analytics" id="can_view_analytics" value="1"
+                                       <?php echo ($permissions['can_view_analytics'] ?? 0) ? 'checked' : ''; ?>>
+                                <label for="can_view_analytics">View Analytics</label>
+                            </div>
+                            <div class="permission-item" onclick="toggleCheckbox('can_export_reports')">
+                                <input type="checkbox" name="can_export_reports" id="can_export_reports" value="1"
+                                       <?php echo ($permissions['can_export_reports'] ?? 0) ? 'checked' : ''; ?>>
+                                <label for="can_export_reports">Export Reports</label>
                             </div>
                         </div>
                     </div>
@@ -621,7 +660,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_permissions'])
                 'payroll': ['can_view_payroll', 'can_generate_payroll', 'can_approve_payroll', 'can_mark_paid', 'can_edit_payroll', 'can_delete_payroll', 'can_view_payroll_settings', 'can_edit_payroll_settings'],
                 'deductions': ['can_view_deductions', 'can_manage_deductions'],
                 'cashadvance': ['can_view_cashadvance', 'can_approve_cashadvance'],
-                'reports': ['can_view_reports', 'can_export_data']
+                'projects': ['can_view_projects', 'can_manage_projects'],
+                'reports': ['can_view_reports', 'can_export_data', 'can_view_analytics', 'can_export_reports']
             };
             
             if (sections[section]) {

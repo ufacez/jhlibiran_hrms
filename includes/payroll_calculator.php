@@ -767,9 +767,12 @@ class PayrollCalculator {
         $isLastPayrollOfMonth = $this->isLastPayrollOfMonth($periodEnd);
         
         if ($isLastPayrollOfMonth) {
-            // Get the actual total monthly gross for this worker (all payrolls in the same month)
-            // This is the correct basis for ALL government deductions per Philippine labor law
+            // Get the actual total monthly gross for this worker
+            // ONLY based on generated payroll records (not raw attendance)
             $monthlyGross = $this->getMonthlyGrossForWorker($workerId, $periodEnd, $grossPay);
+            
+            // Get the breakdown of which generated payroll periods make up the monthly gross
+            $monthlyGrossBreakdown = $this->getMonthlyGrossBreakdown($workerId, $periodEnd, $grossPay);
             
             // Calculate full monthly contributions using actual monthly gross as basis
             $sssCalculation = $this->calculateSSSContribution($grossPay, $periodEnd, $monthlyGross);
@@ -834,7 +837,8 @@ class PayrollCalculator {
             'philhealth_details' => $philhealthCalculation,
             'pagibig_details' => $pagibigCalculation,
             'is_last_payroll_of_month' => $isLastPayrollOfMonth,
-            'monthly_gross_basis' => $isLastPayrollOfMonth ? round($monthlyGross, 2) : null
+            'monthly_gross_basis' => $isLastPayrollOfMonth ? round($monthlyGross, 2) : null,
+            'monthly_gross_breakdown' => $isLastPayrollOfMonth ? ($monthlyGrossBreakdown ?? []) : []
         ];
         
         // Add SSS as item (only if deducted this period)
@@ -1790,15 +1794,18 @@ class PayrollCalculator {
         $monthEnd = date('Y-m-t', strtotime($periodEnd));
         
         try {
-            // --- Strategy 1: Use saved payroll records for previous periods in this month ---
-            // This is most reliable since these values were already computed and saved
+            // ONLY use saved/generated payroll records whose period_end falls
+            // within this month. This means a cross-month period like Apr 26 - May 2
+            // (period_end = May 2) will NOT be counted in April — it belongs to May.
+            // The period_end date determines which month a payroll belongs to.
             $stmt = $this->pdo->prepare("
-                SELECT COALESCE(SUM(pr.gross_pay), 0) as saved_gross, COUNT(pr.record_id) as record_count
+                SELECT COALESCE(SUM(pr.gross_pay), 0) as saved_gross, 
+                       COUNT(pr.record_id) as record_count
                 FROM payroll_records pr
                 JOIN payroll_periods pp ON pr.period_id = pp.period_id
                 WHERE pr.worker_id = ?
                 AND pp.period_end >= ?
-                AND pp.period_start <= ?
+                AND pp.period_end <= ?
                 AND pp.period_end != ?
                 AND pr.status != 'cancelled'
                 AND pr.is_archived = 0
@@ -1809,59 +1816,80 @@ class PayrollCalculator {
             $savedCount = intval($savedRow['record_count'] ?? 0);
             
             if ($savedCount > 0 && $savedGross > 0) {
-                // We have saved payroll records for previous weeks — use them
-                error_log("PayrollCalculator: Monthly gross for worker {$workerId} - Using {$savedCount} saved records (₱" . number_format($savedGross, 2) . ") + current (₱" . number_format($currentGross, 2) . ")");
+                // We have saved payroll records for previous weeks — use them + current
+                error_log("PayrollCalculator: Monthly gross for worker {$workerId} - Using {$savedCount} generated payroll records (₱" . number_format($savedGross, 2) . ") + current period (₱" . number_format($currentGross, 2) . ")");
                 return $savedGross + $currentGross;
             }
             
-            // --- Strategy 2: No saved records — calculate from ALL attendance in the month ---
-            // This handles the case where previous weeks haven't been generated yet
-            $workerRates = $this->getWorkerRates($workerId);
-            if (!$workerRates) {
-                return $currentGross;
-            }
-            
-            // Load holidays for the entire month
-            $this->loadHolidays($monthStart, $monthEnd);
-            
-            // Determine current period start to exclude current period's dates
-            // (to avoid double-counting with $currentGross which is already calculated)
-            $currentPeriodStart = date('Y-m-d', strtotime('-6 days', strtotime($periodEnd)));
-            
-            // Get attendance records for the month EXCLUDING the current period dates
-            $stmt = $this->pdo->prepare("
-                SELECT attendance_id, worker_id, attendance_date, time_in, time_out, 
-                       hours_worked, raw_hours_worked, break_hours, late_minutes,
-                       overtime_hours, status, notes
-                FROM attendance 
-                WHERE worker_id = ? 
-                AND attendance_date >= ?
-                AND attendance_date <= ?
-                AND attendance_date NOT BETWEEN ? AND ?
-                AND is_archived = 0
-                AND time_in IS NOT NULL 
-                AND time_out IS NOT NULL
-                ORDER BY attendance_date ASC
-            ");
-            $stmt->execute([$workerId, $monthStart, $monthEnd, $currentPeriodStart, $periodEnd]);
-            $attendanceRecords = $stmt->fetchAll(PDO::FETCH_ASSOC);
-            
-            // Calculate gross from each attendance record using the same pay logic
-            $previousGross = 0;
-            foreach ($attendanceRecords as $attendance) {
-                $dayResult = $this->processAttendanceRecordWithWorkerRates($attendance, $workerRates);
-                $previousGross += $dayResult['total'];
-            }
-            
-            error_log("PayrollCalculator: Monthly gross for worker {$workerId} - Calculated from " . count($attendanceRecords) . " attendance records (₱" . number_format($previousGross, 2) . ") + current (₱" . number_format($currentGross, 2) . ")");
-            
-            return $previousGross + $currentGross;
+            // No previously generated payroll records for this month
+            // Monthly gross is just the current period's gross
+            error_log("PayrollCalculator: Monthly gross for worker {$workerId} - No previous generated payrolls this month, using current period only (₱" . number_format($currentGross, 2) . ")");
+            return $currentGross;
             
         } catch (Exception $e) {
             error_log("PayrollCalculator: Failed to get monthly gross for worker {$workerId} - " . $e->getMessage());
-            // Fallback: estimate from weekly gross × weeks divisor
-            return $currentGross * self::WEEKLY_DIVISOR;
+            // Fallback: just use current gross (safest, no estimation)
+            return $currentGross;
         }
+    }
+    
+    /**
+     * Get a detailed breakdown of which generated payroll periods make up the monthly gross
+     * Only includes actually generated/saved payroll records — never raw attendance.
+     * 
+     * @param int $workerId Worker ID
+     * @param string $periodEnd Current payroll period end date
+     * @param float $currentGross Current period's calculated gross pay
+     * @return array Array of periods with their gross amounts
+     */
+    private function getMonthlyGrossBreakdown($workerId, $periodEnd, $currentGross) {
+        $monthStart = date('Y-m-01', strtotime($periodEnd));
+        $monthEnd = date('Y-m-t', strtotime($periodEnd));
+        $breakdown = [];
+        
+        try {
+            // Get all generated payroll records whose period_end falls within this month
+            // (excluding the current period). Cross-month periods belong to the month
+            // of their period_end, not period_start.
+            $stmt = $this->pdo->prepare("
+                SELECT pp.period_start, pp.period_end, pr.gross_pay
+                FROM payroll_records pr
+                JOIN payroll_periods pp ON pr.period_id = pp.period_id
+                WHERE pr.worker_id = ?
+                AND pp.period_end >= ?
+                AND pp.period_end <= ?
+                AND pp.period_end != ?
+                AND pr.status != 'cancelled'
+                AND pr.is_archived = 0
+                ORDER BY pp.period_start ASC
+            ");
+            $stmt->execute([$workerId, $monthStart, $monthEnd, $periodEnd]);
+            $records = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            foreach ($records as $record) {
+                $breakdown[] = [
+                    'period_start' => $record['period_start'],
+                    'period_end' => $record['period_end'],
+                    'label' => date('M d', strtotime($record['period_start'])) . ' - ' . date('M d', strtotime($record['period_end'])),
+                    'gross' => round(floatval($record['gross_pay']), 2),
+                    'source' => 'generated'
+                ];
+            }
+        } catch (Exception $e) {
+            error_log("PayrollCalculator: Failed to get monthly gross breakdown - " . $e->getMessage());
+        }
+        
+        // Add current period
+        $currentPeriodStart = date('Y-m-d', strtotime('-6 days', strtotime($periodEnd)));
+        $breakdown[] = [
+            'period_start' => $currentPeriodStart,
+            'period_end' => $periodEnd,
+            'label' => date('M d', strtotime($currentPeriodStart)) . ' - ' . date('M d', strtotime($periodEnd)),
+            'gross' => round($currentGross, 2),
+            'source' => 'current'
+        ];
+        
+        return $breakdown;
     }
     
     /**

@@ -125,39 +125,39 @@ try {
             ];
 
             // Top late workers
+            // Workers with tardiness / absences (combined late + absent)
             $topLateSql = "SELECT w.worker_code, w.first_name, w.last_name,
-                                  COUNT(*) as late_count,
-                                  (SELECT COUNT(*) FROM attendance a2
-                                   JOIN workers w2 ON a2.worker_id = w2.worker_id
-                                   WHERE a2.worker_id = a.worker_id AND a2.is_archived = 0 AND w2.is_archived = 0" .
-                            ($date_from ? " AND a2.attendance_date >= ?" : "") .
-                            ($date_to   ? " AND a2.attendance_date <= ?" : "") .
-                          ") as total_records
+                                  COUNT(*) as total_records,
+                                  SUM(CASE WHEN a.status = 'late' THEN 1 ELSE 0 END) as late_count,
+                                  SUM(CASE WHEN a.status = 'absent' THEN 1 ELSE 0 END) as absent_count,
+                                  SUM(CASE WHEN a.status IN ('present','overtime') THEN 1 ELSE 0 END) as present_count
                            FROM attendance a
                            JOIN workers w ON a.worker_id = w.worker_id
-                           WHERE {$attnWhere} AND a.status = 'late'
+                           WHERE {$attnWhere}
                            GROUP BY a.worker_id, w.worker_code, w.first_name, w.last_name
-                           ORDER BY late_count DESC
+                           HAVING SUM(CASE WHEN a.status IN ('late','absent') THEN 1 ELSE 0 END) > 0
+                           ORDER BY SUM(CASE WHEN a.status IN ('late','absent') THEN 1 ELSE 0 END) DESC
                            LIMIT 10";
-            // Build params for subquery + main query
-            $topLateParams = [];
-            if ($date_from) $topLateParams[] = $date_from;
-            if ($date_to)   $topLateParams[] = $date_to;
-            $topLateParams = array_merge($topLateParams, $attnParams);
 
             $stmt = $db->prepare($topLateSql);
-            $stmt->execute($topLateParams);
+            $stmt->execute($attnParams);
             $topLate = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             $data['top_late_workers'] = array_map(function($r) {
-                $total = (int)$r['total_records'];
-                $lateC = (int)$r['late_count'];
+                $total   = (int)$r['total_records'];
+                $lateC   = (int)$r['late_count'];
+                $absentC = (int)$r['absent_count'];
+                $presentC = (int)$r['present_count'];
+                $missed  = $lateC + $absentC;
                 return [
-                    'name'       => $r['first_name'] . ' ' . $r['last_name'],
-                    'code'       => $r['worker_code'],
-                    'late_count' => $lateC,
-                    'total'      => $total,
-                    'late_pct'   => $total > 0 ? round(($lateC / $total) * 100, 1) : 0,
+                    'name'           => $r['first_name'] . ' ' . $r['last_name'],
+                    'code'           => $r['worker_code'],
+                    'late_count'     => $lateC,
+                    'absent_count'   => $absentC,
+                    'present_count'  => $presentC,
+                    'total'          => $total,
+                    'tardiness_rate' => $total > 0 ? round(($missed / $total) * 100, 1) : 0,
+                    'punctuality'    => $total > 0 ? round(($presentC / $total) * 100, 1) : 0,
                 ];
             }, $topLate);
 

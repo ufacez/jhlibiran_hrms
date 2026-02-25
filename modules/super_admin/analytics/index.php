@@ -64,7 +64,7 @@ $flash      = getFlashMessage();
                 <!-- Page Header -->
                 <div class="page-header">
                     <div class="header-left">
-                        <h1><i class="fas fa-chart-pie" style="color:#DAA520;margin-right:8px;"></i>Analytics & Reports</h1>
+                        <h1>Analytics & Reports</h1>
                         <p class="subtitle">Calculated insights and workforce distributions</p>
                     </div>
                     <div class="header-actions">
@@ -181,20 +181,21 @@ $flash      = getFlashMessage();
                             </div>
                         </div>
 
-                        <!-- Attendance Improvement Insights -->
+                        <!-- Tardiness & Absences Summary -->
                         <div class="insight-card" id="topLateSection" style="display:none;">
                             <div class="card-header">
-                                <h3><i class="fas fa-chart-bar"></i> Attendance Improvement Insights</h3>
-                                <span class="record-count improvement-badge"><i class="fas fa-bullseye"></i> Focus Areas</span>
+                                <h3><i class="fas fa-chart-bar"></i> Tardiness & Absences Summary</h3>
+                                <span class="record-count improvement-badge"><i class="fas fa-exclamation-triangle"></i> Workers to Watch</span>
                             </div>
                             <div class="table-wrapper">
                                 <table class="workers-table analytics-table">
                                     <thead>
                                         <tr>
                                             <th>Worker</th>
-                                            <th>Needs Improvement</th>
-                                            <th>Total Records</th>
-                                            <th>Improvement Opportunity</th>
+                                            <th>Late</th>
+                                            <th>Absent</th>
+                                            <th>Total Days</th>
+                                            <th>Punctuality Rate</th>
                                         </tr>
                                     </thead>
                                     <tbody id="topLateBody"></tbody>

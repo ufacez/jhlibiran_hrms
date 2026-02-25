@@ -344,7 +344,7 @@ function formatActivityTime($datetime) {
                 
                 <div class="page-header">
                     <div class="header-left">
-                        <h1><i class="fas fa-cogs"></i> System Settings</h1>
+                        <h1> System Settings</h1>
                         <p class="subtitle">Manage system configuration and administrators</p>
                     </div>
                 </div>

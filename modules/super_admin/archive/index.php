@@ -514,7 +514,7 @@ $total_archived = count($archived_items);
                 
                 <div class="page-header">
                     <div>
-                        <h1><i class="fas fa-archive"></i> Archive Center</h1>
+                        <h1>Archive Center</h1>
                         <p class="subtitle">View and restore archived items from the system</p>
                     </div>
                 </div>
