@@ -304,19 +304,25 @@ function renderProjects() {
         const end   = p.end_date ? formatDate(p.end_date) : '—';
         const loc   = p.location || '—';
         const st    = (p.status || '').replace(/_/g, ' ');
+        const isCompleted = p.status === 'completed';
+        const isArchived = p.is_archived == 1;
+        const checkmark = isCompleted ? '<i class="fas fa-check-circle" style="color:#2e7d32;margin-right:4px;"></i>' : '';
+        const statusLabel = isCompleted ? `<span class="status-pill completed"><i class="fas fa-check" style="font-size:9px;"></i> Completed</span>` : `<span class="status-pill ${p.status}">${st}</span>`;
+        const archiveBadge = isArchived ? ' <span class="status-pill archived"><i class="fas fa-archive" style="font-size:9px;"></i> Archived</span>' : '';
 
         return `
-        <tr data-project-id="${p.project_id}" data-name="${escHtml(p.project_name).toLowerCase()}" data-location="${escHtml(p.location || '').toLowerCase()}" onclick="openProjectDetail(${p.project_id})" style="cursor:pointer;">
-            <td class="name-cell">${escHtml(p.project_name)}</td>
+        <tr data-project-id="${p.project_id}" data-name="${escHtml(p.project_name).toLowerCase()}" data-location="${escHtml(p.location || '').toLowerCase()}" onclick="openProjectDetail(${p.project_id})" style="cursor:pointer;${isArchived && !isCompleted ? 'opacity:0.7;' : ''}">
+            <td class="name-cell">${checkmark}${escHtml(p.project_name)}</td>
             <td class="location-cell">${escHtml(loc)}</td>
             <td class="date-cell">${start}</td>
             <td class="date-cell">${end}</td>
-            <td><span class="status-pill ${p.status}">${st}</span></td>
+            <td>${statusLabel}${archiveBadge}</td>
             <td>
                 <div class="action-buttons" onclick="event.stopPropagation()">
                     <button class="action-btn btn-view" onclick="openProjectDetail(${p.project_id})" title="View Details"><i class="fas fa-eye"></i></button>
-                    <button class="action-btn btn-edit" onclick="openEditModal(${p.project_id})" title="Edit"><i class="fas fa-pen"></i></button>
-                    <button class="action-btn btn-archive" onclick="archiveProject(${p.project_id}, '${escAttr(p.project_name)}')" title="Archive"><i class="fas fa-archive"></i></button>
+                    ${!isArchived ? `<button class="action-btn btn-edit" onclick="openEditModal(${p.project_id})" title="Edit"><i class="fas fa-pen"></i></button>` : ''}
+                    ${!isCompleted && !isArchived ? `<button class="action-btn btn-complete" onclick="completeProject(${p.project_id}, '${escAttr(p.project_name)}')" title="Mark as Completed"><i class="fas fa-check-circle"></i> Complete</button>` : ''}
+                    ${!isArchived ? `<button class="action-btn btn-archive" onclick="archiveProject(${p.project_id}, '${escAttr(p.project_name)}')" title="Archive"><i class="fas fa-archive"></i></button>` : ''}
                 </div>
             </td>
         </tr>`;
@@ -404,6 +410,10 @@ function saveProject() {
             if (res.success) {
                 closeAllModals();
                 loadProjects();
+                // If the API redirected to complete_project, show the summary modal
+                if (res.data && res.data.workers_archived !== undefined) {
+                    showCompletionSummary(res.data);
+                }
                 showToast(res.message, 'success');
             } else {
                 showToast(res.message || 'Error saving project.', 'error');
@@ -442,6 +452,145 @@ function archiveProject(id, name) {
 }
 
 /* ================================================================
+   COMPLETE PROJECT (with project-based worker archiving)
+   ================================================================ */
+function completeProject(id, name) {
+    // Build a detailed confirmation message
+    const msg = `Complete project "${name}"?\n\n` +
+        `This will:\n` +
+        `• Mark the project as Completed\n` +
+        `• Remove all worker assignments\n` +
+        `• Archive all project-based (non-permanent) employees\n` +
+        `• Regular employees will remain active\n\n` +
+        `This action cannot be easily undone. Continue?`;
+
+    if (!confirm(msg)) return;
+
+    // Double confirmation for safety
+    if (!confirm(`Final confirmation: Complete "${name}" and archive project-based workers?`)) return;
+
+    const data = new FormData();
+    data.append('action', 'complete_project');
+    data.append('project_id', id);
+
+    // Show loading state
+    showToast('Completing project...', 'success');
+
+    fetch(API, {
+        method: 'POST',
+        body: data,
+        credentials: 'same-origin'
+    })
+        .then(r => {
+            if (r.status === 401) {
+                window.location.href = '/tracksite/login.php';
+                return;
+            }
+            return r.json();
+        })
+        .then(res => {
+            if (!res) return;
+            if (res.success) {
+                closeAllModals();
+                loadProjects();
+
+                // Build a summary message
+                const d = res.data || {};
+                let summary = res.message;
+                if (d.workers_archived > 0 || d.workers_kept_active > 0) {
+                    summary += `\n\n📊 Summary:\n`;
+                    summary += `• ${d.assignments_removed || 0} assignment(s) removed\n`;
+                    summary += `• ${d.workers_archived || 0} project-based worker(s) archived\n`;
+                    summary += `• ${d.workers_kept_active || 0} regular worker(s) kept active`;
+                }
+
+                // Show completion modal with details
+                showCompletionSummary(d);
+                showToast(res.message, 'success');
+            } else {
+                showToast(res.message || 'Failed to complete project.', 'error');
+            }
+        })
+        .catch(() => showToast('Network error – please try again.', 'error'));
+}
+
+/**
+ * Show a modal summarizing the project completion results
+ */
+function showCompletionSummary(data) {
+    // Remove existing summary modal if any
+    let existing = document.getElementById('completionSummaryModal');
+    if (existing) existing.remove();
+
+    const archivedList = (data.archived_workers || []).map(w =>
+        `<div class="summary-worker archived"><i class="fas fa-archive"></i> ${escHtml(w.name)} <small>(${escHtml(w.code)})</small></div>`
+    ).join('');
+
+    const activeList = (data.active_workers || []).map(w =>
+        `<div class="summary-worker active"><i class="fas fa-user-check"></i> ${escHtml(w.name)} <small>(${escHtml(w.code)})</small></div>`
+    ).join('');
+
+    const modal = document.createElement('div');
+    modal.id = 'completionSummaryModal';
+    modal.className = 'modal active';
+    modal.style.cssText = 'z-index:100000';
+    modal.innerHTML = `
+        <div class="modal-content" style="max-width:520px;padding:30px;">
+            <div style="text-align:center;margin-bottom:20px;">
+                <i class="fas fa-check-circle" style="font-size:48px;color:#2e7d32;"></i>
+                <h2 style="margin:10px 0 5px;color:#333;">Project Completed</h2>
+                <p style="color:#666;font-size:14px;">"${escHtml(data.project_name || '')}" has been completed and archived.</p>
+            </div>
+            <div style="background:#f5f5f5;border-radius:8px;padding:15px;margin-bottom:15px;">
+                <div style="display:flex;justify-content:space-around;text-align:center;">
+                    <div>
+                        <div style="font-size:24px;font-weight:700;color:#1565c0;">${data.assignments_removed || 0}</div>
+                        <div style="font-size:12px;color:#666;">Assignments Removed</div>
+                    </div>
+                    <div>
+                        <div style="font-size:24px;font-weight:700;color:#e65100;">${data.workers_archived || 0}</div>
+                        <div style="font-size:12px;color:#666;">Workers Archived</div>
+                    </div>
+                    <div>
+                        <div style="font-size:24px;font-weight:700;color:#2e7d32;">${data.workers_kept_active || 0}</div>
+                        <div style="font-size:12px;color:#666;">Workers Kept Active</div>
+                    </div>
+                </div>
+            </div>
+            ${archivedList || activeList ? `
+            <div style="max-height:200px;overflow-y:auto;margin-bottom:15px;">
+                ${archivedList ? `<div style="margin-bottom:10px;"><strong style="font-size:13px;color:#e65100;"><i class="fas fa-archive"></i> Archived (Project-Based):</strong>${archivedList}</div>` : ''}
+                ${activeList ? `<div><strong style="font-size:13px;color:#2e7d32;"><i class="fas fa-user-check"></i> Kept Active (Regular):</strong>${activeList}</div>` : ''}
+            </div>` : ''}
+            <div style="text-align:center;">
+                <button onclick="document.getElementById('completionSummaryModal').remove();document.body.style.overflow='';" 
+                        class="btn-filter-apply" style="padding:10px 30px;font-size:14px;">
+                    <i class="fas fa-check"></i> Got It
+                </button>
+            </div>
+        </div>`;
+    modal.addEventListener('click', e => {
+        if (e.target === modal) { modal.remove(); document.body.style.overflow = ''; }
+    });
+    document.body.appendChild(modal);
+    document.body.style.overflow = 'hidden';
+
+    // Inject styles for summary items if not already present
+    if (!document.getElementById('completionSummaryStyles')) {
+        const style = document.createElement('style');
+        style.id = 'completionSummaryStyles';
+        style.textContent = `
+            .summary-worker { padding: 6px 10px; margin: 4px 0; border-radius: 6px; font-size: 13px; }
+            .summary-worker.archived { background: #fff3e0; color: #e65100; }
+            .summary-worker.active { background: #e8f5e9; color: #2e7d32; }
+            .summary-worker i { margin-right: 6px; }
+            .summary-worker small { color: #999; }
+        `;
+        document.head.appendChild(style);
+    }
+}
+
+/* ================================================================
    PROJECT DETAIL MODAL (with schedule grid)
    ================================================================ */
 let currentProjectId = null;
@@ -455,15 +604,27 @@ function openProjectDetail(id) {
     const start = formatDate(p.start_date);
     const end   = p.end_date ? formatDate(p.end_date) : 'Ongoing';
     const st    = (p.status || '').replace(/_/g, ' ');
+    const isCompleted = p.status === 'completed';
+    const isArchived = p.is_archived == 1;
+    const statusHtml = isCompleted
+        ? `<span class="status-pill completed"><i class="fas fa-check" style="font-size:9px;"></i> Completed</span>`
+        : `<span class="status-pill ${p.status}">${st}</span>`;
+    const archiveHtml = isArchived
+        ? ` <span class="status-pill archived"><i class="fas fa-archive" style="font-size:9px;"></i> Archived</span>`
+        : '';
+    const completeBtn = (!isCompleted && !isArchived)
+        ? `<button onclick="completeProject(${p.project_id}, '${escAttr(p.project_name)}')" style="margin-top:12px;padding:8px 20px;background:#28a745;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:all .2s;" onmouseover="this.style.background='#218838'" onmouseout="this.style.background='#28a745'"><i class="fas fa-check-circle"></i> Mark as Completed</button>`
+        : '';
     hdr.innerHTML = `
         <div>
-            <h2 class="detail-title">${escHtml(p.project_name)}</h2>
+            <h2 class="detail-title">${isCompleted ? '<i class="fas fa-check-circle" style="color:#2e7d32;margin-right:6px;"></i>' : ''}${escHtml(p.project_name)}</h2>
             <div class="detail-meta">
                 <span><i class="fas fa-calendar-alt"></i> ${start} – ${end}</span>
                 <span><i class="fas fa-map-marker-alt"></i> ${escHtml(p.location || 'Not specified')}</span>
-                <span class="status-pill ${p.status}">${st}</span>
+                ${statusHtml}${archiveHtml}
             </div>
             ${p.description ? `<p style="margin-top:10px;color:#666;font-size:14px">${escHtml(p.description)}</p>` : ''}
+            ${completeBtn}
         </div>`;
 
     loadProjectWorkers(id);
@@ -501,6 +662,9 @@ function loadProjectWorkers(id) {
 
             body.innerHTML = workers.map(w => {
                 const initials = getInitials(w.first_name + ' ' + w.last_name);
+                const empType = w.employment_type === 'regular' ? 
+                    '<span style="background:#e3f2fd;color:#1565c0;padding:2px 6px;border-radius:3px;font-size:10px;font-weight:600;margin-left:4px;">REGULAR</span>' :
+                    '<span style="background:#fff3e0;color:#e65100;padding:2px 6px;border-radius:3px;font-size:10px;font-weight:600;margin-left:4px;">PROJECT-BASED</span>';
                 let cells = '';
                 DAYS.forEach((day, i) => {
                     const isWknd = (i >= 5) ? ' weekend' : '';
@@ -525,7 +689,7 @@ function loadProjectWorkers(id) {
                             <div class="det-worker-avatar">${initials}</div>
                             <div>
                                 <div class="det-worker-name">${escHtml(w.first_name + ' ' + w.last_name)}</div>
-                                <div class="det-worker-code">${escHtml(w.worker_code)} · ${escHtml(w.position)}</div>
+                                <div class="det-worker-code">${escHtml(w.worker_code)} · ${escHtml(w.position)} ${empType}</div>
                             </div>
                         </div>
                     </td>

@@ -60,9 +60,14 @@ $classifications = $classStmt->fetchAll(PDO::FETCH_ASSOC);
 $typeStmt = $pdo->query("SELECT work_type_id, work_type_name FROM work_types ORDER BY work_type_name");
 $workTypes = $typeStmt->fetchAll(PDO::FETCH_ASSOC);
 
-// Get active workers
+// Get active workers with their assigned project
 $stmt = $pdo->query("
-    SELECT w.worker_id, w.worker_code, w.first_name, w.last_name, w.position, wt.work_type_name, wc.classification_name
+    SELECT w.worker_id, w.worker_code, w.first_name, w.last_name, w.position, wt.work_type_name, wc.classification_name,
+           (SELECT GROUP_CONCAT(p.project_name SEPARATOR ', ')
+            FROM project_workers pw
+            JOIN projects p ON pw.project_id = p.project_id
+            WHERE pw.worker_id = w.worker_id AND pw.is_active = 1 AND p.is_archived = 0
+           ) AS assigned_project
     FROM workers w
     LEFT JOIN work_types wt ON w.work_type_id = wt.work_type_id
     LEFT JOIN worker_classifications wc ON wt.classification_id = wc.classification_id
@@ -984,6 +989,15 @@ $pageTitle = 'Payroll Management';
                                                     </span>
                                                 <?php endif; ?>
                                             </div>
+                                            <?php if (!empty($worker['assigned_project'])): ?>
+                                                <div style="font-size:11px; color:#DAA520; margin-top:2px;">
+                                                    <i class="fas fa-project-diagram" style="font-size:10px; margin-right:3px;"></i><?php echo htmlspecialchars($worker['assigned_project']); ?>
+                                                </div>
+                                            <?php else: ?>
+                                                <div style="font-size:11px; color:#aaa; margin-top:2px; font-style:italic;">
+                                                    <i class="fas fa-exclamation-circle" style="font-size:10px; margin-right:3px;"></i>No project assigned
+                                                </div>
+                                            <?php endif; ?>
                                         </div>
                                         <div class="worker-code"><?php  echo $worker['worker_code']; ?></div>
                                     </div>

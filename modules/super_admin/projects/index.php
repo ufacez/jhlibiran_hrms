@@ -201,13 +201,15 @@ $flash = getFlashMessage();
         .status-pill.on_hold   { background: #fff3e0; color: #e65100; }
         .status-pill.on_hold::before { background: #e65100; }
         .status-pill.completed { background: #e8f5e9; color: #1b5e20; }
-        .status-pill.completed::before { background: #1b5e20; }
+        .status-pill.completed::before { display: none; }
         .status-pill.cancelled { background: #fbe9e7; color: #c62828; }
         .status-pill.cancelled::before { background: #c62828; }
         .status-pill.delayed   { background: #ffebee; color: #c62828; }
         .status-pill.delayed::before { background: #c62828; }
         .status-pill.in_progress { background: #fff8e1; color: #f57f17; }
         .status-pill.in_progress::before { background: #f57f17; }
+        .status-pill.archived  { background: #f3e5f5; color: #6a1b9a; }
+        .status-pill.archived::before { display: none; }
 
         /* Action buttons - standardized across all pages */
         .projects-table .action-buttons { display: flex; gap: 8px; }
@@ -221,6 +223,8 @@ $flash = getFlashMessage();
         .projects-table .action-btn.btn-view:hover { background: #138496; }
         .projects-table .action-btn.btn-edit { background: #ffc107; color: #1a1a1a; }
         .projects-table .action-btn.btn-edit:hover { background: #e0a800; }
+        .projects-table .action-btn.btn-complete { background: #28a745; gap: 5px; font-size: 12px; font-weight: 600; }
+        .projects-table .action-btn.btn-complete:hover { background: #218838; }
         .projects-table .action-btn.btn-archive { background: #6c757d; }
         .projects-table .action-btn.btn-archive:hover { background: #5a6268; }
 
@@ -371,8 +375,9 @@ $flash = getFlashMessage();
                                 <option value="planning">Planning</option>
                                 <option value="in_progress">In Progress</option>
                                 <option value="on_hold">On Hold</option>
-                                <option value="completed">Completed</option>
+                                <option value="completed">✔ Completed</option>
                                 <option value="cancelled">Cancelled</option>
+                                <option value="archived">📦 Archived</option>
                             </select>
                         </div>
                         <div class="filter-group">
@@ -492,9 +497,13 @@ $flash = getFlashMessage();
                         <select id="fieldStatus" class="form-control">
                             <option value="planning">Planning</option>
                             <option value="active">Active</option>
+                            <option value="in_progress">In Progress</option>
                             <option value="on_hold">On Hold</option>
-                            <option value="completed">Completed</option>
+                            <option value="delayed">Delayed</option>
+                            <option value="cancelled">Cancelled</option>
+                            <option value="completed">✔ Completed</option>
                         </select>
+                        <small style="color:#666;margin-top:4px;display:block;"><i class="fas fa-info-circle"></i> Setting status to <strong>Completed</strong> will also archive project-based workers.</small>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -595,7 +604,11 @@ $flash = getFlashMessage();
             // Status filter
             const status = document.getElementById('filterStatus').value;
             if (status) {
-                filtered = filtered.filter(p => p.status === status);
+                if (status === 'archived') {
+                    filtered = filtered.filter(p => p.is_archived == 1);
+                } else {
+                    filtered = filtered.filter(p => p.status === status);
+                }
             }
 
             // Date range filter
@@ -648,19 +661,25 @@ $flash = getFlashMessage();
                 const end   = p.end_date ? formatDate(p.end_date) : '—';
                 const loc   = p.location || '—';
                 const st    = (p.status || '').replace(/_/g, ' ');
+                const isCompleted = p.status === 'completed';
+                const isArchived = p.is_archived == 1;
+                const checkmark = isCompleted ? '<i class="fas fa-check-circle" style="color:#2e7d32;margin-right:4px;"></i>' : '';
+                const statusLabel = isCompleted ? `<span class="status-pill completed"><i class="fas fa-check" style="font-size:9px;"></i> Completed</span>` : `<span class="status-pill ${p.status}">${st}</span>`;
+                const archiveBadge = isArchived ? ' <span class="status-pill archived"><i class="fas fa-archive" style="font-size:9px;"></i> Archived</span>' : '';
 
                 return `
-                <tr data-project-id="${p.project_id}" data-name="${escHtml(p.project_name).toLowerCase()}" data-location="${escHtml(p.location || '').toLowerCase()}" onclick="openProjectDetail(${p.project_id})" style="cursor:pointer;">
-                    <td class="name-cell">${escHtml(p.project_name)}</td>
+                <tr data-project-id="${p.project_id}" data-name="${escHtml(p.project_name).toLowerCase()}" data-location="${escHtml(p.location || '').toLowerCase()}" onclick="openProjectDetail(${p.project_id})" style="cursor:pointer;${isArchived && !isCompleted ? 'opacity:0.7;' : ''}">
+                    <td class="name-cell">${checkmark}${escHtml(p.project_name)}</td>
                     <td class="location-cell">${escHtml(loc)}</td>
                     <td class="date-cell">${start}</td>
                     <td class="date-cell">${end}</td>
-                    <td><span class="status-pill ${p.status}">${st}</span></td>
+                    <td>${statusLabel}${archiveBadge}</td>
                     <td>
                         <div class="action-buttons" onclick="event.stopPropagation()">
                             <button class="action-btn btn-view" onclick="openProjectDetail(${p.project_id})" title="View Details"><i class="fas fa-eye"></i></button>
-                            <button class="action-btn btn-edit" onclick="openEditModal(${p.project_id})" title="Edit"><i class="fas fa-pen"></i></button>
-                            <button class="action-btn btn-archive" onclick="archiveProject(${p.project_id}, '${escAttr(p.project_name)}')" title="Archive"><i class="fas fa-archive"></i></button>
+                            ${!isArchived ? `<button class="action-btn btn-edit" onclick="openEditModal(${p.project_id})" title="Edit"><i class="fas fa-pen"></i></button>` : ''}
+                            ${!isCompleted && !isArchived ? `<button class="action-btn btn-complete" onclick="completeProject(${p.project_id}, '${escAttr(p.project_name)}')" title="Mark as Completed"><i class="fas fa-check-circle"></i> Complete</button>` : ''}
+                            ${!isArchived ? `<button class="action-btn btn-archive" onclick="archiveProject(${p.project_id}, '${escAttr(p.project_name)}')" title="Archive"><i class="fas fa-archive"></i></button>` : ''}
                         </div>
                     </td>
                 </tr>`;

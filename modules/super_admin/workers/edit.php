@@ -130,6 +130,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $daily_rate = sanitizeFloat($_POST['daily_rate'] ?? 0);
     $experience_years = sanitizeInt($_POST['experience_years'] ?? 0);
     $employment_status = sanitizeString($_POST['employment_status'] ?? 'active');
+    $employment_type = sanitizeString($_POST['employment_type'] ?? 'project_based');
     
     // Emergency Contact
     $emergency_contact_name = sanitizeString($_POST['emergency_contact_name'] ?? '');
@@ -280,6 +281,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     hourly_rate = ?,
                     experience_years = ?,
                     employment_status = ?,
+                    employment_type = ?,
                     emergency_contact_name = ?,
                     emergency_contact_phone = ?,
                     emergency_contact_relationship = ?,
@@ -295,7 +297,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->execute([
                 $first_name, $middle_name, $last_name, $position, $worker_type, $work_type_id, $phone,
                 $date_of_birth, $gender, $addresses_json, $date_hired,
-                $daily_rate, $hourly_rate, $experience_years, $employment_status,
+                $daily_rate, $hourly_rate, $experience_years, $employment_status, $employment_type,
                 $emergency_contact_name, $emergency_contact_phone, $emergency_contact_relationship,
                 $sss_number, $philhealth_number, $pagibig_number, $tin_number,
                 $ids_json, $worker_id
@@ -987,7 +989,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     <option value="on_leave" <?php echo $worker['employment_status'] === 'on_leave' ? 'selected' : ''; ?>>On Leave</option>
                                     <option value="blocklisted" <?php echo $worker['employment_status'] === 'blocklisted' ? 'selected' : ''; ?>>Blocklisted</option>
                                     <option value="terminated" <?php echo $worker['employment_status'] === 'terminated' ? 'selected' : ''; ?>>Terminated</option>
+                                    <option value="end_of_contract" <?php echo $worker['employment_status'] === 'end_of_contract' ? 'selected' : ''; ?>>End of Contract</option>
                                 </select>
+                            </div>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="employment_type">Employment Type <span class="required-asterisk">*</span></label>
+                                <select name="employment_type" id="employment_type" required>
+                                    <option value="project_based" <?php echo ($worker['employment_type'] ?? 'project_based') === 'project_based' ? 'selected' : ''; ?>>Project-Based</option>
+                                    <option value="regular" <?php echo ($worker['employment_type'] ?? '') === 'regular' ? 'selected' : ''; ?>>Regular Employee</option>
+                                </select>
+                                <small style="color:#666;margin-top:4px;display:block;">Project-based workers are automatically archived when their assigned project is completed.</small>
                             </div>
                         </div>
                     </div>

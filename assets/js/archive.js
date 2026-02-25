@@ -13,6 +13,15 @@ function confirmRestore(workerId, workerName) {
 }
 
 /**
+ * Confirm restore project
+ */
+function confirmRestoreProject(projectId, projectName) {
+    if (confirm(`Restore project "${projectName}"?\n\nNote: Workers archived due to project completion will NOT be automatically restored. You'll need to restore them individually.`)) {
+        window.location.href = `archive.php?restore_project=${projectId}`;
+    }
+}
+
+/**
  * Confirm permanent delete
  */
 function confirmPermanentDelete(workerId, workerName) {

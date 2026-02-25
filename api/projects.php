@@ -115,10 +115,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     apiResponse(false, 'Invalid data.');
                 }
 
-                // Capture old values for audit
+                // GUARD: If user tries to set status to 'completed' via the edit form,
+                // redirect them to use the Complete Project action instead (which handles archiving)
                 $oldStmt = $db->prepare("SELECT project_name, description, location, start_date, end_date, status FROM projects WHERE project_id = ?");
                 $oldStmt->execute([$project_id]);
                 $oldValues = $oldStmt->fetch(PDO::FETCH_ASSOC);
+
+                if ($status === 'completed' && ($oldValues['status'] ?? '') !== 'completed') {
+                    // Instead of silently updating, trigger the full completion flow
+                    $_POST['action'] = 'complete_project';
+                    // But first update the non-status fields
+                    $stmt = $db->prepare("UPDATE projects SET
+                        project_name = ?, description = ?, location = ?,
+                        start_date = ?, end_date = ?, updated_at = NOW()
+                        WHERE project_id = ?");
+                    $stmt->execute([$name, $desc, $location, $start_date,
+                                    $end_date ?: null, $project_id]);
+                    // Now fall through to complete_project logic
+                    goto complete_project_handler;
+                }
 
                 $stmt = $db->prepare("UPDATE projects SET
                     project_name = ?, description = ?, location = ?,
@@ -131,6 +146,109 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             "Updated project: {$name}");
 
                 apiResponse(true, 'Project updated successfully');
+                break;
+
+            /* ── Complete project (archive project-based workers) ── */
+            case 'complete_project':
+            complete_project_handler:
+                if (!isSuperAdmin() && !hasPermission($db, 'can_manage_projects')) {
+                    http_response_code(403);
+                    apiResponse(false, 'You do not have permission to manage projects.');
+                }
+
+                $project_id = intval($_POST['project_id'] ?? 0);
+                if ($project_id <= 0) {
+                    http_response_code(400);
+                    apiResponse(false, 'Invalid project ID.');
+                }
+
+                // Fetch project info
+                $pStmt = $db->prepare("SELECT project_name, status FROM projects WHERE project_id = ? AND is_archived = 0");
+                $pStmt->execute([$project_id]);
+                $project = $pStmt->fetch(PDO::FETCH_ASSOC);
+                if (!$project) {
+                    http_response_code(404);
+                    apiResponse(false, 'Project not found.');
+                }
+
+                $db->beginTransaction();
+                try {
+                    $pName = $project['project_name'];
+
+                    // 1. Mark the project as completed
+                    $stmt = $db->prepare("UPDATE projects SET status = 'completed', 
+                        completed_at = NOW(), completed_by = ?, is_archived = 1,
+                        archived_at = NOW(), archived_by = ?, archive_reason = 'Project completed',
+                        updated_at = NOW() WHERE project_id = ?");
+                    $stmt->execute([$user_id, $user_id, $project_id]);
+
+                    // 2. Get all active workers assigned to this project
+                    $wStmt = $db->prepare("
+                        SELECT w.worker_id, w.first_name, w.last_name, w.worker_code, 
+                               w.employment_type, w.employment_status
+                        FROM project_workers pw
+                        JOIN workers w ON pw.worker_id = w.worker_id
+                        WHERE pw.project_id = ? AND pw.is_active = 1
+                    ");
+                    $wStmt->execute([$project_id]);
+                    $assignedWorkers = $wStmt->fetchAll(PDO::FETCH_ASSOC);
+
+                    // 3. Deactivate ALL project assignments for this project
+                    $deactStmt = $db->prepare("UPDATE project_workers SET is_active = 0, 
+                        removed_date = CURDATE() WHERE project_id = ? AND is_active = 1");
+                    $deactStmt->execute([$project_id]);
+                    $removedCount = $deactStmt->rowCount();
+
+                    // 4. Archive project-based workers; keep regular workers active
+                    $archivedWorkers = [];
+                    $keptActiveWorkers = [];
+
+                    $archiveStmt = $db->prepare("UPDATE workers SET 
+                        is_archived = TRUE, archived_at = NOW(), archived_by = ?, 
+                        archive_reason = ?, employment_status = 'end_of_contract',
+                        updated_at = NOW() WHERE worker_id = ?");
+
+                    foreach ($assignedWorkers as $w) {
+                        if ($w['employment_type'] === 'project_based') {
+                            $reason = "End of contract - Project \"{$pName}\" completed";
+                            $archiveStmt->execute([$user_id, $reason, $w['worker_id']]);
+                            $archivedWorkers[] = $w;
+
+                            logActivity($db, $user_id, 'archive_worker', 'workers', $w['worker_id'],
+                                "Auto-archived project-based worker: {$w['first_name']} {$w['last_name']} ({$w['worker_code']}) - Project \"{$pName}\" completed");
+                        } else {
+                            $keptActiveWorkers[] = $w;
+                        }
+                    }
+
+                    // 5. Log the project completion
+                    logActivity($db, $user_id, 'complete_project', 'projects', $project_id,
+                        "Completed project: {$pName}. Removed {$removedCount} assignments. " .
+                        "Archived " . count($archivedWorkers) . " project-based worker(s). " .
+                        "Kept " . count($keptActiveWorkers) . " regular worker(s) active.");
+
+                    $db->commit();
+
+                    apiResponse(true, "Project \"{$pName}\" completed successfully.", [
+                        'project_id'       => $project_id,
+                        'project_name'     => $pName,
+                        'assignments_removed' => $removedCount,
+                        'workers_archived' => count($archivedWorkers),
+                        'workers_kept_active' => count($keptActiveWorkers),
+                        'archived_workers' => array_map(function($w) {
+                            return ['worker_id' => $w['worker_id'], 'name' => $w['first_name'] . ' ' . $w['last_name'], 'code' => $w['worker_code']];
+                        }, $archivedWorkers),
+                        'active_workers' => array_map(function($w) {
+                            return ['worker_id' => $w['worker_id'], 'name' => $w['first_name'] . ' ' . $w['last_name'], 'code' => $w['worker_code']];
+                        }, $keptActiveWorkers)
+                    ]);
+
+                } catch (PDOException $e) {
+                    $db->rollBack();
+                    error_log("Complete Project Error: " . $e->getMessage());
+                    http_response_code(500);
+                    apiResponse(false, 'Failed to complete project. All changes have been rolled back.');
+                }
                 break;
 
             /* ── Archive project ── */
@@ -152,8 +270,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $pStmt->execute([$project_id]);
                 $pName = $pStmt->fetchColumn() ?: "Project #{$project_id}";
 
-                $stmt = $db->prepare("UPDATE projects SET is_archived = 1, updated_at = NOW() WHERE project_id = ?");
-                $stmt->execute([$project_id]);
+                $stmt = $db->prepare("UPDATE projects SET is_archived = 1, archived_at = NOW(), archived_by = ?, archive_reason = 'Manually archived', updated_at = NOW() WHERE project_id = ?");
+                $stmt->execute([$user_id, $project_id]);
 
                 logActivity($db, $user_id, 'archive', 'projects', $project_id,
                             "Archived project: {$pName}");
@@ -251,16 +369,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             /* ── List all projects ── */
             case 'list':
                 $status = sanitizeString($_GET['status'] ?? '');
+                $include_archived = intval($_GET['include_archived'] ?? 1);
 
                 $sql = "SELECT p.*,
                         (SELECT COUNT(*) FROM project_workers pw
                          WHERE pw.project_id = p.project_id AND pw.is_active = 1) AS worker_count
-                        FROM projects p WHERE p.is_archived = 0";
+                        FROM projects p WHERE 1=1";
                 $params = [];
 
+                if (!$include_archived) {
+                    $sql .= " AND p.is_archived = 0";
+                }
+
                 if (!empty($status)) {
-                    $sql .= " AND p.status = ?";
-                    $params[] = $status;
+                    if ($status === 'archived') {
+                        $sql .= " AND p.is_archived = 1";
+                    } else {
+                        $sql .= " AND p.status = ?";
+                        $params[] = $status;
+                    }
                 }
                 $sql .= " ORDER BY p.start_date DESC, p.project_name";
 
@@ -301,7 +428,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 $stmt = $db->prepare("
                     SELECT w.worker_id, w.worker_code, w.first_name, w.last_name,
-                           w.position, w.daily_rate, pw.assigned_date
+                           w.position, w.daily_rate, w.employment_type, pw.assigned_date
                     FROM project_workers pw
                     JOIN workers w ON pw.worker_id = w.worker_id
                     WHERE pw.project_id = ? AND pw.is_active = 1

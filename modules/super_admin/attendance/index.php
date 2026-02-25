@@ -26,6 +26,7 @@ $classification_filter = isset($_GET['classification']) ? sanitizeString($_GET['
 $work_type_filter = isset($_GET['work_type']) ? sanitizeString($_GET['work_type']) : '';
 $status_filter = isset($_GET['status']) ? sanitizeString($_GET['status']) : '';
 $date_filter = isset($_GET['date']) ? sanitizeString($_GET['date']) : date('Y-m-d');
+$date_to_filter = isset($_GET['date_to']) ? sanitizeString($_GET['date_to']) : '';
 $project_filter = isset($_GET['project']) ? intval($_GET['project']) : 0;
 
 // Build query for attendance - joins schedule for the day
@@ -44,8 +45,15 @@ $sql = "SELECT a.*, w.worker_code, w.first_name, w.last_name,
         LEFT JOIN schedules s ON s.worker_id = a.worker_id 
             AND s.day_of_week = {$day_of_week_expr}
             AND s.is_active = 1
-        WHERE a.attendance_date = ? AND a.is_archived = FALSE AND w.is_archived = FALSE";
-$params = [$date_filter];
+        WHERE a.is_archived = FALSE AND w.is_archived = FALSE";
+
+if (!empty($date_to_filter)) {
+    $sql .= " AND a.attendance_date >= ? AND a.attendance_date <= ?";
+    $params = [$date_filter, $date_to_filter];
+} else {
+    $sql .= " AND a.attendance_date = ?";
+    $params = [$date_filter];
+}
 
 if ($project_filter > 0) {
     $sql .= " AND w.worker_id IN (SELECT pw.worker_id FROM project_workers pw WHERE pw.project_id = ? AND pw.is_active = 1)";
@@ -104,11 +112,19 @@ try {
 
 // Get total workers for the day
 try {
-    $stmt = $db->prepare("SELECT COUNT(DISTINCT a.worker_id) as total 
-                         FROM attendance a
-                         JOIN workers w ON a.worker_id = w.worker_id
-                         WHERE a.attendance_date = ? AND a.is_archived = FALSE AND w.is_archived = FALSE");
-    $stmt->execute([$date_filter]);
+    if (!empty($date_to_filter)) {
+        $stmt = $db->prepare("SELECT COUNT(DISTINCT a.worker_id) as total 
+                             FROM attendance a
+                             JOIN workers w ON a.worker_id = w.worker_id
+                             WHERE a.attendance_date >= ? AND a.attendance_date <= ? AND a.is_archived = FALSE AND w.is_archived = FALSE");
+        $stmt->execute([$date_filter, $date_to_filter]);
+    } else {
+        $stmt = $db->prepare("SELECT COUNT(DISTINCT a.worker_id) as total 
+                             FROM attendance a
+                             JOIN workers w ON a.worker_id = w.worker_id
+                             WHERE a.attendance_date = ? AND a.is_archived = FALSE AND w.is_archived = FALSE");
+        $stmt->execute([$date_filter]);
+    }
     $total_workers_today = $stmt->fetch()['total'];
 } catch (PDOException $e) {
     $total_workers_today = 0;
@@ -126,8 +142,8 @@ try {
     <link rel="stylesheet" href="<?php echo CSS_URL; ?>/attendance.css">
     <link rel="stylesheet" href="<?php echo CSS_URL; ?>/buttons.css">
     <style>
-        /* Attendance page: 5 filter groups + actions */
-        .filter-row-5 { grid-template-columns: repeat(5, 1fr) auto; }
+        /* Attendance page: 6 filter groups + actions */
+        .filter-row-5 { grid-template-columns: repeat(6, 1fr) auto; }
         @media (max-width: 1200px) { .filter-row-5 { grid-template-columns: repeat(3, 1fr) auto; } }
         @media (max-width: 900px) { .filter-row-5 { grid-template-columns: 1fr 1fr; } }
         @media (max-width: 768px) { .filter-row-5 { grid-template-columns: 1fr; } }
@@ -219,8 +235,13 @@ try {
                             </div>
                             
                             <div class="filter-group">
-                                <label>Date</label>
+                                <label>Date From</label>
                                 <input type="date" name="date" id="dateFilter" value="<?php echo htmlspecialchars($date_filter); ?>" max="<?php echo date('Y-m-d'); ?>">
+                            </div>
+
+                            <div class="filter-group">
+                                <label>Date To <small style="color:#999;font-weight:400;">(optional)</small></label>
+                                <input type="date" name="date_to" id="dateToFilter" value="<?php echo htmlspecialchars($date_to_filter); ?>" max="<?php echo date('Y-m-d'); ?>">
                             </div>
 
                             <div class="filter-actions">
@@ -544,15 +565,16 @@ try {
     // Export Attendance
     function exportAttendance() {
         const date = '<?php echo $date_filter; ?>';
+        const dateTo = '<?php echo $date_to_filter; ?>';
         const classification = '<?php echo $classification_filter; ?>';
         const status = '<?php echo $status_filter; ?>';
         const project = '<?php echo $project_filter; ?>';
         
         let url = '<?php echo BASE_URL; ?>/modules/super_admin/attendance/export.php?date=' + date;
+        if (dateTo) url += '&date_to=' + encodeURIComponent(dateTo);
         if (classification) url += '&classification=' + encodeURIComponent(classification);
         if (status) url += '&status=' + encodeURIComponent(status);
         if (project) url += '&project=' + encodeURIComponent(project);
-        if (status) url += '&status=' + encodeURIComponent(status);
         
         window.location.href = url;
     }

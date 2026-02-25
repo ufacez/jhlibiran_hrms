@@ -431,10 +431,14 @@ try {
                                             <?php
                                             $status_class = 'status-' . str_replace('_', '-', $worker['employment_status']);
                                             $status_text = ucwords(str_replace('_', ' ', $worker['employment_status']));
+                                            $emp_type = $worker['employment_type'] ?? 'project_based';
+                                            $type_label = $emp_type === 'regular' ? 'Regular' : 'Project-Based';
+                                            $type_color = $emp_type === 'regular' ? '#1565c0' : '#e65100';
                                             ?>
                                             <span class="status-badge <?php echo $status_class; ?>">
                                                 <?php echo $status_text; ?>
                                             </span>
+                                            <br><small style="color:<?php echo $type_color; ?>;font-weight:500;"><?php echo $type_label; ?></small>
                                         </td>
                                         <td>
                                             <div class="action-buttons">

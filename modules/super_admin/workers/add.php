@@ -47,6 +47,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $middle_name = sanitizeString($_POST['middle_name'] ?? '');
     $position = sanitizeString($_POST['position'] ?? '');
     $worker_type = sanitizeString($_POST['worker_type'] ?? '');
+    $employment_type = sanitizeString($_POST['employment_type'] ?? 'project_based');
     $phone = sanitizeString($_POST['phone'] ?? '');
     $email = sanitizeEmail($_POST['email'] ?? '');
     
@@ -289,15 +290,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt = $db->prepare("INSERT INTO workers (
                 user_id, worker_code, first_name, middle_name, last_name, position, worker_type, phone,
                 addresses, date_of_birth, gender, emergency_contact_name, emergency_contact_phone,
-                emergency_contact_relationship, date_hired, employment_status, daily_rate, hourly_rate,
+                emergency_contact_relationship, date_hired, employment_status, employment_type, daily_rate, hourly_rate,
                 experience_years, sss_number, philhealth_number, pagibig_number, tin_number,
                 identification_data, work_type_id
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
             
             $stmt->execute([
                 $user_id, $worker_code, $first_name, $middle_name, $last_name, $position, $worker_type, $phone,
                 $addresses, $date_of_birth, $gender, $emergency_contact_name, $emergency_contact_phone,
-                $emergency_contact_relationship, $date_hired, $daily_rate, $hourly_rate > 0 ? $hourly_rate : null,
+                $emergency_contact_relationship, $date_hired, $employment_type, $daily_rate, $hourly_rate > 0 ? $hourly_rate : null,
                 $experience_years, $sss_number, $philhealth_number, $pagibig_number, $tin_number, $ids_data,
                 $work_type_id
             ]);
@@ -1017,6 +1018,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 <label for="date_hired">Date Hired <span class="required">*</span></label>
                                 <input type="date" id="date_hired" name="date_hired" required
                                        value="<?php echo isset($_POST['date_hired']) ? htmlspecialchars($_POST['date_hired']) : date('Y-m-d'); ?>">
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="employment_type">Employment Type <span class="required">*</span></label>
+                                <select id="employment_type" name="employment_type" required>
+                                    <option value="project_based" <?php echo (isset($_POST['employment_type']) && $_POST['employment_type'] === 'project_based') || !isset($_POST['employment_type']) ? 'selected' : ''; ?>>Project-Based</option>
+                                    <option value="regular" <?php echo (isset($_POST['employment_type']) && $_POST['employment_type'] === 'regular') ? 'selected' : ''; ?>>Regular Employee</option>
+                                </select>
+                                <small style="color:#666;margin-top:4px;display:block;">Project-based workers are automatically archived when their assigned project is completed.</small>
                             </div>
                         </div>
                     </div>

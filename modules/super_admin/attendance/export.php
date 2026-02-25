@@ -18,6 +18,7 @@ requireAdminWithPermission($db, 'can_view_attendance', 'You do not have permissi
 
 // Get filter parameters
 $date_filter = isset($_GET['date']) ? sanitizeString($_GET['date']) : date('Y-m-d');
+$date_to_filter = isset($_GET['date_to']) ? sanitizeString($_GET['date_to']) : '';
 $position_filter = isset($_GET['position']) ? sanitizeString($_GET['position']) : '';
 $status_filter = isset($_GET['status']) ? sanitizeString($_GET['status']) : '';
 
@@ -35,9 +36,15 @@ $sql = "SELECT
     a.notes
 FROM attendance a
 JOIN workers w ON a.worker_id = w.worker_id
-WHERE a.attendance_date = ? AND a.is_archived = FALSE AND w.is_archived = FALSE";
+WHERE a.is_archived = FALSE AND w.is_archived = FALSE";
 
-$params = [$date_filter];
+if (!empty($date_to_filter)) {
+    $sql .= " AND a.attendance_date >= ? AND a.attendance_date <= ?";
+    $params = [$date_filter, $date_to_filter];
+} else {
+    $sql .= " AND a.attendance_date = ?";
+    $params = [$date_filter];
+}
 
 if (!empty($position_filter)) {
     $sql .= " AND w.position = ?";
@@ -57,8 +64,9 @@ try {
     $records = $stmt->fetchAll();
     
     // Set headers for CSV download
+    $filename_date = !empty($date_to_filter) ? $date_filter . '_to_' . $date_to_filter : $date_filter;
     header('Content-Type: text/csv; charset=utf-8');
-    header('Content-Disposition: attachment; filename="attendance_' . $date_filter . '.csv"');
+    header('Content-Disposition: attachment; filename=\"attendance_' . $filename_date . '.csv\"');
     header('Pragma: no-cache');
     header('Expires: 0');
     
@@ -110,8 +118,9 @@ try {
     fclose($output);
     
     // Log activity
+    $log_date = !empty($date_to_filter) ? "$date_filter to $date_to_filter" : $date_filter;
     logActivity($db, getCurrentUserId(), 'export_attendance', 'attendance', null,
-               "Exported attendance records for $date_filter");
+               "Exported attendance records for $log_date");
     
     exit();
     

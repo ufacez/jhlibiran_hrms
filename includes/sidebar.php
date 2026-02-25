@@ -470,6 +470,20 @@ if (!isset($db) || !$db) {
         
         <div class="menu-separator"></div>
         
+        <!-- ANALYTICS & REPORTS -->
+        <div class="menu-category">
+            <i class="fas fa-chart-line"></i> Analytics
+        </div>
+        <li>
+            <a href="<?php echo BASE_URL; ?>/modules/super_admin/analytics/index.php"
+               class="<?php echo ($current_dir === 'analytics') ? 'active' : ''; ?>">
+                <i class="fas fa-chart-pie"></i>
+                <div class="title">Analytics & Reports</div>
+            </a>
+        </li>
+        
+        <div class="menu-separator"></div>
+        
         <!-- SYSTEM MANAGEMENT -->
         <div class="menu-category">
             <i class="fas fa-cog"></i> System

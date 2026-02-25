@@ -1025,12 +1025,17 @@ try {
         // ==========================================
         
         case 'get_workers':
-            // GET: Get active workers for payroll selection
+            // GET: Get active workers for payroll selection (with project assignment)
             $stmt = $pdo->query("
-                SELECT worker_id, worker_code, first_name, last_name, position
-                FROM workers 
-                WHERE is_archived = 0 AND employment_status = 'active'
-                ORDER BY first_name, last_name
+                SELECT w.worker_id, w.worker_code, w.first_name, w.last_name, w.position,
+                       (SELECT GROUP_CONCAT(p.project_name SEPARATOR ', ')
+                        FROM project_workers pw
+                        JOIN projects p ON pw.project_id = p.project_id
+                        WHERE pw.worker_id = w.worker_id AND pw.is_active = 1 AND p.is_archived = 0
+                       ) AS assigned_project
+                FROM workers w
+                WHERE w.is_archived = 0 AND w.employment_status = 'active'
+                ORDER BY w.first_name, w.last_name
             ");
             $workers = $stmt->fetchAll(PDO::FETCH_ASSOC);
             

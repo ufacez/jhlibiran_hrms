@@ -576,6 +576,7 @@ function logActivity($db, $user_id, $action, $table_name = null, $record_id = nu
 
         // Project management
         'create_project' => 'create', 'update_project' => 'update',
+        'complete_project' => 'status_change', 'archive_project' => 'archive',
         'assign_worker_project' => 'create', 'remove_worker_project' => 'update',
 
         // Attendance

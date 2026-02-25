@@ -45,7 +45,7 @@ if ($action === 'view' && isset($_GET['id'])) {
     
     try {
         $stmt = $db->prepare("
-            SELECT w.*, u.email, u.status as user_status,
+            SELECT w.*, w.employment_type, u.email, u.status as user_status,
                    wt.work_type_code, wt.work_type_name, wt.daily_rate as work_type_daily_rate,
                    wt.hourly_rate as work_type_hourly_rate,
                    wc.classification_name, wc.skill_level
@@ -108,7 +108,7 @@ if ($action === 'view' && isset($_GET['id'])) {
         $stmt = $db->query("
             SELECT 
                 w.worker_id, w.worker_code, w.first_name, w.last_name, 
-                w.position, w.work_type_id,
+                w.position, w.work_type_id, w.employment_type,
                 wt.work_type_name, wt.daily_rate, wt.hourly_rate
             FROM workers w
             LEFT JOIN work_types wt ON w.work_type_id = wt.work_type_id
