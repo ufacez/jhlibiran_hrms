@@ -1627,13 +1627,15 @@ $pageTitle = 'Payroll Management';
                 // Deductions breakdown
                 let deductionsHtml = '';
                 
-                // Add SSS breakdown note if applicable
-                if (payroll.deductions && payroll.deductions.sss_details && payroll.deductions.sss_details.monthly_total) {
-                    const sssDetails = payroll.deductions.sss_details;
-                    deductionsHtml += `
-                        <div class="info-note">
-                            <i class="fas fa-info-circle"></i> <strong>SSS Breakdown:</strong> ₱${formatNum(sssDetails.monthly_total)}/month ÷ 4 weeks = ₱${formatNum(sssDetails.employee_contribution)}/week
-                        </div>`;
+                // Show info note about end-of-month deductions
+                if (payroll.deductions && payroll.deductions.sss === 0 && payroll.deductions.philhealth === 0 && payroll.deductions.pagibig === 0 && payroll.deductions.tax === 0) {
+                    const hasManualDeductions = payroll.deductions.items && payroll.deductions.items.length > 0;
+                    if (!hasManualDeductions) {
+                        deductionsHtml += `
+                            <div class="info-note">
+                                <i class="fas fa-info-circle"></i> Government deductions (SSS, PhilHealth, Pag-IBIG, Tax) are applied on the last payroll of the month only.
+                            </div>`;
+                    }
                 }
                 
                 if (payroll.deductions && payroll.deductions.items && payroll.deductions.items.length > 0) {

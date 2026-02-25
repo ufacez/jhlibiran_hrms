@@ -597,26 +597,48 @@ class PayrollPDFGenerator {
             'other' => 'Other'
         ];
 
-        // --- Contributions column ---
+        // --- Contributions column (only shown on end-of-month payroll when contributions > 0) ---
         $w1 = 75;
         $startX = $this->pdf->GetX();
         $startY = $this->pdf->GetY();
 
-        $this->pdf->SetFont('dejavusans', 'B', 9);
-        $this->pdf->SetFillColor(245, 245, 245);
-        $this->pdf->MultiCell($w1, 6, "Contributions", 1, 'L', true, 0, '', '', true, 0, false, true, 0, 'M');
-        $this->pdf->Ln(0);
-        $this->pdf->SetFont('dejavusans', '', 9);
-        $this->pdf->MultiCell($w1, 6, "SSS\nPhilHealth\nPag-IBIG", 1, 'L', false, 0);
-        $this->pdf->MultiCell($w1, 6, "P" . number_format($sss,2) . "\nP" . number_format($philhealth,2) . "\nP" . number_format($pagibig,2), 1, 'R', false, 0);
+        if ($sss > 0 || $philhealth > 0 || $pagibig > 0) {
+            $this->pdf->SetFont('dejavusans', 'B', 9);
+            $this->pdf->SetFillColor(245, 245, 245);
+            $this->pdf->MultiCell($w1, 6, "Contributions (Monthly)", 1, 'L', true, 0, '', '', true, 0, false, true, 0, 'M');
+            $this->pdf->Ln(0);
+            $this->pdf->SetFont('dejavusans', '', 9);
+            
+            $contribLabels = '';
+            $contribAmounts = '';
+            if ($sss > 0) {
+                $contribLabels .= "SSS\n";
+                $contribAmounts .= "P" . number_format($sss,2) . "\n";
+            }
+            if ($philhealth > 0) {
+                $contribLabels .= "PhilHealth\n";
+                $contribAmounts .= "P" . number_format($philhealth,2) . "\n";
+            }
+            if ($pagibig > 0) {
+                $contribLabels .= "Pag-IBIG\n";
+                $contribAmounts .= "P" . number_format($pagibig,2) . "\n";
+            }
+            $contribLabels = rtrim($contribLabels, "\n");
+            $contribAmounts = rtrim($contribAmounts, "\n");
+            
+            $this->pdf->MultiCell($w1, 6, $contribLabels, 1, 'L', false, 0);
+            $this->pdf->MultiCell($w1, 6, $contribAmounts, 1, 'R', false, 0);
+        }
 
-        // --- Taxes column ---
+        // --- Taxes column (only shown on end-of-month payroll when tax > 0) ---
         $w2 = 55;
-        $this->pdf->SetFont('dejavusans', 'B', 9);
-        $this->pdf->MultiCell($w2, 6, "Taxes", 1, 'L', true, 0);
-        $this->pdf->SetFont('dejavusans', '', 9);
-        $this->pdf->MultiCell($w2, 6, "BIR Withholding", 1, 'L', false, 0);
-        $this->pdf->MultiCell($w2, 6, "P" . number_format($tax,2), 1, 'R', false, 0);
+        if ($tax > 0) {
+            $this->pdf->SetFont('dejavusans', 'B', 9);
+            $this->pdf->MultiCell($w2, 6, "Taxes (End of Month)", 1, 'L', true, 0);
+            $this->pdf->SetFont('dejavusans', '', 9);
+            $this->pdf->MultiCell($w2, 6, "BIR Withholding", 1, 'L', false, 0);
+            $this->pdf->MultiCell($w2, 6, "P" . number_format($tax,2), 1, 'R', false, 0);
+        }
 
         // --- Summary column (right side) ---
         $wSummary = 65;

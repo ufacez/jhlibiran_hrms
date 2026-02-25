@@ -94,21 +94,11 @@ $specialHolidayRate = $settings['special_holiday_multiplier'] ?? 1.30; // 130% f
 $regularHolidayRate = $settings['regular_holiday_multiplier'] ?? 2.00; // 200% for regular holidays
 $restDayRate = $settings['rest_day_multiplier'] ?? 1.30; // 130% for rest days
 
-// Calculate monthly equivalent for deductions
-$weeklyGross = $record['gross_pay'];
-$monthlyGross = $weeklyGross * 4.33;
-
 // Use the stored deduction values from payroll_records (already calculated by PayrollCalculator)
 $sssWeekly = floatval($record['sss_contribution']);
 $philhealthWeekly = floatval($record['philhealth_contribution']);
 $pagibigWeekly = floatval($record['pagibig_contribution']);
 $taxWeekly = floatval($record['tax_withholding']);
-
-// Calculate monthly equivalents for display (multiply by 4)
-$sssMonthly = $sssWeekly * 4;
-$philhealthMonthly = $philhealthWeekly * 4;
-$pagibigMonthly = $pagibigWeekly * 4;
-$taxMonthly = $taxWeekly * 4;
 
 $totalDeductions = floatval($record['total_deductions']);
 $netPay = floatval($record['net_pay']);
@@ -167,22 +157,24 @@ $deductionTypeLabels = [
     'other' => 'Other'
 ];
 
-// Recompute taxable income (gross minus statutory contributions) and calculate tax using PayrollCalculator
+// Generate a fresh payroll calculation for display accuracy (rates, earnings, formulas)
+// All government deductions are handled by calculateAllDeductions which only applies them on the last payroll of the month
 try {
   require_once __DIR__ . '/../../../includes/payroll_calculator.php';
   $pc = new PayrollCalculator($pdo);
-  $taxableIncome = max(0, floatval($record['gross_pay']) - ($sssWeekly + $philhealthWeekly + $pagibigWeekly));
-  $taxCalc = $pc->calculateWithholdingTax($taxableIncome);
-  $taxCalculated = floatval($taxCalc['tax_amount'] ?? 0);
-  // Also generate a fresh payroll calculation for display accuracy (rates, earnings, formulas)
   try {
       $calcPayroll = $pc->generatePayroll($record['worker_id'], $record['period_start'], $record['period_end']);
+      // Use the fresh calculation values (respects end-of-month logic)
+      $sssWeekly = floatval($calcPayroll['deductions']['sss'] ?? 0);
+      $philhealthWeekly = floatval($calcPayroll['deductions']['philhealth'] ?? 0);
+      $pagibigWeekly = floatval($calcPayroll['deductions']['pagibig'] ?? 0);
+      $taxWeekly = floatval($calcPayroll['deductions']['tax'] ?? 0);
+      $totalDeductions = floatval($calcPayroll['deductions']['total'] ?? $totalDeductions);
+      $netPay = floatval($calcPayroll['net_pay'] ?? $netPay);
   } catch (Exception $e) {
       $calcPayroll = null;
   }
 } catch (Exception $e) {
-  $taxableIncome = max(0, floatval($record['gross_pay']) - ($sssWeekly + $philhealthWeekly + $pagibigWeekly));
-  $taxCalculated = $taxWeekly; // fallback to stored value
   $calcPayroll = null;
 }
 ?>
@@ -386,25 +378,40 @@ try {
             </table>
             <!-- Contributions and Taxes small tables -->
             <div style="display:flex;gap:12px;margin-top:10px;flex-wrap:wrap">
+              <?php if ($sssWeekly > 0 || $philhealthWeekly > 0 || $pagibigWeekly > 0): ?>
               <div style="flex:1;min-width:200px">
-                <div class="table-label">Contributions</div>
+                <div class="table-label">Contributions (End of Month)</div>
                 <table class="compact" style="width:100%">
                   <tbody>
+                    <?php if ($sssWeekly > 0): ?>
                     <tr><td>SSS</td><td class="right">-₱<?php echo number_format($sssWeekly,2); ?></td></tr>
+                    <?php endif; ?>
+                    <?php if ($philhealthWeekly > 0): ?>
                     <tr><td>PhilHealth</td><td class="right">-₱<?php echo number_format($philhealthWeekly,2); ?></td></tr>
+                    <?php endif; ?>
+                    <?php if ($pagibigWeekly > 0): ?>
                     <tr><td>Pag-IBIG</td><td class="right">-₱<?php echo number_format($pagibigWeekly,2); ?></td></tr>
+                    <?php endif; ?>
                   </tbody>
                 </table>
               </div>
-
+              <?php else: ?>
               <div style="flex:1;min-width:200px">
-                <div class="table-label">Taxes</div>
+                <div class="table-label">Contributions</div>
+                <p style="color:#999;font-size:10px;margin:4px 0">Deducted on the last payroll of the month only.</p>
+              </div>
+              <?php endif; ?>
+
+              <?php if ($taxWeekly > 0): ?>
+              <div style="flex:1;min-width:200px">
+                <div class="table-label">Taxes (End of Month)</div>
                 <table class="compact" style="width:100%">
                   <tbody>
                     <tr><td>BIR Withholding</td><td class="right">-₱<?php echo number_format($taxWeekly,2); ?></td></tr>
                   </tbody>
                 </table>
               </div>
+              <?php endif; ?>
 
               <div style="flex:1;min-width:260px">
                 <div class="table-label">Other Deductions</div>

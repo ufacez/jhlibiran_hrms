@@ -776,31 +776,31 @@ $pageTitle = 'Payroll Settings';
                 const settingsToSave = { ...changedSettings };
 
                 // Convert daily_rate to hourly_rate (system calculates daily from hourly)
-                if (settingsToSave.daily_rate) {
+                if (settingsToSave.daily_rate !== undefined) {
                     settingsToSave.hourly_rate = parseFloat(settingsToSave.daily_rate) / <?php echo $basicSettings['standard_hours_per_day'] ?? 8; ?>;
                     delete settingsToSave.daily_rate;
                 }
 
-                if (settingsToSave.regular_holiday_percentage) {
+                if (settingsToSave.regular_holiday_percentage !== undefined) {
                     settingsToSave.regular_holiday_multiplier = parseFloat(settingsToSave.regular_holiday_percentage) / 100;
                     delete settingsToSave.regular_holiday_percentage;
                 }
 
-                if (settingsToSave.special_holiday_percentage) {
+                if (settingsToSave.special_holiday_percentage !== undefined) {
                     settingsToSave.special_holiday_multiplier = parseFloat(settingsToSave.special_holiday_percentage) / 100;
                     delete settingsToSave.special_holiday_percentage;
                 }
 
-                if (settingsToSave.overtime_percentage) {
+                if (settingsToSave.overtime_percentage !== undefined) {
                     settingsToSave.overtime_multiplier = parseFloat(settingsToSave.overtime_percentage) / 100;
                     delete settingsToSave.overtime_percentage;
                 }
 
                 // Ensure OT multipliers are numbers if present
-                if (settingsToSave.regular_holiday_ot_multiplier) {
+                if (settingsToSave.regular_holiday_ot_multiplier !== undefined) {
                     settingsToSave.regular_holiday_ot_multiplier = parseFloat(settingsToSave.regular_holiday_ot_multiplier);
                 }
-                if (settingsToSave.special_holiday_ot_multiplier) {
+                if (settingsToSave.special_holiday_ot_multiplier !== undefined) {
                     settingsToSave.special_holiday_ot_multiplier = parseFloat(settingsToSave.special_holiday_ot_multiplier);
                 }
 

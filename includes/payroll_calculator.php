@@ -519,13 +519,7 @@ class PayrollCalculator {
                 $ecpMaximum = $sssSettings ? floatval($sssSettings['ecp_maximum']) : 30.00;
                 $monthlyECSSS = ($monthlySalaryCredit >= $ecpBoundary) ? $ecpMaximum : $ecpMinimum;
                 
-                // Divide by 4 weeks to get weekly amount
-                // Week 1-4 will each deduct this amount, totaling the monthly contribution
-                $weeklySSS = round($monthlyEmployeeTotal / 4, 2);
-                $weeklyMPF = round($monthlyMPF / 4, 2);
-                $weeklyEmployerSSS = round($monthlyEmployerSSS / 4, 2);
-                $weeklyECSSS = round($monthlyECSSS / 4, 2);
-                
+                // Return full monthly amounts (deducted once at end of month)
                 return [
                     'bracket_number' => $bracket['bracket_number'],
                     'lower_range' => $bracket['lower_range'],
@@ -533,18 +527,18 @@ class PayrollCalculator {
                     'monthly_salary_credit' => $monthlySalaryCredit,
                     'employee_rate' => $eeRate * 100,
                     'employer_rate' => $erRate * 100,
-                    'employee_contribution' => $weeklySSS,
-                    'mpf_contribution' => $weeklyMPF,
-                    'employer_contribution' => $weeklyEmployerSSS,
-                    'ec_contribution' => $weeklyECSSS,
-                    'total_contribution' => round(($weeklySSS + $weeklyEmployerSSS + $weeklyECSSS), 2),
+                    'employee_contribution' => round($monthlyEmployeeTotal, 2),
+                    'mpf_contribution' => round($monthlyMPF, 2),
+                    'employer_contribution' => round($monthlyEmployerSSS, 2),
+                    'ec_contribution' => round($monthlyECSSS, 2),
+                    'total_contribution' => round(($monthlyEmployeeTotal + $monthlyEmployerSSS + $monthlyECSSS), 2),
                     'monthly_employee' => $monthlySSS,
                     'monthly_employer' => $monthlyEmployerSSS,
                     'monthly_ec' => $monthlyECSSS,
                     'monthly_total' => round($monthlyEmployeeTotal, 2),
                     'formula' => sprintf(
-                        "Bracket %d: MSC ₱%.2f × %.1f%% = ₱%.2f/month ÷ 4 = ₱%.2f/week (EE)",
-                        $bracket['bracket_number'], $monthlySalaryCredit, $eeRate * 100, $monthlySSS, $weeklySSS
+                        "Bracket %d: MSC ₱%.2f × %.1f%% = ₱%.2f/month (EE)",
+                        $bracket['bracket_number'], $monthlySalaryCredit, $eeRate * 100, round($monthlyEmployeeTotal, 2)
                     )
                 ];
             }
@@ -619,15 +613,11 @@ class PayrollCalculator {
                 $monthlyEmployee = $applicable_salary * ($settings['employee_share'] / 100);
                 $monthlyEmployer = $applicable_salary * ($settings['employer_share'] / 100);
                 
-                // Divide by 4 to get weekly amount
-                $weeklyEmployee = round($monthlyEmployee / 4, 2);
-                $weeklyEmployer = round($monthlyEmployer / 4, 2);
-                $weeklyTotal = round($monthlyTotal / 4, 2);
-                
+                // Return full monthly amounts (deducted once at end of month)
                 return [
-                    'employee_contribution' => $weeklyEmployee,
-                    'employer_contribution' => $weeklyEmployer,
-                    'total_contribution' => $weeklyTotal,
+                    'employee_contribution' => round($monthlyEmployee, 2),
+                    'employer_contribution' => round($monthlyEmployer, 2),
+                    'total_contribution' => round($monthlyTotal, 2),
                     'monthly_employee' => round($monthlyEmployee, 2),
                     'monthly_employer' => round($monthlyEmployer, 2),
                     'monthly_total' => round($monthlyTotal, 2),
@@ -636,8 +626,8 @@ class PayrollCalculator {
                     'employer_rate' => $settings['employer_share'],
                     'applicable_salary' => $applicable_salary,
                     'formula' => sprintf(
-                        "Monthly salary ₱%.2f × %.2f%% = ₱%.2f/month ÷ 4 weeks = ₱%.2f/week (Employee)",
-                        $applicable_salary, $settings['employee_share'], $monthlyEmployee, $weeklyEmployee
+                        "Monthly salary ₱%.2f × %.2f%% = ₱%.2f/month (Employee)",
+                        $applicable_salary, $settings['employee_share'], round($monthlyEmployee, 2)
                     )
                 ];
             }
@@ -713,15 +703,11 @@ class PayrollCalculator {
                 $monthlyEmployer = $applicableSalary * ($employerRate / 100);
                 $monthlyTotal = $monthlyEmployee + $monthlyEmployer;
                 
-                // Divide by 4 to get weekly amount
-                $weeklyEmployee = round($monthlyEmployee / 4, 2);
-                $weeklyEmployer = round($monthlyEmployer / 4, 2);
-                $weeklyTotal = round($monthlyTotal / 4, 2);
-                
+                // Return full monthly amounts (deducted once at end of month)
                 return [
-                    'employee_contribution' => $weeklyEmployee,
-                    'employer_contribution' => $weeklyEmployer,
-                    'total_contribution' => $weeklyTotal,
+                    'employee_contribution' => round($monthlyEmployee, 2),
+                    'employer_contribution' => round($monthlyEmployer, 2),
+                    'total_contribution' => round($monthlyTotal, 2),
                     'monthly_employee' => round($monthlyEmployee, 2),
                     'monthly_employer' => round($monthlyEmployer, 2),
                     'monthly_total' => round($monthlyTotal, 2),
@@ -729,8 +715,8 @@ class PayrollCalculator {
                     'employer_rate' => $employerRate,
                     'applicable_salary' => $applicableSalary,
                     'formula' => sprintf(
-                        "Salary ₱%.2f (capped at ₱%.2f) × %.2f%% = ₱%.2f/month ÷ 4 = ₱%.2f/week (Employee)",
-                        $estimatedMonthlySalary, $applicableSalary, $employeeRate, $monthlyEmployee, $weeklyEmployee
+                        "Salary ₱%.2f (capped at ₱%.2f) × %.2f%% = ₱%.2f/month (Employee)",
+                        $estimatedMonthlySalary, $applicableSalary, $employeeRate, round($monthlyEmployee, 2)
                     )
                 ];
             }
@@ -764,15 +750,56 @@ class PayrollCalculator {
         // Get manual deductions
         $manualDeductions = $this->getWorkerDeductions($workerId);
         
-        // Calculate automatic deductions
-            // Calculate automatic deductions: contributions first, then tax on (gross - contributions)
+        // Check if this is the last payroll of the month
+        // ALL government deductions (SSS, PhilHealth, Pag-IBIG, Tax) are only applied on the last payroll of the month
+        $isLastPayrollOfMonth = $this->isLastPayrollOfMonth($periodEnd);
+        
+        if ($isLastPayrollOfMonth) {
+            // Calculate full monthly contributions
             $sssCalculation = $this->calculateSSSContribution($grossPay, $periodEnd);
             $philhealthCalculation = $this->calculatePhilHealthContribution($grossPay);
             $pagibigCalculation = $this->calculatePagIBIGContribution($grossPay);
-
-            // Taxable income is gross minus employee statutory contributions
-            $taxableIncome = max(0, $grossPay - ($sssCalculation['employee_contribution'] + $philhealthCalculation['employee_contribution'] + $pagibigCalculation['employee_contribution']));
-            $taxCalculation = $this->calculateWithholdingTax($taxableIncome);
+            
+            // Get the total monthly gross for this worker (all payrolls in the same month)
+            $monthlyGross = $this->getMonthlyGrossForWorker($workerId, $periodEnd, $grossPay);
+            
+            // Monthly taxable income = monthly gross minus monthly statutory contributions
+            $monthlyContributions = ($sssCalculation['employee_contribution'] + $philhealthCalculation['employee_contribution'] + $pagibigCalculation['employee_contribution']);
+            $monthlyTaxableIncome = max(0, $monthlyGross - $monthlyContributions);
+            
+            // Calculate tax using full monthly brackets (no weekly division)
+            $taxCalculation = $this->calculateMonthlyWithholdingTax($monthlyTaxableIncome);
+        } else {
+            // Not end of month - zero all government deductions
+            $zeroContrib = [
+                'employee_contribution' => 0,
+                'employer_contribution' => 0,
+                'total_contribution' => 0,
+                'monthly_employee' => 0,
+                'monthly_employer' => 0,
+                'monthly_total' => 0,
+                'formula' => 'Deducted only on the last payroll of the month'
+            ];
+            $sssCalculation = array_merge($zeroContrib, [
+                'bracket_number' => 0,
+                'lower_range' => 0,
+                'upper_range' => 0,
+                'mpf_contribution' => 0,
+                'ec_contribution' => 0
+            ]);
+            $philhealthCalculation = $zeroContrib;
+            $pagibigCalculation = $zeroContrib;
+            $taxCalculation = [
+                'taxable_income' => $grossPay,
+                'bracket_level' => 0,
+                'lower_bound' => 0,
+                'base_tax' => 0,
+                'tax_rate' => 0,
+                'tax_amount' => 0,
+                'is_exempt' => true,
+                'formula' => 'Tax is only deducted on the last payroll of the month'
+            ];
+        }
         
         // Organize deductions by type
         $deductions = [
@@ -790,35 +817,41 @@ class PayrollCalculator {
             'pagibig_details' => $pagibigCalculation
         ];
         
-        // Add SSS as first item (always show for transparency)
-        $deductions['items'][] = [
-            'id' => null,
-            'type' => 'sss',
-            'amount' => $sssCalculation['employee_contribution'],
-            'description' => 'SSS Contribution',
-            'frequency' => 'per_payroll',
-            'formula' => $sssCalculation['formula']
-        ];
+        // Add SSS as item (only if deducted this period)
+        if ($sssCalculation['employee_contribution'] > 0) {
+            $deductions['items'][] = [
+                'id' => null,
+                'type' => 'sss',
+                'amount' => $sssCalculation['employee_contribution'],
+                'description' => 'SSS Contribution (Monthly)',
+                'frequency' => 'end_of_month',
+                'formula' => $sssCalculation['formula']
+            ];
+        }
         
-        // Add PhilHealth (always show for transparency)
-        $deductions['items'][] = [
-            'id' => null,
-            'type' => 'philhealth',
-            'amount' => $philhealthCalculation['employee_contribution'],
-            'description' => 'PhilHealth Contribution',
-            'frequency' => 'per_payroll',
-            'formula' => $philhealthCalculation['formula']
-        ];
+        // Add PhilHealth (only if deducted this period)
+        if ($philhealthCalculation['employee_contribution'] > 0) {
+            $deductions['items'][] = [
+                'id' => null,
+                'type' => 'philhealth',
+                'amount' => $philhealthCalculation['employee_contribution'],
+                'description' => 'PhilHealth Contribution (Monthly)',
+                'frequency' => 'end_of_month',
+                'formula' => $philhealthCalculation['formula']
+            ];
+        }
         
-        // Add Pag-IBIG (always show for transparency)
-        $deductions['items'][] = [
-            'id' => null,
-            'type' => 'pagibig',
-            'amount' => $pagibigCalculation['employee_contribution'],
-            'description' => 'Pag-IBIG Contribution',
-            'frequency' => 'per_payroll',
-            'formula' => $pagibigCalculation['formula']
-        ];
+        // Add Pag-IBIG (only if deducted this period)
+        if ($pagibigCalculation['employee_contribution'] > 0) {
+            $deductions['items'][] = [
+                'id' => null,
+                'type' => 'pagibig',
+                'amount' => $pagibigCalculation['employee_contribution'],
+                'description' => 'Pag-IBIG Contribution (Monthly)',
+                'frequency' => 'end_of_month',
+                'formula' => $pagibigCalculation['formula']
+            ];
+        }
         
         // Process manual deductions
         foreach ($manualDeductions as $d) {
@@ -1697,6 +1730,184 @@ class PayrollCalculator {
      * @param string|null $referenceDate Reference date (defaults to today)
      * @return array ['start' => 'Y-m-d', 'end' => 'Y-m-d']
      */
+    /**
+     * Check if the payroll period is the last one of the month
+     * Tax deductions are only applied on the last payroll of the month.
+     * A period is considered the last of the month if the period end date
+     * falls within the last 7 days of the month (i.e., adding 7 days would
+     * cross into the next month).
+     * 
+     * @param string|null $periodEnd Period end date (Y-m-d)
+     * @return bool True if this is the last payroll of the month
+     */
+    /**
+     * Get the total monthly gross pay for a worker by summing saved payroll records
+     * for the same month, plus the current (unsaved) payroll's gross.
+     * 
+     * @param int $workerId Worker ID
+     * @param string $periodEnd Period end date (Y-m-d)
+     * @param float $currentGross Current payroll's gross pay (not yet saved)
+     * @return float Total monthly gross pay
+     */
+    private function getMonthlyGrossForWorker($workerId, $periodEnd, $currentGross) {
+        $year = date('Y', strtotime($periodEnd));
+        $month = date('m', strtotime($periodEnd));
+        $monthStart = $year . '-' . $month . '-01';
+        $monthEnd = date('Y-m-t', strtotime($periodEnd));
+        
+        try {
+            // Sum gross_pay from all saved payroll records whose period falls within this month
+            // Exclude the current period to avoid double-counting if re-generating
+            $stmt = $this->pdo->prepare("
+                SELECT COALESCE(SUM(pr.gross_pay), 0) as total_gross
+                FROM payroll_records pr
+                JOIN payroll_periods pp ON pr.period_id = pp.period_id
+                WHERE pr.worker_id = ?
+                AND pp.period_end >= ?
+                AND pp.period_end <= ?
+                AND pp.period_end != ?
+            ");
+            $stmt->execute([$workerId, $monthStart, $monthEnd, $periodEnd]);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            $previousGross = floatval($result['total_gross']);
+        } catch (PDOException $e) {
+            error_log("PayrollCalculator: Failed to get monthly gross - " . $e->getMessage());
+            $previousGross = 0;
+        }
+        
+        return $previousGross + $currentGross;
+    }
+    
+    /**
+     * Calculate withholding tax using monthly brackets directly (no weekly division).
+     * Used for end-of-month payroll where the full monthly tax is applied at once.
+     * 
+     * @param float $monthlyTaxableIncome Total monthly taxable income
+     * @return array Tax calculation details
+     */
+    public function calculateMonthlyWithholdingTax($monthlyTaxableIncome) {
+        if ($monthlyTaxableIncome <= 0) {
+            return [
+                'taxable_income' => 0,
+                'bracket_level' => 0,
+                'lower_bound' => 0,
+                'base_tax' => 0,
+                'tax_rate' => 0,
+                'tax_amount' => 0,
+                'is_exempt' => true,
+                'formula' => 'No gross pay - no tax applicable'
+            ];
+        }
+        
+        if (empty($this->taxBrackets)) {
+            return [
+                'taxable_income' => $monthlyTaxableIncome,
+                'bracket_level' => 0,
+                'lower_bound' => 0,
+                'base_tax' => 0,
+                'tax_rate' => 0,
+                'tax_amount' => 0,
+                'is_exempt' => true,
+                'formula' => 'Tax brackets not configured'
+            ];
+        }
+        
+        // Use monthly brackets directly (no division)
+        foreach ($this->taxBrackets as $bracket) {
+            $lower = floatval($bracket['lower_bound']);
+            $upper = floatval($bracket['upper_bound']);
+            $baseTax = floatval($bracket['base_tax']);
+            
+            if ($monthlyTaxableIncome >= $lower && $monthlyTaxableIncome <= $upper) {
+                if ($bracket['is_exempt']) {
+                    return [
+                        'taxable_income' => round($monthlyTaxableIncome, 2),
+                        'bracket_level' => $bracket['bracket_level'],
+                        'lower_bound' => $lower,
+                        'upper_bound' => $upper,
+                        'base_tax' => 0,
+                        'tax_rate' => 0,
+                        'tax_amount' => 0,
+                        'is_exempt' => true,
+                        'formula' => sprintf("Monthly income ₱%.2f is below tax threshold (₱%.2f) - Tax Exempt", $monthlyTaxableIncome, $upper)
+                    ];
+                }
+                
+                $excessAmount = $monthlyTaxableIncome - $lower;
+                $taxOnExcess = $excessAmount * ($bracket['tax_rate'] / 100);
+                $totalTax = round($baseTax + $taxOnExcess, 2);
+                
+                return [
+                    'taxable_income' => round($monthlyTaxableIncome, 2),
+                    'bracket_level' => $bracket['bracket_level'],
+                    'lower_bound' => $lower,
+                    'upper_bound' => $upper,
+                    'base_tax' => $baseTax,
+                    'tax_rate' => $bracket['tax_rate'],
+                    'excess_amount' => round($excessAmount, 2),
+                    'tax_on_excess' => round($taxOnExcess, 2),
+                    'tax_amount' => $totalTax,
+                    'is_exempt' => false,
+                    'formula' => sprintf(
+                        "Monthly Tax: ₱%.2f + ((₱%.2f - ₱%.2f) × %.0f%%) = ₱%.2f",
+                        $baseTax, $monthlyTaxableIncome, $lower, $bracket['tax_rate'], $totalTax
+                    )
+                ];
+            }
+        }
+        
+        // Above all brackets - use highest
+        $lastBracket = end($this->taxBrackets);
+        $lower = floatval($lastBracket['lower_bound']);
+        $baseTax = floatval($lastBracket['base_tax']);
+        
+        $excessAmount = $monthlyTaxableIncome - $lower;
+        $taxOnExcess = $excessAmount * ($lastBracket['tax_rate'] / 100);
+        $totalTax = round($baseTax + $taxOnExcess, 2);
+        
+        return [
+            'taxable_income' => round($monthlyTaxableIncome, 2),
+            'bracket_level' => $lastBracket['bracket_level'],
+            'lower_bound' => $lower,
+            'upper_bound' => null,
+            'base_tax' => $baseTax,
+            'tax_rate' => $lastBracket['tax_rate'],
+            'excess_amount' => round($excessAmount, 2),
+            'tax_on_excess' => round($taxOnExcess, 2),
+            'tax_amount' => $totalTax,
+            'is_exempt' => false,
+            'formula' => sprintf(
+                "Monthly Tax: ₱%.2f + ((₱%.2f - ₱%.2f) × %.0f%%) = ₱%.2f",
+                $baseTax, $monthlyTaxableIncome, $lower, $lastBracket['tax_rate'], $totalTax
+            )
+        ];
+    }
+    
+    private function isLastPayrollOfMonth($periodEnd) {
+        if (empty($periodEnd)) {
+            // If no period end specified, default to applying tax (safe fallback)
+            return true;
+        }
+        
+        $endDate = strtotime($periodEnd);
+        if ($endDate === false) {
+            return true; // Safe fallback
+        }
+        
+        $endMonth = (int)date('n', $endDate);
+        $endYear = (int)date('Y', $endDate);
+        $lastDayOfMonth = (int)date('t', $endDate);
+        $endDay = (int)date('j', $endDate);
+        
+        // Check if adding 7 days would go into the next month
+        // This means the current period is the last weekly payroll of the month
+        $nextPeriodEnd = strtotime('+7 days', $endDate);
+        $nextMonth = (int)date('n', $nextPeriodEnd);
+        $nextYear = (int)date('Y', $nextPeriodEnd);
+        
+        return ($nextMonth !== $endMonth || $nextYear !== $endYear);
+    }
+    
     public function getCurrentWeekPeriod($referenceDate = null) {
         $date = $referenceDate ? strtotime($referenceDate) : time();
         $dayOfWeek = date('N', $date); // 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat, 7=Sun
