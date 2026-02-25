@@ -989,7 +989,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     <option value="on_leave" <?php echo $worker['employment_status'] === 'on_leave' ? 'selected' : ''; ?>>On Leave</option>
                                     <option value="blacklisted" <?php echo $worker['employment_status'] === 'blacklisted' ? 'selected' : ''; ?>>Blacklisted</option>
                                     <option value="terminated" <?php echo $worker['employment_status'] === 'terminated' ? 'selected' : ''; ?>>Terminated</option>
-                                    <option value="end_of_contract" <?php echo $worker['employment_status'] === 'end_of_contract' ? 'selected' : ''; ?>>End of Contract</option>
                                 </select>
                             </div>
                         </div>

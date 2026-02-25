@@ -320,7 +320,7 @@ function renderProjects() {
             <td>
                 <div class="action-buttons" onclick="event.stopPropagation()">
                     <button class="action-btn btn-view" onclick="openProjectDetail(${p.project_id})" title="View Details"><i class="fas fa-eye"></i></button>
-                    ${!isArchived ? `<button class="action-btn btn-edit" onclick="openEditModal(${p.project_id})" title="Edit"><i class="fas fa-pen"></i></button>` : ''}
+                    ${!isArchived ? `<button class="action-btn btn-edit" onclick="openEditModal(${p.project_id})" title="Edit"><i class="fas fa-edit"></i></button>` : ''}
                     ${!isCompleted && !isArchived ? `<button class="action-btn btn-complete" onclick="completeProject(${p.project_id}, '${escAttr(p.project_name)}')" title="Mark as Completed"><i class="fas fa-check-circle"></i> Complete</button>` : ''}
                     ${!isArchived ? `<button class="action-btn btn-archive" onclick="archiveProject(${p.project_id}, '${escAttr(p.project_name)}')" title="Archive"><i class="fas fa-archive"></i></button>` : ''}
                 </div>

@@ -571,13 +571,18 @@ try {
     
     // Export Attendance
     function exportAttendance() {
-        const date = '<?php echo $date_filter; ?>';
-        const dateTo = '<?php echo $date_to_filter; ?>';
-        const classification = '<?php echo $classification_filter; ?>';
-        const status = '<?php echo $status_filter; ?>';
-        const project = '<?php echo $project_filter; ?>';
+        const date = document.getElementById('dateFilter').value;
+        const dateTo = document.getElementById('dateToFilter').value;
+        const classification = document.getElementById('classificationFilter') ? document.getElementById('classificationFilter').value : '';
+        const status = document.getElementById('statusFilter').value;
+        const project = document.getElementById('projectFilter') ? document.getElementById('projectFilter').value : '';
         
-        let url = '<?php echo BASE_URL; ?>/modules/super_admin/attendance/export.php?date=' + date;
+        if (!date) {
+            alert('Please select a Date From.');
+            return;
+        }
+        
+        let url = '<?php echo BASE_URL; ?>/modules/super_admin/attendance/export.php?date=' + encodeURIComponent(date);
         if (dateTo) url += '&date_to=' + encodeURIComponent(dateTo);
         if (classification) url += '&classification=' + encodeURIComponent(classification);
         if (status) url += '&status=' + encodeURIComponent(status);

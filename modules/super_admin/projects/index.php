@@ -58,7 +58,7 @@ $flash = getFlashMessage();
         .status-pill.archived::before { display: none; }
 
         /* ===== Action button overrides for Complete/Archive ===== */
-        .action-btn.btn-complete { background: #28a745; gap: 5px; font-size: 12px; font-weight: 600; color: #fff; }
+        .action-btn.btn-complete { background: #28a745; display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; color: #fff; white-space: nowrap; padding: 8px 14px; }
         .action-btn.btn-complete:hover { background: #218838; }
         .action-btn.btn-archive { background: #6c757d; color: #fff; }
         .action-btn.btn-archive:hover { background: #5a6268; }
@@ -76,7 +76,7 @@ $flash = getFlashMessage();
         .modal-md { max-width: 500px; }
 
         /* ===== Center action buttons in table ===== */
-        .action-buttons { justify-content: center; align-items: center; }
+        .action-buttons { justify-content: center; align-items: center; flex-wrap: wrap; }
 
         /* ===== Form controls for modal forms ===== */
         .form-group { margin-bottom: 20px; }
@@ -215,7 +215,7 @@ $flash = getFlashMessage();
                                 <i class="fas fa-filter"></i> Apply
                             </button>
                             <button type="button" class="btn-filter-reset" onclick="resetProjectFilters()">
-                                <i class="fas fa-redo"></i> Reset
+                                <i class="fas fa-undo"></i> Reset
                             </button>
                         </div>
                     </div>
@@ -498,7 +498,7 @@ $flash = getFlashMessage();
                     <td>
                         <div class="action-buttons" onclick="event.stopPropagation()">
                             <button class="action-btn btn-view" onclick="openProjectDetail(${p.project_id})" title="View Details"><i class="fas fa-eye"></i></button>
-                            ${!isArchived ? `<button class="action-btn btn-edit" onclick="openEditModal(${p.project_id})" title="Edit"><i class="fas fa-pen"></i></button>` : ''}
+                            ${!isArchived ? `<button class="action-btn btn-edit" onclick="openEditModal(${p.project_id})" title="Edit"><i class="fas fa-edit"></i></button>` : ''}
                             ${!isCompleted && !isArchived ? `<button class="action-btn btn-complete" onclick="completeProject(${p.project_id}, '${escAttr(p.project_name)}')" title="Mark as Completed"><i class="fas fa-check-circle"></i> Complete</button>` : ''}
                             ${!isArchived ? `<button class="action-btn btn-archive" onclick="archiveProject(${p.project_id}, '${escAttr(p.project_name)}')" title="Archive"><i class="fas fa-archive"></i></button>` : ''}
                         </div>

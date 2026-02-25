@@ -558,53 +558,47 @@ $total_archived = count($archived_items);
         /* Floating batch restore bar */
         .batch-bar {
             position: fixed;
-            bottom: -80px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
-            color: #fff;
-            padding: 14px 28px;
-            border-radius: 14px;
-            box-shadow: 0 8px 30px rgba(0,0,0,0.35);
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 9999;
             display: flex;
+            justify-content: space-between;
             align-items: center;
-            gap: 18px;
-            z-index: 1000;
-            transition: bottom 0.35s cubic-bezier(.4,0,.2,1);
-            font-size: 14px;
+            padding: 14px 30px;
+            background: linear-gradient(135deg, #1a1a1a, #2a2a2a);
+            border-top: 2px solid #DAA520;
+            box-shadow: 0 -4px 20px rgba(0,0,0,.3);
+            transform: translateY(100%);
+            transition: transform 0.3s ease;
         }
-        .batch-bar.visible { bottom: 30px; }
-        .batch-bar .batch-count {
-            font-weight: 700;
-            color: #DAA520;
-            font-size: 15px;
-        }
-        .batch-bar .btn-batch-restore {
-            padding: 10px 22px;
-            border: none;
-            border-radius: 8px;
+        .batch-bar.visible { transform: translateY(0); }
+        .batch-restore-btn {
+            padding: 8px 20px;
             background: linear-gradient(135deg, #DAA520, #B8860B);
             color: #fff;
-            font-weight: 700;
-            font-size: 13px;
+            border: none;
+            border-radius: 8px;
             cursor: pointer;
+            font-weight: 600;
+            font-size: 13px;
             display: inline-flex;
             align-items: center;
-            gap: 8px;
+            gap: 6px;
             transition: all 0.2s;
         }
-        .batch-bar .btn-batch-restore:hover { box-shadow: 0 4px 14px rgba(218,165,32,.5); }
-        .batch-bar .btn-batch-cancel {
-            padding: 8px 14px;
-            border: 1px solid rgba(255,255,255,.25);
+        .batch-restore-btn:hover { box-shadow: 0 3px 12px rgba(218,165,32,.4); transform: translateY(-1px); }
+        .batch-cancel-btn {
+            padding: 8px 20px;
+            background: #555;
+            color: #fff;
+            border: none;
             border-radius: 8px;
-            background: transparent;
-            color: #ccc;
-            font-size: 13px;
             cursor: pointer;
+            font-size: 13px;
             transition: all 0.2s;
         }
-        .batch-bar .btn-batch-cancel:hover { background: rgba(255,255,255,.1); color: #fff; }
+        .batch-cancel-btn:hover { background: #666; }
     </style>
 </head>
 <body>
@@ -808,7 +802,7 @@ $total_archived = count($archived_items);
     <!-- Floating batch action bar -->
     <div class="batch-bar" id="batchBar">
         <span id="batchCount" style="color:#fff;font-size:14px;">0 items selected</span>
-        <div>
+        <div style="display:flex;gap:10px;">
             <button type="button" class="batch-restore-btn" onclick="submitBatchRestore()">
                 <i class="fas fa-undo"></i> Restore Selected
             </button>

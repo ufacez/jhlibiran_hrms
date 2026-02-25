@@ -175,6 +175,33 @@ if ($action === 'view' && isset($_GET['id'])) {
         }
     }
 
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'batch_archive' && isset($_POST['ids'])) {
+        $permissions = getAdminPermissions($db);
+        if (!($permissions['can_delete_workers'] ?? false)) {
+            echo json_encode(['success' => false, 'message' => 'Permission denied']);
+            exit;
+        }
+        $ids = array_filter(array_map('intval', explode(',', $_POST['ids'])));
+        if (empty($ids)) {
+            echo json_encode(['success' => false, 'message' => 'No valid worker IDs provided']);
+            exit;
+        }
+        try {
+            $placeholders = implode(',', array_fill(0, count($ids), '?'));
+            $stmt = $db->prepare("UPDATE workers SET is_archived = TRUE, archived_at = NOW(), archived_by = ?, archive_reason = 'Batch archived', updated_at = NOW() WHERE worker_id IN ($placeholders)");
+            $stmt->execute(array_merge([getCurrentUserId()], $ids));
+            $count = $stmt->rowCount();
+            logActivity($db, getCurrentUserId(), 'batch_archive_workers', 'workers', 0,
+                       "Batch archived {$count} worker(s): IDs " . implode(', ', $ids));
+            echo json_encode(['success' => true, 'message' => "{$count} worker(s) archived successfully"]);
+            exit;
+        } catch (PDOException $e) {
+            error_log('Worker API Batch Archive Error: ' . $e->getMessage());
+            echo json_encode(['success' => false, 'message' => 'Failed to archive workers']);
+            exit;
+        }
+    }
+
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'archive' && isset($_POST['id'])) {
         // Permission check (reuse delete permission for archive)
         $permissions = getAdminPermissions($db);

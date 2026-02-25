@@ -508,6 +508,9 @@ try {
             <button type="button" class="batch-activate-btn" onclick="batchActivateWorkers()">
                 <i class="fas fa-user-check"></i> Activate Selected
             </button>
+            <button type="button" class="batch-archive-btn" onclick="batchArchiveWorkers()">
+                <i class="fas fa-archive"></i> Archive Selected
+            </button>
             <button type="button" class="batch-cancel-btn" onclick="clearWorkerSelection()">
                 Cancel
             </button>
@@ -521,6 +524,8 @@ try {
         .worker-batch-bar.visible { transform:translateY(0); }
         .batch-activate-btn { padding:8px 20px; background:linear-gradient(135deg,#28a745,#218838); color:#fff; border:none; border-radius:8px; cursor:pointer; font-weight:600; font-size:13px; display:inline-flex; align-items:center; gap:6px; transition:all .2s; }
         .batch-activate-btn:hover { box-shadow:0 3px 12px rgba(40,167,69,.4); transform:translateY(-1px); }
+        .batch-archive-btn { padding:8px 20px; background:linear-gradient(135deg,#6c757d,#5a6268); color:#fff; border:none; border-radius:8px; cursor:pointer; font-weight:600; font-size:13px; display:inline-flex; align-items:center; gap:6px; transition:all .2s; }
+        .batch-archive-btn:hover { box-shadow:0 3px 12px rgba(108,117,125,.4); transform:translateY(-1px); }
         .batch-cancel-btn { padding:8px 20px; background:#555; color:#fff; border:none; border-radius:8px; cursor:pointer; font-size:13px; transition:all .2s; }
         .batch-cancel-btn:hover { background:#666; }
     </style>
@@ -871,6 +876,34 @@ try {
                 }
             })
             .catch(() => { hideLoading(); alert('Failed to activate workers'); });
+        }
+
+        function batchArchiveWorkers() {
+            const checked = document.querySelectorAll('.worker-cb:checked');
+            if (checked.length === 0) return;
+
+            const ids = [];
+            checked.forEach(cb => ids.push(cb.value));
+
+            if (!confirm(`Archive ${ids.length} selected worker(s)?\n\nThey will be moved to the Archive Center.`)) return;
+
+            showLoading('Archiving workers...');
+            fetch('../../../api/workers.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: `action=batch_archive&ids=${ids.join(',')}`
+            })
+            .then(r => r.json())
+            .then(data => {
+                hideLoading();
+                if (data.success) {
+                    alert(data.message);
+                    window.location.reload();
+                } else {
+                    alert(data.message);
+                }
+            })
+            .catch(() => { hideLoading(); alert('Failed to archive workers'); });
         }
     </script>
 </body>

@@ -265,21 +265,36 @@ $pageTitle = 'Payroll Management';
         
         .custom-period {
             display: flex;
-            gap: 6px;
+            gap: 10px;
             align-items: center;
-            padding: 7px 12px;
+            padding: 10px 16px;
             border: 1.5px dashed #e0e0e0;
             border-radius: 8px;
-            font-size: 12px;
+            font-size: 13px;
             color: #888;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .custom-period:hover {
+            border-color: #DAA520;
+            background: rgba(218, 165, 32, 0.04);
         }
         
         .custom-period input {
-            padding: 5px 8px;
-            border: 1px solid #ddd;
+            padding: 8px 12px;
+            border: 1.5px solid #ddd;
             border-radius: 6px;
-            font-size: 12px;
-            width: 120px;
+            font-size: 13px;
+            width: 150px;
+            cursor: pointer;
+            transition: border-color 0.2s;
+        }
+
+        .custom-period input:hover,
+        .custom-period input:focus {
+            border-color: #DAA520;
+            outline: none;
         }
 
         .period-divider {
@@ -927,10 +942,10 @@ $pageTitle = 'Payroll Management';
                         </button>
                         <div class="period-divider"></div>
                         <div class="custom-period" onclick="selectCustomPeriodContainer(this)">
-                            <span style="font-weight:500;color:#555;white-space:nowrap;">Custom:</span>
-                            <input type="date" id="customStart">
-                            <span>to</span>
-                            <input type="date" id="customEnd">
+                            <span style="font-weight:500;color:#555;white-space:nowrap;"><i class="fas fa-calendar-alt" style="margin-right:4px;"></i> Custom:</span>
+                            <input type="date" id="customStart" onclick="event.stopPropagation()">
+                            <span style="color:#999;">to</span>
+                            <input type="date" id="customEnd" onclick="event.stopPropagation()">
                         </div>
                     </div>
                 </div>

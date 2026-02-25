@@ -107,20 +107,20 @@ function loadDeductions() {
     if (status) url += `&status=${status}`;
 
     const tbody = document.getElementById('deductionsBody');
-    tbody.innerHTML = '<tr><td colspan="9" class="loading-cell"><i class="fas fa-spinner fa-spin"></i> Loading deductions...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8" class="loading-cell"><i class="fas fa-spinner fa-spin"></i> Loading deductions...</td></tr>';
 
     fetch(url)
         .then(r => r.json())
         .then(res => {
             if (!res.success) {
-                tbody.innerHTML = `<tr><td colspan="9" class="empty-cell"><i class="fas fa-exclamation-triangle"></i> ${esc(res.message)}</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="8" class="empty-cell"><i class="fas fa-exclamation-triangle"></i> ${esc(res.message)}</td></tr>`;
                 return;
             }
 
             allDeductions = res.data.deductions;
 
             if (allDeductions.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="9" class="empty-cell">
+                tbody.innerHTML = `<tr><td colspan="8" class="empty-cell">
                     <i class="fas fa-file-invoice-dollar empty-icon"></i>
                     No deductions found matching the current filters.
                 </td></tr>`;
@@ -131,7 +131,6 @@ function loadDeductions() {
                 const initials = getInitials(d.first_name + ' ' + d.last_name);
                 const typeLabel = formatType(d.deduction_type);
                 const freqLabel = d.frequency === 'per_payroll' ? 'Per Payroll' : 'One-Time';
-                const date = formatDate(d.created_at);
                 const dedDate = d.deduction_date ? formatDate(d.deduction_date) : '—';
 
                 return `<tr>
@@ -150,7 +149,6 @@ function loadDeductions() {
                     <td class="freq-cell">${freqLabel}</td>
                     <td class="date-cell">${dedDate}</td>
                     <td><span class="status-pill ${d.status}">${capitalize(d.status)}</span></td>
-                    <td class="date-cell">${date}</td>
                     <td>
                         <div class="action-buttons">
                             ${d.status !== 'cancelled' ? `
@@ -166,7 +164,7 @@ function loadDeductions() {
             }).join('');
         })
         .catch(() => {
-            tbody.innerHTML = '<tr><td colspan="9" class="empty-cell"><i class="fas fa-exclamation-triangle"></i> Network error. Please refresh the page.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="8" class="empty-cell"><i class="fas fa-exclamation-triangle"></i> Network error. Please refresh the page.</td></tr>';
         });
 }
 

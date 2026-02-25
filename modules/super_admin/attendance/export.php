@@ -50,16 +50,22 @@ if ($project_filter > 0) {
 $sql = "SELECT 
     w.worker_id,
     w.worker_code,
-    CONCAT(w.last_name, ', ', w.first_name) as worker_name_display,
-    CONCAT(w.first_name, ' ', w.last_name) as worker_name,
+    w.first_name,
+    w.middle_name,
+    w.last_name,
     w.position,
     w.daily_rate,
+    COALESCE(wcw.classification_name, wct.classification_name, 'Laborer') as classification_name,
     a.attendance_date,
     a.hours_worked,
     a.overtime_hours,
+    a.late_minutes,
     a.status
 FROM attendance a
 JOIN workers w ON a.worker_id = w.worker_id
+LEFT JOIN worker_classifications wcw ON w.classification_id = wcw.classification_id
+LEFT JOIN work_types wt ON w.work_type_id = wt.work_type_id
+LEFT JOIN worker_classifications wct ON wt.classification_id = wct.classification_id
 WHERE a.is_archived = FALSE AND w.is_archived = FALSE
   AND a.attendance_date >= ? AND a.attendance_date <= ?";
 
@@ -99,17 +105,26 @@ try {
     foreach ($records as $r) {
         $wid = $r['worker_id'];
         if (!isset($workers[$wid])) {
+            // Build full name: First Name Middle Name Last Name
+            $fullName = trim($r['first_name']);
+            if (!empty($r['middle_name'])) {
+                $fullName .= ' ' . trim($r['middle_name']);
+            }
+            $fullName .= ' ' . trim($r['last_name']);
+            
             $workers[$wid] = [
                 'worker_code' => $r['worker_code'],
-                'name' => $r['worker_name_display'],
+                'name' => $fullName,
                 'position' => $r['position'],
                 'daily_rate' => floatval($r['daily_rate']),
+                'classification' => $r['classification_name'],
                 'days' => []
             ];
         }
         $workers[$wid]['days'][$r['attendance_date']] = [
             'hours' => floatval($r['hours_worked']),
             'overtime' => floatval($r['overtime_hours']),
+            'late_minutes' => intval($r['late_minutes']),
             'status' => $r['status']
         ];
     }
@@ -135,25 +150,23 @@ try {
     // Output as Excel-compatible HTML table
     echo '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">';
     echo '<head><meta charset="UTF-8"><style>';
-    echo 'table { border-collapse: collapse; width: 100%; }';
-    echo 'th, td { border: 1px solid #999; padding: 5px 8px; font-family: Calibri, Arial, sans-serif; font-size: 10pt; }';
-    echo 'th { background-color: #1a1a1a; color: #DAA520; font-weight: bold; text-align: center; font-size: 10pt; }';
-    echo '.title-cell { font-size: 14pt; font-weight: bold; color: #1a1a1a; border: none; }';
-    echo '.date-cell { font-size: 11pt; color: #666; border: none; font-weight: bold; }';
-    echo '.export-cell { font-size: 9pt; color: #999; border: none; }';
+    echo 'table { border-collapse: collapse; table-layout: fixed; }';
+    echo 'th, td { border: 1px solid #999; padding: 6px 8px; font-family: Calibri, Arial, sans-serif; font-size: 10pt; text-align: center; vertical-align: middle; }';
+    echo 'th { background-color: #1a1a1a; color: #DAA520; font-weight: bold; font-size: 10pt; }';
+    echo '.title-cell { font-size: 14pt; font-weight: bold; color: #1a1a1a; border: none; text-align: left; }';
+    echo '.date-cell { font-size: 11pt; color: #666; border: none; font-weight: bold; text-align: left; }';
+    echo '.export-cell { font-size: 9pt; color: #999; border: none; text-align: left; }';
     echo '.worker-name { font-weight: 600; text-align: left; white-space: nowrap; background-color: #f8f8f8; }';
     echo '.rate-cell { text-align: center; font-weight: bold; }';
-    echo '.rate-high { background-color: #FFFF00; color: #000; }'; // Yellow for high rates
-    echo '.rate-mid { background-color: #90EE90; color: #000; }'; // Green for mid rates
-    echo '.rate-low { background-color: #90EE90; color: #000; }'; // Green for standard rates
-    echo '.hours-present { background-color: #ff6b6b; color: #000; text-align: center; font-weight: bold; }'; // Red like the image
-    echo '.hours-absent { background-color: #ff6b6b; color: #000; text-align: center; font-weight: bold; }'; // Red for absent
-    echo '.hours-full { background-color: #ffffff; color: #000; text-align: center; font-weight: bold; }'; // White for full day
-    echo '.hours-zero { background-color: #ff6b6b; color: #000; text-align: center; font-weight: bold; }'; // Red for 0
+    echo '.rate-skilled { background-color: #FF6B6B; color: #fff; }'; // Red for Skilled Worker
+    echo '.rate-laborer { background-color: #4CAF50; color: #fff; }'; // Green for Laborer
+    echo '.hours-full { background-color: #ffffff; color: #000; text-align: center; font-weight: bold; }';
+    echo '.hours-norecord { background-color: #ffffff; color: #ccc; text-align: center; }'; // No schedule - plain
+    echo '.hours-undertime { background-color: #FFF3CD; color: #000; text-align: center; font-weight: bold; }'; // Late/undertime - yellow
+    echo '.hours-overtime { background-color: #D6E9FF; color: #1565C0; text-align: center; font-weight: bold; }'; // Overtime - blue
     echo '.total-col { text-align: center; font-weight: bold; background-color: #f0f0f0; }';
-    echo '.summary-label { font-weight: bold; background-color: #f5f5f5; }';
-    echo '.summary-value { font-weight: bold; }';
-    echo '.num { text-align: center; }';
+    echo '.summary-label { font-weight: bold; background-color: #f5f5f5; text-align: left; }';
+    echo '.summary-value { font-weight: bold; text-align: center; }';
     echo '</style></head><body>';
     
     // Title section
@@ -164,19 +177,33 @@ try {
     echo '<tr><td colspan="' . $totalCols . '" style="border:none;"></td></tr>';
     echo '</table>';
     
+    // Calculate uniform column width
+    $colW = 80; // uniform width for RATE, day, and TOTAL columns
+    $nameW = 250; // wider for full name
+    
     // Main data table
     echo '<table>';
     
-    // Header row 1: blank + RATE + Day names + Total
+    // Column widths via colgroup for true uniformity
+    echo '<colgroup>';
+    echo '<col style="width:' . $nameW . 'px;">'; // Name column
+    echo '<col style="width:' . $colW . 'px;">'; // RATE column
+    foreach ($dates as $d) {
+        echo '<col style="width:' . $colW . 'px;">'; // Day columns
+    }
+    echo '<col style="width:' . $colW . 'px;">'; // TOTAL column
+    echo '</colgroup>';
+    
+    // Header row 1: WORKER NAME + RATE + Day names + TOTAL HRS
     echo '<thead>';
     echo '<tr>';
-    echo '<th style="text-align:left;min-width:220px;"></th>'; // Worker name
-    echo '<th style="min-width:60px;">RATE</th>';
+    echo '<th style="text-align:left;">WORKER NAME</th>';
+    echo '<th>RATE</th>';
     foreach ($dates as $d) {
         $dayName = $dayAbbr[date('D', strtotime($d))] ?? date('D', strtotime($d));
-        echo '<th style="min-width:45px;">' . $dayName . '</th>';
+        echo '<th style="background-color:#FFFF00;color:#000;">' . $dayName . '</th>';
     }
-    echo '<th style="min-width:60px;">TOTAL</th>';
+    echo '<th>TOTAL HRS</th>';
     echo '</tr>';
     
     // Header row 2: blank + blank + Date numbers
@@ -184,7 +211,7 @@ try {
     echo '<th style="text-align:left;"></th>';
     echo '<th></th>';
     foreach ($dates as $d) {
-        echo '<th>' . date('j', strtotime($d)) . '</th>';
+        echo '<th style="background-color:#FFFF00;color:#000;">' . date('j', strtotime($d)) . '</th>';
     }
     echo '<th></th>';
     echo '</tr>';
@@ -198,51 +225,55 @@ try {
         foreach ($workers as $wid => $w) {
             echo '<tr>';
             
-            // Worker name (LAST, FIRST, POSITION format like the image)
+            // Worker full name: First Name Middle Name Last Name
             $displayName = htmlspecialchars($w['name']);
-            if (!empty($w['position'])) {
-                $displayName .= ', ' . htmlspecialchars(strtoupper(substr($w['position'], 0, 1)) . strtolower(substr($w['position'], 1)));
-            }
             echo '<td class="worker-name">' . $displayName . '</td>';
             
-            // Rate with color coding
+            // Rate with color coding based on classification
+            // Red = Skilled Worker, Green = Laborer
             $rate = $w['daily_rate'];
-            $rateClass = 'rate-mid';
-            if ($rate >= 800) {
-                $rateClass = 'rate-high';
-            } elseif ($rate >= 700) {
-                $rateClass = 'rate-mid';
-            } else {
-                $rateClass = 'rate-low';
+            $classification = strtolower($w['classification'] ?? 'laborer');
+            $rateClass = 'rate-laborer'; // Green for Laborer (default)
+            if (strpos($classification, 'skilled') !== false) {
+                $rateClass = 'rate-skilled'; // Red for Skilled Worker
             }
             echo '<td class="rate-cell ' . $rateClass . '">' . number_format($rate, 0) . '</td>';
             
-            // Hours per day
+            // Hours per day (Philippine labor standard: 8-hour workday)
             $totalHours = 0;
             foreach ($dates as $d) {
                 if (isset($w['days'][$d])) {
                     $hours = $w['days'][$d]['hours'];
+                    $overtime = $w['days'][$d]['overtime'];
+                    $lateMins = $w['days'][$d]['late_minutes'];
                     $status = $w['days'][$d]['status'];
-                    $totalHours += $hours;
                     
-                    if ($hours >= 8) {
-                        // Full day (8+ hours) - white/normal
-                        echo '<td class="hours-full">' . number_format($hours, 0) . '</td>';
-                    } elseif ($hours > 0 && $hours < 8) {
-                        // Partial/late - show hours, light background
-                        echo '<td class="hours-present">' . number_format($hours, 0) . '</td>';
+                    // Philippine labor standard: 8-hour normal workday
+                    // Use actual attendance hours, capped at 8 for regular pay
+                    $baseHours = floor(min($hours, 8)); // Whole numbers only
+                    $totalHours += $baseHours;
+                    
+                    if ($overtime > 0) {
+                        // Has overtime - show in blue
+                        echo '<td class="hours-overtime">' . $baseHours . '</td>';
+                    } elseif ($baseHours >= 8) {
+                        // Full day (8 hours) - white/normal
+                        echo '<td class="hours-full">' . $baseHours . '</td>';
+                    } elseif ($baseHours > 0 && $baseHours < 8) {
+                        // Undertime/late - yellow background
+                        echo '<td class="hours-undertime">' . $baseHours . '</td>';
                     } else {
-                        // 0 hours / absent - red background
-                        echo '<td class="hours-zero">0</td>';
+                        // 0 hours but has a record (absent) - yellow
+                        echo '<td class="hours-undertime">0</td>';
                     }
                 } else {
-                    // No record at all - red
-                    echo '<td class="hours-zero">0</td>';
+                    // No record at all - no schedule, plain white
+                    echo '<td class="hours-norecord">0</td>';
                 }
             }
             
-            // Total hours
-            echo '<td class="total-col">' . number_format($totalHours, 0) . '</td>';
+            // Total hours (whole number)
+            echo '<td class="total-col">' . $totalHours . '</td>';
             
             echo '</tr>';
         }
@@ -256,7 +287,8 @@ try {
     $allTotalDays = 0;
     foreach ($workers as $w) {
         foreach ($w['days'] as $day) {
-            $allTotalHours += $day['hours'];
+            $base = floor(min($day['hours'], 8)); // Whole numbers only
+            $allTotalHours += $base;
             if ($day['hours'] > 0) $allTotalDays++;
         }
     }

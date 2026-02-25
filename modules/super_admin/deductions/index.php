@@ -123,13 +123,12 @@ $flash = getFlashMessage();
                                     <th>Frequency</th>
                                     <th>Deduction Date</th>
                                     <th>Status</th>
-                                    <th>Date Added</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody id="deductionsBody">
                                 <tr>
-                                    <td colspan="8" class="loading-cell">
+                                    <td colspan="7" class="loading-cell">
                                         <i class="fas fa-spinner fa-spin"></i> Loading deductions...
                                     </td>
                                 </tr>
