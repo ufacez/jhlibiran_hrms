@@ -245,8 +245,8 @@ try {
             $employeeRate = floatval($input['employee_contribution_rate'] ?? 0);
             $employerRate = floatval($input['employer_contribution_rate'] ?? 0);
 
-            if ($employeeRate <= 0 || $employerRate <= 0) {
-                throw new Exception('Both employee and employer rates must be positive');
+            if ($employeeRate < 0 || $employerRate < 0) {
+                throw new Exception('Rates cannot be negative');
             }
 
             // Get existing active record
@@ -293,16 +293,16 @@ try {
                 throw new Exception('You do not have permission to edit payroll settings');
             }
 
-            $ecpMinimum = floatval($input['ecp_minimum'] ?? 0);
-            $ecpBoundary = floatval($input['ecp_boundary'] ?? 0);
-            $ecpMaximum = floatval($input['ecp_maximum'] ?? 0);
-            $mpfMinimum = floatval($input['mpf_minimum'] ?? 0);
-            $mpfMaximum = floatval($input['mpf_maximum'] ?? 0);
-            $employeeRate = floatval($input['employee_contribution_rate'] ?? 0);
-            $employerRate = floatval($input['employer_contribution_rate'] ?? 0);
+            $ecpMinimum = isset($input['ecp_minimum']) ? floatval($input['ecp_minimum']) : null;
+            $ecpBoundary = isset($input['ecp_boundary']) ? floatval($input['ecp_boundary']) : null;
+            $ecpMaximum = isset($input['ecp_maximum']) ? floatval($input['ecp_maximum']) : null;
+            $mpfMinimum = isset($input['mpf_minimum']) ? floatval($input['mpf_minimum']) : null;
+            $mpfMaximum = isset($input['mpf_maximum']) ? floatval($input['mpf_maximum']) : null;
+            $employeeRate = isset($input['employee_contribution_rate']) ? floatval($input['employee_contribution_rate']) : null;
+            $employerRate = isset($input['employer_contribution_rate']) ? floatval($input['employer_contribution_rate']) : null;
             $effectiveDate = $input['effective_date'] ?? '';
 
-            if (!$ecpMinimum || !$ecpBoundary || !$ecpMaximum || !$mpfMinimum || !$mpfMaximum || !$employeeRate || !$employerRate || empty($effectiveDate)) {
+            if ($ecpMinimum === null || $ecpBoundary === null || $ecpMaximum === null || $mpfMinimum === null || $mpfMaximum === null || $employeeRate === null || $employerRate === null || empty($effectiveDate)) {
                 throw new Exception('All SSS settings fields are required');
             }
 

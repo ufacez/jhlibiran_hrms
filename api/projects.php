@@ -428,9 +428,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 $stmt = $db->prepare("
                     SELECT w.worker_id, w.worker_code, w.first_name, w.last_name,
-                           w.position, w.daily_rate, w.employment_type, pw.assigned_date
+                           w.position, w.daily_rate, w.employment_type, pw.assigned_date,
+                           wt.work_type_name, wc.classification_name
                     FROM project_workers pw
                     JOIN workers w ON pw.worker_id = w.worker_id
+                    LEFT JOIN work_types wt ON w.work_type_id = wt.work_type_id
+                    LEFT JOIN worker_classifications wc ON wt.classification_id = wc.classification_id
                     WHERE pw.project_id = ? AND pw.is_active = 1
                       AND w.employment_status = 'active' AND w.is_archived = FALSE
                     ORDER BY w.first_name, w.last_name

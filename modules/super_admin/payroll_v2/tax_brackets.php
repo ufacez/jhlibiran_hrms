@@ -27,9 +27,6 @@ $stmt = $pdo->query("SELECT * FROM bir_tax_brackets WHERE is_active = 1 ORDER BY
 $brackets = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 $pageTitle = 'BIR Tax Settings';
-
-// Weekly divisor: Monthly * 12 / 52 weeks = Monthly / 4.333
-$weeklyDivisor = 4.333;
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -48,18 +45,14 @@ $weeklyDivisor = 4.333;
         .page-title { font-size: 22px; font-weight: 700; color: #1a1a1a; }
         .page-subtitle { color: #666; font-size: 13px; margin-top: 5px; }
         
-        /* Period Toggle */
-        .period-toggle { display: flex; background: rgba(255,255,255,0.1); border-radius: 6px; padding: 3px; }
-        .period-btn { padding: 8px 16px; border: none; background: none; font-size: 12px; font-weight: 500; color: rgba(255,255,255,0.7); cursor: pointer; border-radius: 4px; transition: all 0.2s; display: flex; align-items: center; gap: 6px; }
-        .period-btn:hover { color: #fff; }
-        .period-btn.active { background: #DAA520; color: #1a1a1a; }
+
         
         /* Tax Table */
         .tax-table-wrap { background: #fff; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); overflow: hidden; }
         .table-header { background: #1a1a1a; color: #fff; padding: 15px 20px; font-weight: 600; display: flex; align-items: center; justify-content: space-between; }
         .table-header-left { display: flex; align-items: center; gap: 10px; }
         .table-header i { color: #DAA520; }
-        .period-badge { background: #DAA520; color: #1a1a1a; padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+
         
         .tax-table { width: 100%; border-collapse: collapse; }
         .tax-table th { background: #fafbfc; padding: 12px 15px; text-align: left; font-size: 11px; font-weight: 600; text-transform: uppercase; color: #666; border-bottom: 2px solid #f0f0f0; }
@@ -108,8 +101,7 @@ $weeklyDivisor = 4.333;
         .btn-delete { background: none; border: none; color: #999; cursor: pointer; padding: 8px; border-radius: 6px; }
         .btn-delete:hover { background: #fef2f2; color: #dc2626; }
         
-        /* Weekly equivalent display */
-        .weekly-equiv { font-size: 10px; color: #888; margin-top: 3px; }
+
         
         @media (max-width: 1200px) {
             .tax-table { display: block; overflow-x: auto; }
@@ -144,14 +136,7 @@ $weeklyDivisor = 4.333;
                         <div class="table-header-left">
                             <i class="fas fa-table"></i> Tax Bracket Settings
                         </div>
-                        <div class="period-toggle">
-                            <button class="period-btn active" data-period="weekly" onclick="setPeriod('weekly')">
-                                <i class="fas fa-calendar-week"></i> Weekly
-                            </button>
-                            <button class="period-btn" data-period="monthly" onclick="setPeriod('monthly')">
-                                <i class="fas fa-calendar-alt"></i> Monthly
-                            </button>
-                        </div>
+                        <span style="font-size:11px;color:rgba(255,255,255,0.6);font-weight:500;">Monthly Values</span>
                     </div>
                     
                     <?php if (!$can_edit): ?>
@@ -178,10 +163,7 @@ $weeklyDivisor = 4.333;
                             </thead>
                             <tbody id="bracketsBody">
                                 <?php foreach ($brackets as $b): ?>
-                                <tr data-id="<?php echo $b['bracket_id']; ?>" 
-                                    data-monthly-lower="<?php echo $b['lower_bound']; ?>"
-                                    data-monthly-upper="<?php echo $b['upper_bound']; ?>"
-                                    data-monthly-base="<?php echo $b['base_tax']; ?>">
+                                <tr data-id="<?php echo $b['bracket_id']; ?>">
                                     <td>
                                         <div class="bracket-num"><?php echo $b['bracket_level']; ?></div>
                                     </td>
@@ -189,27 +171,24 @@ $weeklyDivisor = 4.333;
                                         <div class="input-group">
                                             <span class="input-prefix">₱</span>
                                             <input type="text" class="tax-input" name="lower_bound[]" 
-                                                   value="<?php echo number_format(round($b['lower_bound'] / $weeklyDivisor), 0, '.', ','); ?>" 
-                                                   data-field="lower_bound"
-                                                   data-monthly="<?php echo $b['lower_bound']; ?>" <?php echo !$can_edit ? 'disabled' : ''; ?>>
+                                                   value="<?php echo number_format($b['lower_bound'], 0, '.', ','); ?>" 
+                                                   data-field="lower_bound" <?php echo !$can_edit ? 'disabled' : ''; ?>>
                                         </div>
                                     </td>
                                     <td>
                                         <div class="input-group">
                                             <span class="input-prefix">₱</span>
                                             <input type="text" class="tax-input" name="upper_bound[]" 
-                                                   value="<?php echo number_format(round($b['upper_bound'] / $weeklyDivisor), 0, '.', ','); ?>" 
-                                                   data-field="upper_bound"
-                                                   data-monthly="<?php echo $b['upper_bound']; ?>" <?php echo !$can_edit ? 'disabled' : ''; ?>>
+                                                   value="<?php echo number_format($b['upper_bound'], 0, '.', ','); ?>" 
+                                                   data-field="upper_bound" <?php echo !$can_edit ? 'disabled' : ''; ?>>
                                         </div>
                                     </td>
                                     <td>
                                         <div class="input-group">
                                             <span class="input-prefix">₱</span>
                                             <input type="text" class="tax-input" name="base_tax[]" 
-                                                   value="<?php echo number_format(round($b['base_tax'] / $weeklyDivisor), 0, '.', ','); ?>" 
-                                                   data-field="base_tax"
-                                                   data-monthly="<?php echo $b['base_tax']; ?>" <?php echo !$can_edit ? 'disabled' : ''; ?>>
+                                                   value="<?php echo number_format($b['base_tax'], 0, '.', ','); ?>" 
+                                                   data-field="base_tax" <?php echo !$can_edit ? 'disabled' : ''; ?>>
                                         </div>
                                     </td>
                                     <td>
@@ -280,31 +259,6 @@ $weeklyDivisor = 4.333;
     
     <script>
         const API_URL = '<?php echo BASE_URL; ?>/api/payroll_v2.php';
-        const WEEKLY_DIVISOR = <?php echo $weeklyDivisor; ?>;
-        let currentPeriod = 'weekly';
-        
-        function setPeriod(period) {
-            currentPeriod = period;
-            
-            // Update buttons
-            document.querySelectorAll('.period-btn').forEach(btn => {
-                btn.classList.toggle('active', btn.dataset.period === period);
-            });
-            
-            // Update input values
-            document.querySelectorAll('#bracketsBody tr[data-id]').forEach(row => {
-                ['lower_bound', 'upper_bound', 'base_tax'].forEach(field => {
-                    const input = row.querySelector(`[data-field="${field}"]`);
-                    if (input && input.dataset.monthly) {
-                        const monthly = parseFloat(input.dataset.monthly);
-                        const value = period === 'weekly' 
-                            ? Math.round(monthly / WEEKLY_DIVISOR)
-                            : Math.round(monthly);
-                        input.value = formatNumber(value);
-                    }
-                });
-            });
-        }
         
         function formatNumber(num) {
             return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
@@ -336,19 +290,19 @@ $weeklyDivisor = 4.333;
                 <td>
                     <div class="input-group">
                         <span class="input-prefix">₱</span>
-                        <input type="text" class="tax-input" name="lower_bound[]" value="0" data-field="lower_bound" data-monthly="0">
+                        <input type="text" class="tax-input" name="lower_bound[]" value="0" data-field="lower_bound">
                     </div>
                 </td>
                 <td>
                     <div class="input-group">
                         <span class="input-prefix">₱</span>
-                        <input type="text" class="tax-input" name="upper_bound[]" value="0" data-field="upper_bound" data-monthly="0">
+                        <input type="text" class="tax-input" name="upper_bound[]" value="0" data-field="upper_bound">
                     </div>
                 </td>
                 <td>
                     <div class="input-group">
                         <span class="input-prefix">₱</span>
-                        <input type="text" class="tax-input" name="base_tax[]" value="0" data-field="base_tax" data-monthly="0">
+                        <input type="text" class="tax-input" name="base_tax[]" value="0" data-field="base_tax">
                     </div>
                 </td>
                 <td>
@@ -402,16 +356,10 @@ $weeklyDivisor = 4.333;
             const brackets = [];
             
             rows.forEach((row, index) => {
-                // Convert to monthly values for storage
+                // Values are already monthly
                 let lowerBound = parseNumber(row.querySelector('[data-field="lower_bound"]').value);
                 let upperBound = parseNumber(row.querySelector('[data-field="upper_bound"]').value);
                 let baseTax = parseNumber(row.querySelector('[data-field="base_tax"]').value);
-                
-                if (currentPeriod === 'weekly') {
-                    lowerBound = Math.round(lowerBound * WEEKLY_DIVISOR);
-                    upperBound = Math.round(upperBound * WEEKLY_DIVISOR);
-                    baseTax = Math.round(baseTax * WEEKLY_DIVISOR);
-                }
                 
                 brackets.push({
                     bracket_id: row.dataset.id.startsWith('new_') ? null : parseInt(row.dataset.id),

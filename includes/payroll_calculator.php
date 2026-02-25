@@ -426,20 +426,20 @@ class PayrollCalculator {
     
     /**
      * Calculate SSS contribution based on salary bracket
-     * SSS is deducted EVERY WEEK but divided by 4 weeks
-     * This spreads the monthly SSS amount across all 4 weeks to avoid heavy deduction
+     * Uses the actual total monthly gross salary (sum of all weekly payrolls in the month)
+     * as the basis for determining the correct SSS bracket and contribution amount.
      * 
-     * Example:
-     * - Monthly SSS for ₱5,400 salary = ₱240 (Bracket 2)
-     * - Weekly SSS = ₱240 / 4 = ₱60 per week
-     * - This is deducted every payroll, not just at month-end
+     * Government contributions must be based on actual total monthly income,
+     * not estimated from a single week.
      * 
-     * @param float $grossPay Gross pay for SSS bracket calculation
-     * @return array SSS calculation details (weekly amount)
+     * @param float $grossPay Weekly gross pay (used for estimation if no monthly gross provided)
+     * @param string|null $periodEnd Period end date
+     * @param float|null $monthlyGross Actual total monthly gross salary (if available)
+     * @return array SSS calculation details (monthly amount)
      */
-    public function calculateSSSContribution($grossPay, $periodEnd = null) {
+    public function calculateSSSContribution($grossPay, $periodEnd = null, $monthlyGross = null) {
         // No SSS contribution if no gross pay (no attendance)
-        if ($grossPay <= 0) {
+        if ($grossPay <= 0 && ($monthlyGross === null || $monthlyGross <= 0)) {
             return [
                 'bracket_number' => 0,
                 'lower_range' => 0,
@@ -455,9 +455,10 @@ class PayrollCalculator {
         }
         
         try {
-            // Look up the monthly SSS bracket based on monthly salary range
-            // Note: We use the WEEKLY gross to estimate monthly (multiply by 4.333)
-            $estimatedMonthlySalary = $grossPay * self::WEEKLY_DIVISOR;
+            // Use actual monthly gross if provided, otherwise estimate from weekly
+            $estimatedMonthlySalary = ($monthlyGross !== null && $monthlyGross > 0) 
+                ? $monthlyGross 
+                : $grossPay * self::WEEKLY_DIVISOR;
             
             $stmt = $this->pdo->prepare("
                 SELECT * FROM sss_contribution_matrix 
@@ -536,9 +537,10 @@ class PayrollCalculator {
                     'monthly_employer' => $monthlyEmployerSSS,
                     'monthly_ec' => $monthlyECSSS,
                     'monthly_total' => round($monthlyEmployeeTotal, 2),
+                    'monthly_gross_basis' => round($estimatedMonthlySalary, 2),
                     'formula' => sprintf(
-                        "Bracket %d: MSC ₱%.2f × %.1f%% = ₱%.2f/month (EE)",
-                        $bracket['bracket_number'], $monthlySalaryCredit, $eeRate * 100, round($monthlyEmployeeTotal, 2)
+                        "Monthly Gross ₱%.2f → Bracket %d: MSC ₱%.2f × %.1f%% = ₱%.2f/month (EE)",
+                        $estimatedMonthlySalary, $bracket['bracket_number'], $monthlySalaryCredit, $eeRate * 100, round($monthlyEmployeeTotal, 2)
                     )
                 ];
             }
@@ -567,14 +569,16 @@ class PayrollCalculator {
     
     /**
      * Calculate PhilHealth Contribution
-     * Uses percentage-based calculation from philhealth_settings table
+     * Uses percentage-based calculation from philhealth_settings table.
+     * Uses the actual total monthly gross salary as the basis.
      * 
-     * @param float $grossPay Weekly gross pay
-     * @return array PhilHealth calculation details (weekly amount)
+     * @param float $grossPay Weekly gross pay (used for estimation if no monthly gross provided)
+     * @param float|null $monthlyGross Actual total monthly gross salary (if available)
+     * @return array PhilHealth calculation details (monthly amount)
      */
-    public function calculatePhilHealthContribution($grossPay) {
+    public function calculatePhilHealthContribution($grossPay, $monthlyGross = null) {
         // No PhilHealth contribution if no gross pay (no attendance)
-        if ($grossPay <= 0) {
+        if ($grossPay <= 0 && ($monthlyGross === null || $monthlyGross <= 0)) {
             return [
                 'employee_contribution' => 0,
                 'employer_contribution' => 0,
@@ -587,8 +591,10 @@ class PayrollCalculator {
         }
         
         try {
-            // Estimate monthly salary from weekly gross (multiply by 4.333)
-            $estimatedMonthlySalary = $grossPay * self::WEEKLY_DIVISOR;
+            // Use actual monthly gross if provided, otherwise estimate from weekly
+            $estimatedMonthlySalary = ($monthlyGross !== null && $monthlyGross > 0) 
+                ? $monthlyGross 
+                : $grossPay * self::WEEKLY_DIVISOR;
             
             // Get PhilHealth settings (percentage-based)
             $stmt = $this->pdo->prepare("SELECT premium_rate, employee_share, employer_share, min_salary, max_salary 
@@ -625,9 +631,10 @@ class PayrollCalculator {
                     'employee_rate' => $settings['employee_share'],
                     'employer_rate' => $settings['employer_share'],
                     'applicable_salary' => $applicable_salary,
+                    'monthly_gross_basis' => round($estimatedMonthlySalary, 2),
                     'formula' => sprintf(
-                        "Monthly salary ₱%.2f × %.2f%% = ₱%.2f/month (Employee)",
-                        $applicable_salary, $settings['employee_share'], round($monthlyEmployee, 2)
+                        "Monthly Gross ₱%.2f → Applicable ₱%.2f × %.2f%% = ₱%.2f/month (Employee)",
+                        $estimatedMonthlySalary, $applicable_salary, $settings['employee_share'], round($monthlyEmployee, 2)
                     )
                 ];
             }
@@ -652,14 +659,16 @@ class PayrollCalculator {
     
     /**
      * Calculate Pag-IBIG (HDMF) Contribution
-     * Uses tiered rates from pagibig_settings table
+     * Uses tiered rates from pagibig_settings table.
+     * Uses the actual total monthly gross salary as the basis.
      * 
-     * @param float $grossPay Weekly gross pay
-     * @return array Pag-IBIG calculation details (weekly amount)
+     * @param float $grossPay Weekly gross pay (used for estimation if no monthly gross provided)
+     * @param float|null $monthlyGross Actual total monthly gross salary (if available)
+     * @return array Pag-IBIG calculation details (monthly amount)
      */
-    public function calculatePagIBIGContribution($grossPay) {
+    public function calculatePagIBIGContribution($grossPay, $monthlyGross = null) {
         // No Pag-IBIG contribution if no gross pay (no attendance)
-        if ($grossPay <= 0) {
+        if ($grossPay <= 0 && ($monthlyGross === null || $monthlyGross <= 0)) {
             return [
                 'employee_contribution' => 0,
                 'employer_contribution' => 0,
@@ -672,8 +681,10 @@ class PayrollCalculator {
         }
         
         try {
-            // Estimate monthly salary from weekly gross (multiply by 4.333)
-            $estimatedMonthlySalary = $grossPay * self::WEEKLY_DIVISOR;
+            // Use actual monthly gross if provided, otherwise estimate from weekly
+            $estimatedMonthlySalary = ($monthlyGross !== null && $monthlyGross > 0) 
+                ? $monthlyGross 
+                : $grossPay * self::WEEKLY_DIVISOR;
             
             // Get Pag-IBIG settings
             $stmt = $this->pdo->prepare("SELECT employee_rate_below, employer_rate_below, employee_rate_above, 
@@ -714,8 +725,9 @@ class PayrollCalculator {
                     'employee_rate' => $employeeRate,
                     'employer_rate' => $employerRate,
                     'applicable_salary' => $applicableSalary,
+                    'monthly_gross_basis' => round($estimatedMonthlySalary, 2),
                     'formula' => sprintf(
-                        "Salary ₱%.2f (capped at ₱%.2f) × %.2f%% = ₱%.2f/month (Employee)",
+                        "Monthly Gross ₱%.2f (capped at ₱%.2f) × %.2f%% = ₱%.2f/month (Employee)",
                         $estimatedMonthlySalary, $applicableSalary, $employeeRate, round($monthlyEmployee, 2)
                     )
                 ];
@@ -755,13 +767,14 @@ class PayrollCalculator {
         $isLastPayrollOfMonth = $this->isLastPayrollOfMonth($periodEnd);
         
         if ($isLastPayrollOfMonth) {
-            // Calculate full monthly contributions
-            $sssCalculation = $this->calculateSSSContribution($grossPay, $periodEnd);
-            $philhealthCalculation = $this->calculatePhilHealthContribution($grossPay);
-            $pagibigCalculation = $this->calculatePagIBIGContribution($grossPay);
-            
-            // Get the total monthly gross for this worker (all payrolls in the same month)
+            // Get the actual total monthly gross for this worker (all payrolls in the same month)
+            // This is the correct basis for ALL government deductions per Philippine labor law
             $monthlyGross = $this->getMonthlyGrossForWorker($workerId, $periodEnd, $grossPay);
+            
+            // Calculate full monthly contributions using actual monthly gross as basis
+            $sssCalculation = $this->calculateSSSContribution($grossPay, $periodEnd, $monthlyGross);
+            $philhealthCalculation = $this->calculatePhilHealthContribution($grossPay, $monthlyGross);
+            $pagibigCalculation = $this->calculatePagIBIGContribution($grossPay, $monthlyGross);
             
             // Monthly taxable income = monthly gross minus monthly statutory contributions
             $monthlyContributions = ($sssCalculation['employee_contribution'] + $philhealthCalculation['employee_contribution'] + $pagibigCalculation['employee_contribution']);
@@ -814,7 +827,9 @@ class PayrollCalculator {
             'tax_details' => $taxCalculation,
             'sss_details' => $sssCalculation,
             'philhealth_details' => $philhealthCalculation,
-            'pagibig_details' => $pagibigCalculation
+            'pagibig_details' => $pagibigCalculation,
+            'is_last_payroll_of_month' => $isLastPayrollOfMonth,
+            'monthly_gross_basis' => $isLastPayrollOfMonth ? round($monthlyGross, 2) : null
         ];
         
         // Add SSS as item (only if deducted this period)
@@ -1756,22 +1771,81 @@ class PayrollCalculator {
         $monthEnd = date('Y-m-t', strtotime($periodEnd));
         
         try {
-            // Sum gross_pay from all saved payroll records whose period falls within this month
-            // Exclude the current period to avoid double-counting if re-generating
+            // Calculate gross from ALL attendance data in the month (not just saved payroll records).
+            // This ensures unsaved/missing weeks are still included in the monthly total.
+            $workerRates = $this->getWorkerRates($workerId);
+            if (!$workerRates) {
+                return $currentGross;
+            }
+            
+            // Load holidays for the entire month
+            $this->loadHolidays($monthStart, $monthEnd);
+            
+            // Get all attendance records for this worker in the month,
+            // EXCLUDING the current period (to avoid double-counting with $currentGross)
             $stmt = $this->pdo->prepare("
-                SELECT COALESCE(SUM(pr.gross_pay), 0) as total_gross
-                FROM payroll_records pr
-                JOIN payroll_periods pp ON pr.period_id = pp.period_id
-                WHERE pr.worker_id = ?
-                AND pp.period_end >= ?
-                AND pp.period_end <= ?
-                AND pp.period_end != ?
+                SELECT attendance_id, worker_id, attendance_date, time_in, time_out, 
+                       hours_worked, raw_hours_worked, break_hours, late_minutes,
+                       overtime_hours, status, notes
+                FROM attendance 
+                WHERE worker_id = ? 
+                AND attendance_date >= ?
+                AND attendance_date <= ?
+                AND attendance_date NOT BETWEEN (SELECT pp.period_start FROM payroll_periods pp 
+                    JOIN payroll_records pr ON pp.period_id = pr.period_id 
+                    WHERE pr.worker_id = ? AND pp.period_end = ? LIMIT 1) 
+                    AND ?
+                AND is_archived = 0
+                AND time_in IS NOT NULL 
+                AND time_out IS NOT NULL
+                ORDER BY attendance_date ASC
             ");
-            $stmt->execute([$workerId, $monthStart, $monthEnd, $periodEnd]);
-            $result = $stmt->fetch(PDO::FETCH_ASSOC);
-            $previousGross = floatval($result['total_gross']);
-        } catch (PDOException $e) {
-            error_log("PayrollCalculator: Failed to get monthly gross - " . $e->getMessage());
+            
+            // We need the current period start to exclude it; derive from periodEnd
+            // The current period's attendance is already accounted for in $currentGross
+            // Find the period_start for the current period
+            $periodStmt = $this->pdo->prepare("
+                SELECT period_start FROM payroll_periods pp
+                JOIN payroll_records pr ON pp.period_id = pr.period_id
+                WHERE pr.worker_id = ? AND pp.period_end = ?
+                LIMIT 1
+            ");
+            $periodStmt->execute([$workerId, $periodEnd]);
+            $periodRow = $periodStmt->fetch(PDO::FETCH_ASSOC);
+            
+            // If current period is saved, get its start date. Otherwise use periodEnd - 6 days (weekly).
+            if ($periodRow) {
+                $currentPeriodStart = $periodRow['period_start'];
+            } else {
+                $currentPeriodStart = date('Y-m-d', strtotime('-6 days', strtotime($periodEnd)));
+            }
+            
+            // Get attendance records for the month EXCLUDING the current period dates
+            $stmt = $this->pdo->prepare("
+                SELECT attendance_id, worker_id, attendance_date, time_in, time_out, 
+                       hours_worked, raw_hours_worked, break_hours, late_minutes,
+                       overtime_hours, status, notes
+                FROM attendance 
+                WHERE worker_id = ? 
+                AND attendance_date >= ?
+                AND attendance_date <= ?
+                AND attendance_date NOT BETWEEN ? AND ?
+                AND is_archived = 0
+                AND time_in IS NOT NULL 
+                AND time_out IS NOT NULL
+                ORDER BY attendance_date ASC
+            ");
+            $stmt->execute([$workerId, $monthStart, $monthEnd, $currentPeriodStart, $periodEnd]);
+            $attendanceRecords = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            // Calculate gross from each attendance record using existing pay logic
+            $previousGross = 0;
+            foreach ($attendanceRecords as $attendance) {
+                $dayResult = $this->processAttendanceRecordWithWorkerRates($attendance, $workerRates);
+                $previousGross += $dayResult['total'];
+            }
+        } catch (Exception $e) {
+            error_log("PayrollCalculator: Failed to get monthly gross from attendance - " . $e->getMessage());
             $previousGross = 0;
         }
         

@@ -67,7 +67,12 @@ $stmt = $pdo->query("
             FROM project_workers pw
             JOIN projects p ON pw.project_id = p.project_id
             WHERE pw.worker_id = w.worker_id AND pw.is_active = 1 AND p.is_archived = 0
-           ) AS assigned_project
+           ) AS assigned_project,
+           (SELECT GROUP_CONCAT(p.project_id SEPARATOR ',')
+            FROM project_workers pw
+            JOIN projects p ON pw.project_id = p.project_id
+            WHERE pw.worker_id = w.worker_id AND pw.is_active = 1 AND p.is_archived = 0
+           ) AS assigned_project_ids
     FROM workers w
     LEFT JOIN work_types wt ON w.work_type_id = wt.work_type_id
     LEFT JOIN worker_classifications wc ON wt.classification_id = wc.classification_id
@@ -946,6 +951,15 @@ $pageTitle = 'Payroll Management';
                                        oninput="filterWorkers()">
                             </div>
                             <div class="payroll-card-body">
+                                <div style="margin-bottom:12px;">
+                                    <span style="font-size:11px; color:#888; letter-spacing:1px; margin-bottom:2px; display:block;">PROJECT</span>
+                                    <select id="filterProject" style="width:100%;padding:8px 12px; border:1.5px solid #e0e0e0; border-radius:7px; font-size:15px; background:#fafbfc;">
+                                        <option value="">All Projects</option>
+                                        <?php foreach ($projects as $proj): ?>
+                                            <option value="<?php echo $proj['project_id']; ?>"><?php echo htmlspecialchars($proj['project_name']); ?></option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </div>
                                 <div style="display:flex; gap:16px; margin-bottom:18px;">
                                     <div style="flex:1; display:flex; flex-direction:column;">
                                         <span style="font-size:11px; color:#888; letter-spacing:1px; margin-bottom:2px;">CLASSIFICATION</span>
@@ -972,6 +986,7 @@ $pageTitle = 'Payroll Management';
                                          data-name="<?php echo strtolower($worker['first_name'] . ' ' . $worker['last_name']); ?>"
                                          data-classification="<?php echo htmlspecialchars($worker['classification_name']); ?>"
                                          data-worktype="<?php echo htmlspecialchars($worker['work_type_name']); ?>"
+                                         data-project-ids="<?php echo htmlspecialchars($worker['assigned_project_ids'] ?? ''); ?>"
                                          onclick="selectWorker(<?php echo $worker['worker_id']; ?>, this)">
                                         <input type="checkbox" class="worker-checkbox" 
                                                data-id="<?php echo $worker['worker_id']; ?>">
@@ -1240,6 +1255,7 @@ $pageTitle = 'Payroll Management';
             loadRates();
             
             // Filter logic for worker list
+            document.getElementById('filterProject').addEventListener('change', filterWorkers);
             document.getElementById('filterClassification').addEventListener('change', filterWorkers);
             document.getElementById('filterWorkType').addEventListener('change', filterWorkers);
         });
@@ -1371,11 +1387,12 @@ $pageTitle = 'Payroll Management';
         }
         
         // Select worker (toggle)
+        let selectedWorkerProjectId = null;
         function selectWorker(workerId, element) {
             const isCurrentlySelected = element.classList.contains('selected');
             
             // Remove selection from all workers
-            document.querySelectorAll('.worker-item').forEach(w => {
+            document.querySelectorAll('#workerList .worker-item').forEach(w => {
                 w.classList.remove('selected');
                 w.querySelector('.worker-checkbox').checked = false;
             });
@@ -1385,26 +1402,33 @@ $pageTitle = 'Payroll Management';
                 element.classList.add('selected');
                 element.querySelector('.worker-checkbox').checked = true;
                 selectedWorker = workerId;
+                // Get the worker's project ID (first assigned project)
+                const projectIds = (element.getAttribute('data-project-ids') || '').split(',').filter(Boolean);
+                selectedWorkerProjectId = projectIds.length > 0 ? parseInt(projectIds[0]) : null;
                 document.getElementById('generateBtn').disabled = false;
             } else {
                 // Deselect - clicking same worker
                 selectedWorker = null;
+                selectedWorkerProjectId = null;
                 document.getElementById('generateBtn').disabled = true;
             }
         }
         
         // Filter workers
         function filterWorkers() {
+            var projVal = document.getElementById('filterProject').value;
             var classVal = document.getElementById('filterClassification').value.toLowerCase();
             var typeVal = document.getElementById('filterWorkType').value.toLowerCase();
             var searchVal = document.getElementById('workerSearch').value.toLowerCase();
             
-            document.querySelectorAll('.worker-item').forEach(function(item) {
+            document.querySelectorAll('#workerList .worker-item').forEach(function(item) {
                 var c = (item.getAttribute('data-classification')||'').toLowerCase();
                 var t = (item.getAttribute('data-worktype')||'').toLowerCase();
                 var n = (item.getAttribute('data-name')||'').toLowerCase();
+                var pids = (item.getAttribute('data-project-ids')||'');
                 var show = true;
                 
+                if (projVal && pids.split(',').indexOf(projVal) === -1) show = false;
                 if (classVal && c !== classVal) show = false;
                 if (typeVal && t !== typeVal) show = false;
                 if (searchVal && n.indexOf(searchVal) === -1) show = false;
@@ -1638,6 +1662,16 @@ $pageTitle = 'Payroll Management';
                     }
                 }
                 
+                // Show monthly gross basis when government deductions are applied
+                if (payroll.deductions && payroll.deductions.is_last_payroll_of_month && payroll.deductions.monthly_gross_basis > 0) {
+                    deductionsHtml += `
+                        <div class="info-note" style="background:#f0f7ff;border-left:3px solid #3b82f6;margin-bottom:10px;">
+                            <i class="fas fa-calculator" style="color:#3b82f6"></i> 
+                            <strong>Monthly Gross Basis:</strong> ₱${formatNum(payroll.deductions.monthly_gross_basis)}
+                            <span style="display:block;font-size:10px;color:#666;margin-top:2px">Total computed salary for all weeks this month — used as basis for government deductions</span>
+                        </div>`;
+                }
+                
                 if (payroll.deductions && payroll.deductions.items && payroll.deductions.items.length > 0) {
                     payroll.deductions.items.forEach(deduction => {
                         let deductionLabel = deduction.description || deduction.type.toUpperCase();
@@ -1809,6 +1843,7 @@ $pageTitle = 'Payroll Management';
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         worker_id: selectedWorker,
+                        project_id: selectedWorkerProjectId,
                         period_start: selectedPeriod.start,
                         period_end: selectedPeriod.end,
                         user_id: <?php echo $_SESSION['user_id'] ?? 'null'; ?>

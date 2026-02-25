@@ -30,7 +30,9 @@ $basicSettings = $settingsManager->getSettings([
 // Get holiday settings
 $holidaySettings = $settingsManager->getSettings([
     'regular_holiday_multiplier', 'regular_holiday_rate',
-    'special_holiday_multiplier', 'special_holiday_rate'
+    'regular_holiday_ot_multiplier',
+    'special_holiday_multiplier', 'special_holiday_rate',
+    'special_holiday_ot_multiplier'
 ]);
 
 // Get SSS settings
@@ -398,7 +400,7 @@ $pageTitle = 'Payroll Settings';
                                     <div class="input-group">
                                         <input type="number" class="setting-input" name="overtime_percentage" 
                                                value="<?php echo number_format(($basicSettings['overtime_multiplier'] ?? 1.25) * 100, 0, '.', ''); ?>" 
-                                               step="1" min="100" data-key="overtime_percentage">
+                                               step="1" min="0" data-key="overtime_percentage">
                                         <span class="input-suffix">%</span>
                                     </div>
                                 </div>
@@ -448,7 +450,7 @@ $pageTitle = 'Payroll Settings';
                                     <div class="input-group">
                                         <input type="number" class="setting-input" name="regular_holiday_percentage" 
                                                value="<?php echo number_format(($holidaySettings['regular_holiday_multiplier'] ?? 2.00) * 100, 0, '.', ''); ?>" 
-                                               step="1" min="100" data-key="regular_holiday_percentage">
+                                               step="1" min="0" data-key="regular_holiday_percentage">
                                         <span class="input-suffix">%</span>
                                     </div>
                                 </div>
@@ -461,7 +463,7 @@ $pageTitle = 'Payroll Settings';
                                     <div class="input-group">
                                         <input type="number" class="setting-input" name="regular_holiday_ot_multiplier"
                                                value="<?php echo number_format($holidaySettings['regular_holiday_ot_multiplier'] ?? 2.60, 2, '.', ''); ?>"
-                                               step="0.01" min="1.00" data-key="regular_holiday_ot_multiplier">
+                                               step="0.01" min="0" data-key="regular_holiday_ot_multiplier">
                                         <span class="input-suffix">×</span>
                                     </div>
                                 </div>
@@ -482,7 +484,7 @@ $pageTitle = 'Payroll Settings';
                                     <div class="input-group">
                                         <input type="number" class="setting-input" name="special_holiday_percentage" 
                                                value="<?php echo number_format(($holidaySettings['special_holiday_multiplier'] ?? 1.30) * 100, 0, '.', ''); ?>" 
-                                               step="1" min="100" data-key="special_holiday_percentage">
+                                               step="1" min="0" data-key="special_holiday_percentage">
                                         <span class="input-suffix">%</span>
                                     </div>
                                 </div>
@@ -495,7 +497,7 @@ $pageTitle = 'Payroll Settings';
                                     <div class="input-group">
                                         <input type="number" class="setting-input" name="special_holiday_ot_multiplier"
                                                value="<?php echo number_format($holidaySettings['special_holiday_ot_multiplier'] ?? 1.69, 2, '.', ''); ?>"
-                                               step="0.01" min="1.00" data-key="special_holiday_ot_multiplier">
+                                               step="0.01" min="0" data-key="special_holiday_ot_multiplier">
                                         <span class="input-suffix">×</span>
                                     </div>
                                 </div>

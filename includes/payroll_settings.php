@@ -224,6 +224,8 @@ class PayrollSettingsManager {
         $restDayMult = $this->getSetting('rest_day_multiplier') ?? 1.3;
         
         // Calculate derived values
+        // Note: regular_holiday_ot_multiplier and special_holiday_ot_multiplier are
+        // user-editable and should NOT be auto-recalculated here
         $derivedValues = [
             'daily_rate' => $hourlyRate * $standardHours,
             'weekly_rate' => $hourlyRate * $standardHours * $standardDays,
@@ -232,8 +234,6 @@ class PayrollSettingsManager {
             'regular_holiday_rate' => $hourlyRate * $regularHolidayMult,
             'special_holiday_rate' => $hourlyRate * $specialHolidayMult,
             'rest_day_ot_multiplier' => $restDayMult * $otMultiplier,
-            'regular_holiday_ot_multiplier' => $regularHolidayMult * 1.30,
-            'special_holiday_ot_multiplier' => $specialHolidayMult * 1.30,
             'regular_holiday_restday_multiplier' => $regularHolidayMult * 1.30,
             'special_holiday_restday_multiplier' => $specialHolidayMult + 0.20
         ];
