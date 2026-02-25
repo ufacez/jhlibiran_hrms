@@ -1,6 +1,6 @@
 <?php
 /**
- * Analytics & Reports - Admin View
+ * Analytics & Reports - Calculated Insights
  * TrackSite Construction Management System
  */
 
@@ -15,9 +15,9 @@ require_once __DIR__ . '/../../../includes/admin_functions.php';
 
 requireAdminWithPermission($db, 'can_view_reports');
 
-$user_id   = getCurrentUserId();
-$full_name = $_SESSION['full_name'] ?? 'Administrator';
-$flash     = getFlashMessage();
+$user_level = getCurrentUserLevel();
+$full_name  = $_SESSION['full_name'] ?? 'Administrator';
+$flash      = getFlashMessage();
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -27,95 +27,233 @@ $flash     = getFlashMessage();
     <title>Analytics & Reports - <?php echo SYSTEM_NAME; ?></title>
     <link rel="stylesheet" href="https://pro.fontawesome.com/releases/v5.10.0/css/all.css" />
     <link rel="stylesheet" href="<?php echo CSS_URL; ?>/dashboard.css">
-    <link rel="stylesheet" href="<?php echo CSS_URL; ?>/dashboard-enhanced.css">
+    <link rel="stylesheet" href="<?php echo CSS_URL; ?>/workers.css">
+    <link rel="stylesheet" href="<?php echo CSS_URL; ?>/buttons.css">
     <link rel="stylesheet" href="<?php echo CSS_URL; ?>/analytics.css">
     <style>
     @media print {
-        .sidebar, .topbar, .analytics-toolbar, .export-section, #loadingOverlay { display:none !important; }
-        .main-content { margin-left:0 !important; padding:0 !important; }
-        .chart-card canvas { max-height:260px !important; }
+        .sidebar, .topbar, .page-header, .filter-card, #loadingOverlay { display: none !important; }
+        .main { margin-left: 0 !important; }
+        .workers-content { padding: 10px !important; }
+        .insight-card { break-inside: avoid; box-shadow: none !important; border: 1px solid #ddd; }
     }
     </style>
 </head>
 <body>
-    <div class="container analytics-container">
-        <?php include __DIR__ . '/../../../includes/sidebar.php'; ?>
+    <div class="container">
+        <?php
+        if ($user_level === 'super_admin') {
+            include __DIR__ . '/../../../includes/sidebar.php';
+        } else {
+            include __DIR__ . '/../../../includes/admin_sidebar.php';
+        }
+        ?>
 
-        <div class="main-content analytics-main">
+        <div class="main">
             <?php include __DIR__ . '/../../../includes/topbar.php'; ?>
 
-            <?php if (!empty($flash)): ?>
-                <div class="flash <?php echo $flash['type']; ?>"><?php echo $flash['message']; ?></div>
-            <?php endif; ?>
+            <div class="workers-content">
 
-            <!-- Page Header -->
-            <div class="analytics-toolbar">
-                <div class="header-left">
-                    <h1 class="analytics-title"><i class="fas fa-chart-pie"></i> Analytics & Reports</h1>
+                <?php if (!empty($flash)): ?>
+                <div class="alert alert-<?php echo $flash['type']; ?>" id="flashMessage">
+                    <i class="fas fa-<?php echo $flash['type'] === 'success' ? 'check-circle' : 'exclamation-circle'; ?>"></i>
+                    <?php echo htmlspecialchars($flash['message']); ?>
                 </div>
-                <div class="toolbar-actions">
-                    <select id="exportReport" class="export-select">
-                        <option value="overview">Overview Report</option>
-                        <option value="projects">Projects Report</option>
-                        <option value="workforce">Workforce Report</option>
-                        <option value="payroll">Payroll Report</option>
-                    </select>
-                    <button class="btn-export btn-csv" onclick="exportReport('csv')"><i class="fas fa-file-csv"></i> CSV</button>
-                    <button class="btn-export btn-pdf" onclick="exportReport('pdf')"><i class="fas fa-file-pdf"></i> Print / PDF</button>
+                <?php endif; ?>
+
+                <!-- Page Header -->
+                <div class="page-header">
+                    <div class="header-left">
+                        <h1><i class="fas fa-chart-pie" style="color:#DAA520;margin-right:8px;"></i>Analytics & Reports</h1>
+                        <p class="subtitle">Calculated insights and workforce distributions</p>
+                    </div>
+                    <div class="header-actions">
+                        <button class="btn btn-add-worker" onclick="exportReport('csv')">
+                            <i class="fas fa-file-csv"></i> Export CSV
+                        </button>
+                        <button class="btn btn-add-worker" onclick="window.print()" style="background:linear-gradient(135deg,#1a1a1a,#2d2d2d);color:#DAA520;">
+                            <i class="fas fa-print"></i> Print
+                        </button>
+                    </div>
                 </div>
+
+                <!-- Date Range Filter -->
+                <div class="filter-card">
+                    <div class="filter-row" style="grid-template-columns: 1fr 1fr auto;">
+                        <div class="filter-group">
+                            <label>Date From</label>
+                            <input type="date" id="dateFrom">
+                        </div>
+                        <div class="filter-group">
+                            <label>Date To</label>
+                            <input type="date" id="dateTo">
+                        </div>
+                        <div class="filter-actions">
+                            <button type="button" class="btn-filter-apply" onclick="applyDateRange()">
+                                <i class="fas fa-filter"></i> Apply
+                            </button>
+                            <button type="button" class="btn-filter-reset" onclick="resetDateRange()">
+                                <i class="fas fa-undo"></i> Reset
+                            </button>
+                        </div>
+                    </div>
+                    <div class="date-range-label" id="dateRangeLabel">
+                        <i class="fas fa-calendar-alt"></i> Showing: <strong>All Time</strong>
+                    </div>
+                </div>
+
+                <!-- ============================================ -->
+                <!-- SECTION 1: ATTENDANCE PERFORMANCE            -->
+                <!-- ============================================ -->
+                <section class="analytics-section">
+                    <h2 class="section-title"><i class="fas fa-clock"></i> Attendance Performance</h2>
+
+                    <!-- KPI Row -->
+                    <div class="kpi-row" id="attendanceKpis">
+                        <div class="kpi-card kpi-green">
+                            <div class="kpi-icon-wrap"><i class="fas fa-chart-line"></i></div>
+                            <div class="kpi-body">
+                                <span class="kpi-value" id="kpiPerformance">–</span>
+                                <span class="kpi-label">Performance Rate</span>
+                            </div>
+                        </div>
+                        <div class="kpi-card kpi-gold">
+                            <div class="kpi-icon-wrap"><i class="fas fa-check-circle"></i></div>
+                            <div class="kpi-body">
+                                <span class="kpi-value" id="kpiOnTime">–</span>
+                                <span class="kpi-label">On-Time Rate</span>
+                            </div>
+                        </div>
+                        <div class="kpi-card kpi-dark">
+                            <div class="kpi-icon-wrap"><i class="fas fa-hourglass-half"></i></div>
+                            <div class="kpi-body">
+                                <span class="kpi-value" id="kpiLate">–</span>
+                                <span class="kpi-label">Punctuality Gap</span>
+                            </div>
+                        </div>
+                        <div class="kpi-card kpi-red">
+                            <div class="kpi-icon-wrap"><i class="fas fa-times-circle"></i></div>
+                            <div class="kpi-body">
+                                <span class="kpi-value" id="kpiAbsent">–</span>
+                                <span class="kpi-label">Absent Rate</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Attendance Breakdown -->
+                    <div class="insight-grid">
+                        <div class="insight-card insight-card-wide">
+                            <div class="card-header">
+                                <h3><i class="fas fa-chart-area"></i> Daily Attendance Trend</h3>
+                                <span class="record-count" id="totalRecordsBadge">0 records</span>
+                            </div>
+                            <div class="chart-container"><canvas id="attendanceTrendChart"></canvas></div>
+                        </div>
+                        <div class="insight-card">
+                            <div class="card-header">
+                                <h3><i class="fas fa-chart-doughnut"></i> Status Breakdown</h3>
+                            </div>
+                            <div class="chart-container chart-container-sm"><canvas id="attendancePieChart"></canvas></div>
+                            <div class="breakdown-list" id="attendanceBreakdown"></div>
+                        </div>
+                    </div>
+
+                    <!-- Top Workers Grid -->
+                    <div class="insight-grid">
+                        <!-- Top Excellent Workers -->
+                        <div class="insight-card" id="topExcellentSection" style="display:none;">
+                            <div class="card-header">
+                                <h3><i class="fas fa-trophy"></i> Top Excellent Workers</h3>
+                                <span class="record-count excellent-badge"><i class="fas fa-star"></i> Best Attendance</span>
+                            </div>
+                            <div class="table-wrapper">
+                                <table class="workers-table analytics-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Worker</th>
+                                            <th>On-Time</th>
+                                            <th>Total</th>
+                                            <th>Performance</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="topExcellentBody"></tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Attendance Improvement Insights -->
+                        <div class="insight-card" id="topLateSection" style="display:none;">
+                            <div class="card-header">
+                                <h3><i class="fas fa-chart-bar"></i> Attendance Improvement Insights</h3>
+                                <span class="record-count improvement-badge"><i class="fas fa-bullseye"></i> Focus Areas</span>
+                            </div>
+                            <div class="table-wrapper">
+                                <table class="workers-table analytics-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Worker</th>
+                                            <th>Needs Improvement</th>
+                                            <th>Total Records</th>
+                                            <th>Improvement Opportunity</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="topLateBody"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ============================================ -->
+                <!-- SECTION 2: WORKFORCE DISTRIBUTION            -->
+                <!-- ============================================ -->
+                <section class="analytics-section">
+                    <h2 class="section-title"><i class="fas fa-users"></i> Workforce Distribution</h2>
+
+                    <div class="insight-grid">
+                        <div class="insight-card">
+                            <div class="card-header">
+                                <h3><i class="fas fa-id-badge"></i> Employment Type</h3>
+                                <span class="record-count" id="totalWorkersBadge">0 workers</span>
+                            </div>
+                            <div class="chart-container chart-container-sm"><canvas id="empTypeChart"></canvas></div>
+                            <div class="breakdown-list" id="empTypeBreakdown"></div>
+                        </div>
+                        <div class="insight-card">
+                            <div class="card-header">
+                                <h3><i class="fas fa-toggle-on"></i> Employment Status</h3>
+                            </div>
+                            <div class="chart-container chart-container-sm"><canvas id="empStatusChart"></canvas></div>
+                            <div class="breakdown-list" id="empStatusBreakdown"></div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ============================================ -->
+                <!-- SECTION 3: ROLE & CLASSIFICATION             -->
+                <!-- ============================================ -->
+                <section class="analytics-section">
+                    <h2 class="section-title"><i class="fas fa-hard-hat"></i> Roles & Classifications</h2>
+
+                    <div class="insight-grid">
+                        <div class="insight-card">
+                            <div class="card-header">
+                                <h3><i class="fas fa-briefcase"></i> Role Distribution</h3>
+                            </div>
+                            <div class="chart-container chart-container-sm"><canvas id="roleChart"></canvas></div>
+                            <div class="breakdown-list" id="roleBreakdown"></div>
+                        </div>
+                        <div class="insight-card">
+                            <div class="card-header">
+                                <h3><i class="fas fa-layer-group"></i> Classification Distribution</h3>
+                            </div>
+                            <div class="chart-container chart-container-sm"><canvas id="classChart"></canvas></div>
+                            <div class="breakdown-list" id="classBreakdown"></div>
+                        </div>
+                    </div>
+                </section>
+
             </div>
-
-            <!-- Date Range Filter -->
-            <div class="date-filter-bar">
-                <select id="periodFilter" class="period-filter">
-                    <option value="3months">Last 3 Months</option>
-                    <option value="6months" selected>Last 6 Months</option>
-                    <option value="12months">Last 12 Months</option>
-                    <option value="all">All Time</option>
-                    <option value="custom">Custom Range</option>
-                </select>
-                <div id="customDateRange" class="custom-date-range" style="display:none;">
-                    <label>From</label>
-                    <input type="date" id="dateFrom" class="date-input" />
-                    <label>To</label>
-                    <input type="date" id="dateTo" class="date-input" />
-                    <button class="btn-apply-date" onclick="applyCustomDate()"><i class="fas fa-filter"></i> Apply</button>
-                </div>
-            </div>
-
-            <!-- KPI Grid -->
-            <section id="kpiGrid" class="kpi-grid">
-                <p style="text-align:center;padding:40px;color:#888;">Loading analytics…</p>
-            </section>
-
-            <!-- Charts -->
-            <section class="charts-section">
-                <h2 class="section-heading"><i class="fas fa-chart-bar"></i> Trends & Distributions</h2>
-                <div class="chart-grid">
-                    <div class="chart-card">
-                        <div class="chart-label">Project Completion Trends</div>
-                        <div class="chart-wrapper"><canvas id="projectTrendsChart"></canvas></div>
-                    </div>
-                    <div class="chart-card">
-                        <div class="chart-label">Workforce Utilization</div>
-                        <div class="chart-wrapper"><canvas id="utilizationChart"></canvas></div>
-                    </div>
-                    <div class="chart-card">
-                        <div class="chart-label">Attendance (Last 14 Days)</div>
-                        <div class="chart-wrapper"><canvas id="attendanceChart"></canvas></div>
-                    </div>
-                    <div class="chart-card chart-card-sm">
-                        <div class="chart-label">Workforce Distribution</div>
-                        <div class="chart-wrapper"><canvas id="workforceDistChart"></canvas></div>
-                    </div>
-                    <div class="chart-card chart-card-sm">
-                        <div class="chart-label">Project Status</div>
-                        <div class="chart-wrapper"><canvas id="projectStatusChart"></canvas></div>
-                    </div>
-                </div>
-            </section>
-
-
         </div>
     </div>
 

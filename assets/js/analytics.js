@@ -1,88 +1,119 @@
 /**
- * Analytics & Reports – TrackSite Construction Management System
- * Fetches data from api/analytics.php and renders KPI cards, charts, and tables.
+ * Analytics & Reports – Calculated Insights
+ * TrackSite Construction Management System
+ *
+ * Fetches from api/analytics.php?action=insights and renders
+ * KPI cards, charts, breakdown lists, and tables.
  */
 
 const ANALYTICS_API = '/tracksite/api/analytics.php';
-let currentPeriod = '6months';
-let customDateFrom = '';
-let customDateTo = '';
-let summaryData = {};
-let chartsData = {};
+let dateFrom = '';
+let dateTo = '';
+let analyticsData = {};
+let chartInstances = {};
+
+/* ================================================================
+   COLOUR PALETTES
+   ================================================================ */
+const COLORS = {
+    gold:   '#DAA520',
+    dark:   '#2d2d2d',
+    green:  '#28a745',
+    red:    '#e53935',
+    blue:   '#1565c0',
+    orange: '#f57f17',
+    purple: '#6a1b9a',
+    teal:   '#00897b',
+    pink:   '#c2185b',
+    grey:   '#78909c',
+};
+const PALETTE = [COLORS.gold, COLORS.dark, COLORS.green, COLORS.red, COLORS.blue, COLORS.orange, COLORS.purple, COLORS.teal, COLORS.pink, COLORS.grey];
 
 /* ================================================================
    INIT
    ================================================================ */
 document.addEventListener('DOMContentLoaded', () => {
-    loadAnalytics();
-
-    const periodFilter = document.getElementById('periodFilter');
-    const customDateRange = document.getElementById('customDateRange');
-
-    periodFilter?.addEventListener('change', (e) => {
-        currentPeriod = e.target.value;
-        if (currentPeriod === 'custom') {
-            customDateRange.style.display = 'flex';
-        } else {
-            customDateRange.style.display = 'none';
-            loadAnalytics();
-        }
-    });
+    runAutoAbsentThenLoad();
 });
 
-function applyCustomDate() {
-    customDateFrom = document.getElementById('dateFrom')?.value || '';
-    customDateTo = document.getElementById('dateTo')?.value || '';
-    if (!customDateFrom && !customDateTo) {
-        alert('Please select at least one date.');
-        return;
+/**
+ * Fire auto_mark_absent once per session, then load insights.
+ * Uses sessionStorage to avoid hitting it on every page refresh.
+ */
+async function runAutoAbsentThenLoad() {
+    const key = 'autoAbsentRan_' + new Date().toISOString().slice(0, 10);
+    if (!sessionStorage.getItem(key)) {
+        try {
+            await fetch('/tracksite/api/attendance.php?action=auto_mark_absent', { credentials: 'same-origin' });
+            sessionStorage.setItem(key, '1');
+        } catch (e) {
+            console.warn('Auto-absent check skipped:', e);
+        }
     }
-    loadAnalytics();
+    loadInsights();
 }
 
-function buildPeriodParams() {
-    if (currentPeriod === 'custom') {
-        let params = 'period=custom';
-        if (customDateFrom) params += '&date_from=' + customDateFrom;
-        if (customDateTo) params += '&date_to=' + customDateTo;
-        return params;
-    }
-    return 'period=' + currentPeriod;
+/* ================================================================
+   DATE RANGE
+   ================================================================ */
+function applyDateRange() {
+    dateFrom = document.getElementById('dateFrom')?.value || '';
+    dateTo   = document.getElementById('dateTo')?.value || '';
+    updateDateLabel();
+    loadInsights();
 }
 
-async function loadAnalytics() {
+function resetDateRange() {
+    dateFrom = '';
+    dateTo = '';
+    document.getElementById('dateFrom').value = '';
+    document.getElementById('dateTo').value = '';
+    updateDateLabel();
+    loadInsights();
+}
+
+function updateDateLabel() {
+    const el = document.getElementById('dateRangeLabel');
+    if (!el) return;
+    let text = 'All Time';
+    if (dateFrom && dateTo) {
+        text = formatDisplayDate(dateFrom) + ' — ' + formatDisplayDate(dateTo);
+    } else if (dateFrom) {
+        text = 'From ' + formatDisplayDate(dateFrom);
+    } else if (dateTo) {
+        text = 'Up to ' + formatDisplayDate(dateTo);
+    }
+    el.innerHTML = '<i class="fas fa-calendar-alt"></i> Showing: <strong>' + text + '</strong>';
+}
+
+function formatDisplayDate(d) {
+    const dt = new Date(d + 'T00:00:00');
+    return dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function buildParams() {
+    let p = [];
+    if (dateFrom) p.push('date_from=' + dateFrom);
+    if (dateTo)   p.push('date_to=' + dateTo);
+    return p.length ? p.join('&') : '';
+}
+
+/* ================================================================
+   LOAD DATA
+   ================================================================ */
+async function loadInsights() {
     showLoading(true);
     try {
-        const periodParams = buildPeriodParams();
-        const [summaryRaw, chartsRaw] = await Promise.all([
-            fetch(`${ANALYTICS_API}?action=summary&${periodParams}`, { credentials: 'same-origin' }),
-            fetch(`${ANALYTICS_API}?action=charts&${periodParams}`, { credentials: 'same-origin' })
-        ]);
-
-        if (!summaryRaw.ok || !chartsRaw.ok) {
-            const errText = !summaryRaw.ok ? await summaryRaw.text() : await chartsRaw.text();
-            throw new Error(`API returned ${summaryRaw.status}/${chartsRaw.status}: ${errText.substring(0, 200)}`);
-        }
-
-        const summaryRes = await summaryRaw.json();
-        const chartsRes  = await chartsRaw.json();
-
-        if (summaryRes.success) {
-            summaryData = summaryRes.data;
-            renderKPIs(summaryData);
-        } else {
-            console.warn('Summary API error:', summaryRes.message);
-            document.getElementById('kpiGrid').innerHTML = '<p style="color:#e53935;text-align:center;padding:40px;">Summary error: ' + (summaryRes.message || 'Unknown') + '</p>';
-        }
-        if (chartsRes.success) {
-            chartsData = chartsRes.data;
-            renderCharts(chartsData);
-        } else {
-            console.warn('Charts API error:', chartsRes.message);
-        }
+        const params = buildParams();
+        const url = `${ANALYTICS_API}?action=insights${params ? '&' + params : ''}`;
+        const res = await fetch(url, { credentials: 'same-origin' });
+        if (!res.ok) throw new Error('API returned ' + res.status);
+        const json = await res.json();
+        if (!json.success) throw new Error(json.message || 'Unknown error');
+        analyticsData = json.data;
+        renderAll(analyticsData);
     } catch (e) {
         console.error('Analytics load error:', e);
-        document.getElementById('kpiGrid').innerHTML = '<p style="color:#e53935;text-align:center;padding:40px;">Failed to load analytics data: ' + e.message + '</p>';
     }
     showLoading(false);
 }
@@ -93,168 +124,288 @@ function showLoading(show) {
 }
 
 /* ================================================================
-   KPI CARDS
+   RENDER ALL
    ================================================================ */
-function renderKPIs(d) {
-    const grid = document.getElementById('kpiGrid');
-    if (!grid) return;
+function renderAll(d) {
+    renderAttendanceKpis(d.attendance);
+    renderAttendanceTrend(d.attendance_daily);
+    renderAttendancePie(d.attendance);
+    renderTopExcellentWorkers(d.top_excellent_workers);
+    renderTopLateWorkers(d.top_late_workers);
+    renderDistributionChart('empTypeChart', 'empTypeBreakdown', d.workforce?.by_type || []);
+    renderDistributionChart('empStatusChart', 'empStatusBreakdown', d.workforce?.by_status || []);
+    renderDistributionChart('roleChart', 'roleBreakdown', d.roles?.breakdown || []);
+    renderDistributionChart('classChart', 'classBreakdown', d.classifications?.breakdown || []);
 
-    grid.innerHTML = `
-        <div class="kpi-card">
-            <div class="kpi-icon" style="background:linear-gradient(135deg,#DAA520,#B8860B);"><i class="fas fa-hard-hat"></i></div>
-            <div class="kpi-info">
-                <div class="kpi-value">${d.active_projects || 0}</div>
-                <div class="kpi-label">Active Projects</div>
-            </div>
-        </div>
-        <div class="kpi-card">
-            <div class="kpi-icon" style="background:linear-gradient(135deg,#2d2d2d,#1a1a1a);"><i class="fas fa-check-circle" style="color:#DAA520"></i></div>
-            <div class="kpi-info">
-                <div class="kpi-value">${d.completion_rate || 0}%</div>
-                <div class="kpi-label">Completion Rate</div>
-            </div>
-        </div>
-        <div class="kpi-card">
-            <div class="kpi-icon" style="background:linear-gradient(135deg,#DAA520,#B8860B);"><i class="fas fa-calendar-check"></i></div>
-            <div class="kpi-info">
-                <div class="kpi-value">${d.avg_project_duration_days || 0}<small> days</small></div>
-                <div class="kpi-label">Avg Duration</div>
-            </div>
-        </div>
-        <div class="kpi-card">
-            <div class="kpi-icon" style="background:linear-gradient(135deg,#2d2d2d,#1a1a1a);"><i class="fas fa-users" style="color:#DAA520"></i></div>
-            <div class="kpi-info">
-                <div class="kpi-value">${d.total_active_workers || 0}</div>
-                <div class="kpi-label">Active Workers</div>
-            </div>
-        </div>
-        <div class="kpi-card">
-            <div class="kpi-icon" style="background:linear-gradient(135deg,#DAA520,#B8860B);"><i class="fas fa-user-clock"></i></div>
-            <div class="kpi-info">
-                <div class="kpi-value">${d.utilization_rate || 0}%</div>
-                <div class="kpi-label">Utilization Rate</div>
-            </div>
-        </div>
-        <div class="kpi-card">
-            <div class="kpi-icon" style="background:linear-gradient(135deg,#2d2d2d,#1a1a1a);"><i class="fas fa-clipboard-check" style="color:#DAA520"></i></div>
-            <div class="kpi-info">
-                <div class="kpi-value">${d.month_attendance_rate || 0}%</div>
-                <div class="kpi-label">Attendance (Month)</div>
-            </div>
-        </div>
-    `;
+    // Update total badges
+    const totalRecEl = document.getElementById('totalRecordsBadge');
+    if (totalRecEl) totalRecEl.textContent = (d.attendance?.total_records || 0).toLocaleString() + ' records';
+    const totalWrkEl = document.getElementById('totalWorkersBadge');
+    if (totalWrkEl) totalWrkEl.textContent = (d.workforce?.total || 0).toLocaleString() + ' workers';
 }
 
-/* renderInsights removed per user request */
+/* ================================================================
+   ATTENDANCE KPIs
+   ================================================================ */
+function renderAttendanceKpis(a) {
+    if (!a) return;
+    setText('kpiPerformance', a.performance_rate + '%');
+    setText('kpiOnTime', a.on_time_rate + '%');
+    setText('kpiLate', a.late_rate + '%');
+    setText('kpiAbsent', a.absent_rate + '%');
+}
 
 /* ================================================================
-   CHARTS
+   ATTENDANCE TREND CHART (line)
    ================================================================ */
-let chartInstances = {};
+function renderAttendanceTrend(daily) {
+    destroyChart('attendanceTrendChart');
+    const ctx = document.getElementById('attendanceTrendChart');
+    if (!ctx || !daily || !daily.labels.length) return;
+
+    chartInstances['attendanceTrendChart'] = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: daily.labels,
+            datasets: [
+                { label: 'Present', data: daily.present, borderColor: COLORS.gold, backgroundColor: 'rgba(218,165,32,0.08)', fill: true, tension: 0.3, pointRadius: 3, pointBackgroundColor: COLORS.gold },
+                { label: 'Late',    data: daily.late,    borderColor: COLORS.dark, backgroundColor: 'rgba(45,45,45,0.06)', fill: true, tension: 0.3, pointRadius: 3, pointBackgroundColor: COLORS.dark },
+                { label: 'Absent',  data: daily.absent,  borderColor: COLORS.red,  backgroundColor: 'rgba(229,57,53,0.06)', fill: true, tension: 0.3, pointRadius: 3, pointBackgroundColor: COLORS.red }
+            ]
+        },
+        options: {
+            ...commonChartOpts(),
+            scales: {
+                y: { beginAtZero: true, ticks: { stepSize: 1, font: { size: 11 } } },
+                x: { ticks: { font: { size: 10 }, maxRotation: 45 } }
+            }
+        }
+    });
+}
+
+/* ================================================================
+   ATTENDANCE PIE CHART
+   ================================================================ */
+function renderAttendancePie(a) {
+    destroyChart('attendancePieChart');
+    const ctx = document.getElementById('attendancePieChart');
+    if (!ctx || !a) return;
+
+    const labels = ['Present', 'Late', 'Absent'];
+    const data   = [a.present, a.late, a.absent];
+    const colors = [COLORS.gold, COLORS.dark, COLORS.red];
+
+    if (a.half_day > 0) {
+        labels.push('Half Day');
+        data.push(a.half_day);
+        colors.push(COLORS.orange);
+    }
+
+    chartInstances['attendancePieChart'] = new Chart(ctx, {
+        type: 'doughnut',
+        data: { labels, datasets: [{ data, backgroundColor: colors, borderWidth: 0 }] },
+        options: { ...commonChartOpts(), cutout: '62%', plugins: { ...commonChartOpts().plugins, legend: { ...commonChartOpts().plugins.legend, position: 'bottom' } } }
+    });
+
+    // Breakdown list
+    const el = document.getElementById('attendanceBreakdown');
+    if (el) {
+        const total = data.reduce((s, v) => s + v, 0);
+        el.innerHTML = labels.map((lbl, i) => breakdownItemHTML(lbl, data[i], total > 0 ? ((data[i] / total) * 100).toFixed(1) : 0, colors[i])).join('');
+    }
+}
+
+/* ================================================================
+   TOP EXCELLENT WORKERS TABLE
+   ================================================================ */
+function renderTopExcellentWorkers(workers) {
+    const section = document.getElementById('topExcellentSection');
+    const tbody = document.getElementById('topExcellentBody');
+    if (!section || !tbody) return;
+
+    if (!workers || workers.length === 0) {
+        section.style.display = 'none';
+        return;
+    }
+
+    section.style.display = 'block';
+
+    tbody.innerHTML = workers.map((w, idx) => {
+        const isPerfect = w.on_time_pct === 100;
+        const rankIcon = idx === 0 ? '<i class="fas fa-crown" style="color:#DAA520;margin-right:4px;"></i>'
+                       : idx < 3 ? '<i class="fas fa-medal" style="color:#B8860B;margin-right:4px;"></i>' : '';
+        const perfectTag = isPerfect ? ' <span class="perfect-badge"><i class="fas fa-star"></i> PERFECT</span>' : '';
+        return `
+        <tr>
+            <td>
+                <div style="display:flex;align-items:center;gap:10px;">
+                    <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#28a745,#66bb6a);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex-shrink:0;">
+                        ${getInitials(w.name)}
+                    </div>
+                    <div>
+                        <div style="font-weight:600;color:#1a1a1a;font-size:13px;">${rankIcon}${escHtml(w.name)}</div>
+                        <div style="font-size:11px;color:#888;">${escHtml(w.code)}</div>
+                    </div>
+                </div>
+            </td>
+            <td style="font-weight:700;color:#28a745;">${w.present}</td>
+            <td>${w.total}</td>
+            <td>
+                <div class="excellent-bar-cell">
+                    <div class="excellent-bar" style="width:${Math.round(w.on_time_pct)}px;"></div>
+                    <span class="excellent-pct-text">${w.on_time_pct}%${perfectTag}</span>
+                </div>
+            </td>
+        </tr>`;
+    }).join('');
+}
+
+/* ================================================================
+   ATTENDANCE IMPROVEMENT INSIGHTS TABLE (admin only)
+   ================================================================ */
+function renderTopLateWorkers(workers) {
+    const section = document.getElementById('topLateSection');
+    const tbody = document.getElementById('topLateBody');
+    if (!section || !tbody) return;
+
+    if (!workers || workers.length === 0) {
+        section.style.display = 'none';
+        return;
+    }
+
+    section.style.display = 'block';
+    const maxLate = Math.max(...workers.map(w => w.late_pct), 1);
+
+    tbody.innerHTML = workers.map(w => {
+        const improvementOpp = (100 - w.late_pct).toFixed(1);
+        return `
+        <tr>
+            <td>
+                <div style="display:flex;align-items:center;gap:10px;">
+                    <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#f57f17,#ffb300);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex-shrink:0;">
+                        ${getInitials(w.name)}
+                    </div>
+                    <div>
+                        <div style="font-weight:600;color:#1a1a1a;font-size:13px;">${escHtml(w.name)}</div>
+                        <div style="font-size:11px;color:#888;">${escHtml(w.code)}</div>
+                    </div>
+                </div>
+            </td>
+            <td style="font-weight:700;color:#f57f17;">${w.late_count} instance${w.late_count !== 1 ? 's' : ''}</td>
+            <td>${w.total}</td>
+            <td>
+                <div class="improvement-bar-cell">
+                    <div class="improvement-bar" style="width:${Math.round((w.late_pct / maxLate) * 100)}px;"></div>
+                    <span class="improvement-pct-text">${improvementOpp}% on-track</span>
+                </div>
+            </td>
+        </tr>`;
+    }).join('');
+}
+
+/* ================================================================
+   GENERIC DISTRIBUTION CHART + BREAKDOWN LIST
+   ================================================================ */
+function renderDistributionChart(chartId, breakdownId, items) {
+    destroyChart(chartId);
+    const ctx = document.getElementById(chartId);
+    const breakdownEl = document.getElementById(breakdownId);
+    if (!ctx) return;
+
+    if (!items || items.length === 0) {
+        if (breakdownEl) breakdownEl.innerHTML = '<div style="text-align:center;padding:20px;color:#aaa;">No data available</div>';
+        return;
+    }
+
+    const labels = items.map(i => i.label);
+    const data   = items.map(i => i.count);
+    const colors = items.map((_, i) => PALETTE[i % PALETTE.length]);
+
+    chartInstances[chartId] = new Chart(ctx, {
+        type: 'doughnut',
+        data: { labels, datasets: [{ data, backgroundColor: colors, borderWidth: 2, borderColor: '#fff' }] },
+        options: {
+            ...commonChartOpts(),
+            cutout: '58%',
+            plugins: {
+                ...commonChartOpts().plugins,
+                legend: { display: false }
+            }
+        }
+    });
+
+    // Breakdown list
+    if (breakdownEl) {
+        const total = data.reduce((s, v) => s + v, 0);
+        breakdownEl.innerHTML = items.map((item, i) =>
+            breakdownItemHTML(item.label, item.count, item.pct, colors[i])
+        ).join('');
+    }
+}
+
+/* ================================================================
+   HELPERS
+   ================================================================ */
+function breakdownItemHTML(label, count, pct, color) {
+    return `
+        <div class="breakdown-item">
+            <span class="breakdown-dot" style="background:${color};"></span>
+            <span class="breakdown-label">${escHtml(label)}</span>
+            <span class="breakdown-count">${count.toLocaleString()}</span>
+            <div class="breakdown-bar-wrap">
+                <div class="breakdown-bar" style="width:${pct}%;background:${color};"></div>
+            </div>
+            <span class="breakdown-pct">${pct}%</span>
+        </div>`;
+}
+
+function commonChartOpts() {
+    return {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                display: true,
+                position: 'top',
+                labels: {
+                    font: { size: 11, family: "'Inter','Segoe UI',sans-serif" },
+                    padding: 12,
+                    usePointStyle: true,
+                    pointStyle: 'circle'
+                }
+            }
+        }
+    };
+}
 
 function destroyChart(id) {
     if (chartInstances[id]) { chartInstances[id].destroy(); delete chartInstances[id]; }
 }
 
-function renderCharts(c) {
-    const font = { family: "'Inter','Segoe UI',sans-serif" };
-    const commonOpts = {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: { legend: { display: true, position: 'top', labels: { font: { size: 11, ...font }, padding: 12, usePointStyle: true, pointStyle: 'circle' } } }
-    };
+function setText(id, text) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = text;
+}
 
-    // 1. Project Completion Trends
-    destroyChart('projectTrendsChart');
-    const ctx1 = document.getElementById('projectTrendsChart');
-    if (ctx1 && c.project_trends) {
-        chartInstances['projectTrendsChart'] = new Chart(ctx1, {
-            type: 'bar',
-            data: {
-                labels: c.project_trends.labels,
-                datasets: [
-                    { label: 'Completed', data: c.project_trends.completed, backgroundColor: 'rgba(218,165,32,0.85)', borderRadius: 6 },
-                    { label: 'Started', data: c.project_trends.started, backgroundColor: 'rgba(45,45,45,0.75)', borderRadius: 6 }
-                ]
-            },
-            options: { ...commonOpts, scales: { y: { beginAtZero: true, ticks: { stepSize: 1, font: { size: 11 } } }, x: { ticks: { font: { size: 11 } } } } }
-        });
-    }
+function getInitials(name) {
+    return name.split(' ').map(n => n.charAt(0).toUpperCase()).slice(0, 2).join('');
+}
 
-    // 2. Workforce Utilization
-    destroyChart('utilizationChart');
-    const ctx2 = document.getElementById('utilizationChart');
-    if (ctx2 && c.workforce_utilization) {
-        chartInstances['utilizationChart'] = new Chart(ctx2, {
-            type: 'line',
-            data: {
-                labels: c.workforce_utilization.labels,
-                datasets: [{ label: 'Utilization %', data: c.workforce_utilization.utilization, borderColor: '#DAA520', backgroundColor: 'rgba(218,165,32,0.1)', fill: true, tension: 0.4, pointRadius: 4, pointBackgroundColor: '#DAA520' }]
-            },
-            options: { ...commonOpts, scales: { y: { beginAtZero: true, max: 100, ticks: { callback: v => v + '%', font: { size: 11 } } }, x: { ticks: { font: { size: 11 } } } } }
-        });
-    }
-
-    // 3. Attendance Trend
-    destroyChart('attendanceChart');
-    const ctx4 = document.getElementById('attendanceChart');
-    if (ctx4 && c.attendance_trend) {
-        chartInstances['attendanceChart'] = new Chart(ctx4, {
-            type: 'line',
-            data: {
-                labels: c.attendance_trend.labels,
-                datasets: [
-                    { label: 'Present', data: c.attendance_trend.present, borderColor: '#DAA520', backgroundColor: 'rgba(218,165,32,0.08)', fill: true, tension: 0.3, pointRadius: 3 },
-                    { label: 'Late', data: c.attendance_trend.late, borderColor: '#2d2d2d', backgroundColor: 'rgba(45,45,45,0.08)', fill: true, tension: 0.3, pointRadius: 3 },
-                    { label: 'Absent', data: c.attendance_trend.absent, borderColor: '#e53935', backgroundColor: 'rgba(229,57,53,0.08)', fill: true, tension: 0.3, pointRadius: 3 }
-                ]
-            },
-            options: { ...commonOpts, scales: { y: { beginAtZero: true, ticks: { stepSize: 1, font: { size: 11 } } }, x: { ticks: { font: { size: 10 }, maxRotation: 45 } } } }
-        });
-    }
-
-    // 5. Workforce Distribution
-    destroyChart('workforceDistChart');
-    const ctx5 = document.getElementById('workforceDistChart');
-    if (ctx5 && c.workforce_distribution) {
-        chartInstances['workforceDistChart'] = new Chart(ctx5, {
-            type: 'doughnut',
-            data: { labels: c.workforce_distribution.labels, datasets: [{ data: c.workforce_distribution.data, backgroundColor: ['#DAA520','#2d2d2d'], borderWidth: 0 }] },
-            options: { ...commonOpts, cutout: '60%', plugins: { ...commonOpts.plugins, legend: { ...commonOpts.plugins.legend, position: 'bottom' } } }
-        });
-    }
-
-    // 6. Project Status Distribution
-    destroyChart('projectStatusChart');
-    const ctx6 = document.getElementById('projectStatusChart');
-    if (ctx6 && c.project_status) {
-        const colors = ['#DAA520','#2d2d2d','#B8860B','#555','#e53935','#888'];
-        chartInstances['projectStatusChart'] = new Chart(ctx6, {
-            type: 'doughnut',
-            data: { labels: c.project_status.labels, datasets: [{ data: c.project_status.data, backgroundColor: colors.slice(0, c.project_status.labels.length), borderWidth: 0 }] },
-            options: { ...commonOpts, cutout: '60%', plugins: { ...commonOpts.plugins, legend: { ...commonOpts.plugins.legend, position: 'bottom' } } }
-        });
-    }
+function escHtml(str) {
+    if (!str) return '';
+    const d = document.createElement('div');
+    d.textContent = str;
+    return d.innerHTML;
 }
 
 /* ================================================================
    EXPORT
    ================================================================ */
 function exportReport(format) {
-    const report = document.getElementById('exportReport')?.value || 'overview';
-    const periodParams = buildPeriodParams();
-    if (format === 'pdf') {
-        window.print();
+    const params = buildParams();
+    if (format === 'csv') {
+        window.location.href = `${ANALYTICS_API}?action=export_csv&report=overview${params ? '&' + params : ''}`;
     } else {
-        window.location.href = `${ANALYTICS_API}?action=export_csv&report=${report}&${periodParams}`;
+        window.print();
     }
-}
-
-/* ================================================================
-   UTILITIES
-   ================================================================ */
-function formatNumber(n) {
-    if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M';
-    if (n >= 1000) return (n / 1000).toFixed(1) + 'K';
-    return Number(n).toLocaleString('en-PH', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 }

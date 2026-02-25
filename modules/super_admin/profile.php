@@ -633,15 +633,98 @@ try {
                 grid-template-columns: 1fr;
             }
         }
+        
+        .profile-picture-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            padding: 30px;
+            background: #f8f9fa;
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+        
+        .profile-picture-preview {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #DAA520, #B8860B);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 48px;
+            color: #fff;
+            border: 5px solid #fff;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        
+        .profile-picture-preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .profile-picture-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        
+        .btn-upload {
+            padding: 10px 20px;
+            background: linear-gradient(135deg, #DAA520, #B8860B);
+            color: #1a1a1a;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-upload:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(218, 165, 32, 0.3);
+        }
+        
+        .file-input-wrapper {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+        }
+        
+        .file-input-wrapper input[type=file] {
+            position: absolute;
+            left: -9999px;
+        }
+        
+        .upload-hint {
+            text-align: center;
+            color: #666;
+            font-size: 13px;
+        }
     </style>
 </head>
 <body>
-    <?php include __DIR__ . '/../../includes/admin_sidebar.php'; ?>
-    
-    <div class="main">
-        <?php include __DIR__ . '/../../includes/admin_topbar.php'; ?>
+    <div class="container">
+        <?php 
+        if ($is_super_admin) {
+            include __DIR__ . '/../../includes/sidebar.php';
+        } else {
+            include __DIR__ . '/../../includes/admin_sidebar.php';
+        }
+        ?>
         
-        <div class="content-wrapper">
+        <div class="main">
+            <?php include __DIR__ . '/../../includes/topbar.php'; ?>
+            
+            <div class="dashboard-content">
             <?php if ($flash): ?>
                 <div class="alert alert-<?php echo $flash['type']; ?>">
                     <i class="fas fa-<?php echo $flash['type'] === 'success' ? 'check-circle' : 'exclamation-circle'; ?>"></i>
@@ -919,6 +1002,7 @@ try {
                 </div>
             </div>
         </div>
+    </div>
     </div>
     
     <!-- Avatar Upload Modal -->

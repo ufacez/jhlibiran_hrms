@@ -324,6 +324,102 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 apiResponse(true, 'Worker assigned successfully');
                 break;
 
+            /* ── Bulk assign workers to project + auto-create default schedule ── */
+            case 'assign_workers_bulk':
+                if (!isSuperAdmin() && !hasPermission($db, 'can_manage_projects')) {
+                    http_response_code(403);
+                    apiResponse(false, 'You do not have permission to manage projects.');
+                }
+
+                $project_id = intval($_POST['project_id'] ?? 0);
+                $worker_ids_raw = $_POST['worker_ids'] ?? '';
+
+                if ($project_id <= 0 || empty($worker_ids_raw)) {
+                    http_response_code(400);
+                    apiResponse(false, 'Invalid project or worker IDs.');
+                }
+
+                $worker_ids = array_filter(array_map('intval', explode(',', $worker_ids_raw)));
+                if (empty($worker_ids)) {
+                    http_response_code(400);
+                    apiResponse(false, 'No valid worker IDs provided.');
+                }
+
+                $defaultDays = ['monday','tuesday','wednesday','thursday','friday','saturday'];
+                $defaultStart = '08:00:00';
+                $defaultEnd   = '17:00:00';
+
+                $db->beginTransaction();
+                try {
+                    $assigned = [];
+                    $skipped = [];
+                    $schedulesCreated = 0;
+
+                    foreach ($worker_ids as $wid) {
+                        // Check if already assigned to another project
+                        $activeChk = $db->prepare("SELECT p.project_name FROM project_workers pw
+                                                   JOIN projects p ON pw.project_id = p.project_id
+                                                   WHERE pw.worker_id = ? AND pw.is_active = 1 AND pw.project_id != ?");
+                        $activeChk->execute([$wid, $project_id]);
+                        $existing = $activeChk->fetch();
+                        if ($existing) {
+                            // Get worker name
+                            $nameStmt = $db->prepare("SELECT first_name, last_name FROM workers WHERE worker_id = ?");
+                            $nameStmt->execute([$wid]);
+                            $wName = $nameStmt->fetch();
+                            $skipped[] = ($wName ? $wName['first_name'].' '.$wName['last_name'] : "Worker #$wid") . ' (already in "' . $existing['project_name'] . '")';
+                            continue;
+                        }
+
+                        // Assign to project
+                        $chk = $db->prepare("SELECT project_worker_id FROM project_workers WHERE project_id = ? AND worker_id = ?");
+                        $chk->execute([$project_id, $wid]);
+                        if ($chk->fetch()) {
+                            $stmt = $db->prepare("UPDATE project_workers SET is_active = 1, removed_date = NULL, assigned_date = CURDATE() WHERE project_id = ? AND worker_id = ?");
+                            $stmt->execute([$project_id, $wid]);
+                        } else {
+                            $stmt = $db->prepare("INSERT INTO project_workers (project_id, worker_id, assigned_date) VALUES (?, ?, CURDATE())");
+                            $stmt->execute([$project_id, $wid]);
+                        }
+                        $assigned[] = $wid;
+
+                        // Auto-create default schedule (Mon-Sat, 8am-5pm) if not existing
+                        foreach ($defaultDays as $day) {
+                            $schedChk = $db->prepare("SELECT schedule_id FROM schedules WHERE worker_id = ? AND day_of_week = ?");
+                            $schedChk->execute([$wid, $day]);
+                            if (!$schedChk->fetch()) {
+                                $ins = $db->prepare("INSERT INTO schedules (worker_id, day_of_week, start_time, end_time, is_active, created_by) VALUES (?, ?, ?, ?, 1, ?)");
+                                $ins->execute([$wid, $day, $defaultStart, $defaultEnd, $user_id]);
+                                $schedulesCreated++;
+                            }
+                        }
+                    }
+
+                    logActivity($db, $user_id, 'bulk_assign_workers', 'project_workers', $project_id,
+                                "Bulk assigned " . count($assigned) . " worker(s) to project #{$project_id}. Created {$schedulesCreated} default schedule entries.");
+
+                    $db->commit();
+
+                    $msg = count($assigned) . ' worker(s) assigned successfully.';
+                    if ($schedulesCreated > 0) {
+                        $msg .= " {$schedulesCreated} default schedule(s) created (Mon-Sat, 8AM-5PM).";
+                    }
+                    if (!empty($skipped)) {
+                        $msg .= ' Skipped: ' . implode('; ', $skipped);
+                    }
+
+                    apiResponse(true, $msg, [
+                        'assigned_count' => count($assigned),
+                        'skipped' => $skipped,
+                        'schedules_created' => $schedulesCreated
+                    ]);
+                } catch (PDOException $e) {
+                    $db->rollBack();
+                    error_log("Bulk Assign Error: " . $e->getMessage());
+                    apiResponse(false, 'Failed to assign workers. All changes rolled back.');
+                }
+                break;
+
             /* ── Remove worker from project ── */
             case 'remove_worker':
                 if (!isSuperAdmin() && !hasPermission($db, 'can_manage_projects')) {

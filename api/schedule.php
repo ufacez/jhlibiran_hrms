@@ -174,6 +174,81 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'schedule_id' => $schedule_id
                 ]);
                 break;
+
+            case 'create_bulk':
+                // Require super admin access
+                if (!isSuperAdmin()) {
+                    http_response_code(403);
+                    jsonError('Unauthorized access. Admin privileges required.');
+                }
+
+                $worker_ids_raw = $_POST['worker_ids'] ?? '';
+                $days = isset($_POST['days']) ? $_POST['days'] : [];
+                $start_time = isset($_POST['start_time']) ? sanitizeString($_POST['start_time']) : '';
+                $end_time = isset($_POST['end_time']) ? sanitizeString($_POST['end_time']) : '';
+                $is_active = isset($_POST['is_active']) ? (bool)$_POST['is_active'] : true;
+
+                if (is_string($days)) {
+                    $days = json_decode($days, true) ?: [];
+                }
+
+                $worker_ids = array_filter(array_map('intval', explode(',', $worker_ids_raw)));
+
+                if (empty($worker_ids)) {
+                    http_response_code(400);
+                    jsonError('No valid worker IDs provided');
+                }
+                if (empty($days) || empty($start_time) || empty($end_time)) {
+                    http_response_code(400);
+                    jsonError('Days, start time, and end time are required');
+                }
+
+                $db->beginTransaction();
+                try {
+                    $created = 0;
+                    $updated = 0;
+
+                    foreach ($worker_ids as $wid) {
+                        // Verify worker exists
+                        $wchk = $db->prepare("SELECT worker_id FROM workers WHERE worker_id = ? AND is_archived = FALSE");
+                        $wchk->execute([$wid]);
+                        if (!$wchk->fetch()) continue;
+
+                        foreach ($days as $day) {
+                            $stmt = $db->prepare("SELECT schedule_id FROM schedules WHERE worker_id = ? AND day_of_week = ?");
+                            $stmt->execute([$wid, $day]);
+                            $existing = $stmt->fetch();
+
+                            if ($existing) {
+                                $stmt = $db->prepare("UPDATE schedules SET start_time = ?, end_time = ?, is_active = ?, updated_at = NOW() WHERE schedule_id = ?");
+                                $stmt->execute([$start_time, $end_time, $is_active, $existing['schedule_id']]);
+                                $updated++;
+                            } else {
+                                $stmt = $db->prepare("INSERT INTO schedules (worker_id, day_of_week, start_time, end_time, is_active, created_by) VALUES (?, ?, ?, ?, ?, ?)");
+                                $stmt->execute([$wid, $day, $start_time, $end_time, $is_active, $user_id]);
+                                $created++;
+                            }
+                        }
+                    }
+
+                    logActivity($db, $user_id, 'bulk_create_schedule', 'schedules', null,
+                               "Bulk schedule: {$created} created, {$updated} updated for " . count($worker_ids) . " worker(s)");
+
+                    $db->commit();
+
+                    http_response_code(201);
+                    jsonSuccess("{$created} schedule(s) created, {$updated} updated for " . count($worker_ids) . " worker(s).", [
+                        'created' => $created,
+                        'updated' => $updated,
+                        'workers_count' => count($worker_ids)
+                    ]);
+                } catch (PDOException $e) {
+                    $db->rollBack();
+                    error_log("Bulk Schedule Error: " . $e->getMessage());
+                    http_response_code(500);
+                    jsonError('Failed to create schedules. All changes rolled back.');
+                }
+                break;
                 
             default:
                 http_response_code(400);

@@ -27,15 +27,22 @@ $preselect_day = isset($_GET['day']) ? sanitizeString($_GET['day']) : '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $errors = [];
     
-    $worker_id = isset($_POST['worker_id']) ? intval($_POST['worker_id']) : 0;
+    // Support both single worker_id and multiple worker_ids[]
+    $worker_ids = [];
+    if (!empty($_POST['worker_ids']) && is_array($_POST['worker_ids'])) {
+        $worker_ids = array_filter(array_map('intval', $_POST['worker_ids']));
+    } elseif (!empty($_POST['worker_id'])) {
+        $worker_ids = [intval($_POST['worker_id'])];
+    }
+    
     $days = isset($_POST['days']) ? $_POST['days'] : [];
     $start_time = isset($_POST['start_time']) ? sanitizeString($_POST['start_time']) : '';
     $end_time = isset($_POST['end_time']) ? sanitizeString($_POST['end_time']) : '';
     $is_active = isset($_POST['is_active']) ? 1 : 0;
     
     // Validate
-    if ($worker_id <= 0) {
-        $errors[] = 'Please select a worker';
+    if (empty($worker_ids)) {
+        $errors[] = 'Please select at least one worker';
     }
     
     if (empty($days)) {
@@ -50,12 +57,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors[] = 'End time is required';
     }
     
-    // Check if worker exists
-    if ($worker_id > 0) {
+    // Verify all workers exist
+    foreach ($worker_ids as $wid) {
         $stmt = $pdo->prepare("SELECT worker_id FROM workers WHERE worker_id = ? AND is_archived = FALSE");
-        $stmt->execute([$worker_id]);
+        $stmt->execute([$wid]);
         if (!$stmt->fetch()) {
-            $errors[] = 'Worker not found';
+            $errors[] = "Worker ID {$wid} not found";
         }
     }
     
@@ -65,46 +72,57 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
             $created_count = 0;
             $updated_count = 0;
+            $worker_names = [];
             
-            foreach ($days as $day) {
-                // Check if schedule already exists for this worker and day
-                $stmt = $pdo->prepare("SELECT schedule_id FROM schedules 
-                                     WHERE worker_id = ? AND day_of_week = ?");
-                $stmt->execute([$worker_id, $day]);
-                $existing = $stmt->fetch();
+            foreach ($worker_ids as $worker_id) {
+                foreach ($days as $day) {
+                    // Check if schedule already exists for this worker and day
+                    $stmt = $pdo->prepare("SELECT schedule_id FROM schedules 
+                                         WHERE worker_id = ? AND day_of_week = ?");
+                    $stmt->execute([$worker_id, $day]);
+                    $existing = $stmt->fetch();
+                    
+                    if ($existing) {
+                        // Update existing schedule
+                        $stmt = $pdo->prepare("UPDATE schedules SET 
+                                             start_time = ?,
+                                             end_time = ?,
+                                             is_active = ?,
+                                             updated_at = NOW()
+                                             WHERE schedule_id = ?");
+                        $stmt->execute([$start_time, $end_time, $is_active, $existing['schedule_id']]);
+                        $updated_count++;
+                    } else {
+                        // Create new schedule
+                        $stmt = $pdo->prepare("INSERT INTO schedules 
+                                             (worker_id, day_of_week, start_time, end_time, is_active, created_by) 
+                                             VALUES (?, ?, ?, ?, ?, ?)");
+                        $stmt->execute([$worker_id, $day, $start_time, $end_time, $is_active, getCurrentUserId()]);
+                        $created_count++;
+                    }
+                }
                 
-                if ($existing) {
-                    // Update existing schedule
-                    $stmt = $pdo->prepare("UPDATE schedules SET 
-                                         start_time = ?,
-                                         end_time = ?,
-                                         is_active = ?,
-                                         updated_at = NOW()
-                                         WHERE schedule_id = ?");
-                    $stmt->execute([$start_time, $end_time, $is_active, $existing['schedule_id']]);
-                    $updated_count++;
-                } else {
-                    // Create new schedule
-                    $stmt = $pdo->prepare("INSERT INTO schedules 
-                                         (worker_id, day_of_week, start_time, end_time, is_active, created_by) 
-                                         VALUES (?, ?, ?, ?, ?, ?)");
-                    $stmt->execute([$worker_id, $day, $start_time, $end_time, $is_active, getCurrentUserId()]);
-                    $created_count++;
+                // Get worker name for logging
+                $stmt = $pdo->prepare("SELECT first_name, last_name, worker_code FROM workers WHERE worker_id = ?");
+                $stmt->execute([$worker_id]);
+                $worker = $stmt->fetch();
+                if ($worker) {
+                    $worker_names[] = "{$worker['first_name']} {$worker['last_name']} ({$worker['worker_code']})";
                 }
             }
             
-            // Get worker name for logging
-            $stmt = $pdo->prepare("SELECT first_name, last_name, worker_code FROM workers WHERE worker_id = ?");
-            $stmt->execute([$worker_id]);
-            $worker = $stmt->fetch();
-            
             // Log activity
+            $workerCount = count($worker_ids);
             logActivity($pdo, getCurrentUserId(), 'add_schedule', 'schedules', null,
-                       "Added/Updated schedule for {$worker['first_name']} {$worker['last_name']} ({$worker['worker_code']}): {$created_count} created, {$updated_count} updated");
+                       "Added/Updated schedule for {$workerCount} worker(s): " . implode(', ', $worker_names) . ". {$created_count} created, {$updated_count} updated");
             
             $pdo->commit();
             
-            setFlashMessage("Schedule created successfully! {$created_count} new, {$updated_count} updated.", 'success');
+            $msg = "Schedule created successfully! {$created_count} new, {$updated_count} updated";
+            if ($workerCount > 1) {
+                $msg .= " across {$workerCount} workers";
+            }
+            setFlashMessage($msg . '.', 'success');
             redirect(BASE_URL . '/modules/super_admin/schedule/index.php');
             
         } catch (PDOException $e) {
@@ -195,24 +213,54 @@ try {
                 
                 <form method="POST" action="" class="worker-form">
                     
-                    <!-- Worker Selection -->
+                    <!-- Worker Selection (Multi-select) -->
                     <div class="form-card">
                         <h3 class="form-section-title">
-                            <i class="fas fa-user"></i> Select Worker
+                            <i class="fas fa-users"></i> Select Workers
                         </h3>
                         
-                        <div class="form-group">
-                            <label for="worker_id">Worker <span class="required">*</span></label>
-                            <select id="worker_id" name="worker_id" required>
-                                <option value="">Select a worker</option>
-                                <?php foreach ($workers as $worker): ?>
-                                    <option value="<?php echo $worker['worker_id']; ?>"
-                                            <?php echo ($preselect_worker_id > 0 && $preselect_worker_id == $worker['worker_id']) ? 'selected' : ''; ?>
-                                            <?php echo (isset($_POST['worker_id']) && $_POST['worker_id'] == $worker['worker_id']) ? 'selected' : ''; ?>>
-                                        <?php echo htmlspecialchars($worker['first_name'] . ' ' . $worker['last_name'] . ' (' . $worker['worker_code'] . ') - ' . $worker['position']); ?>
-                                    </option>
-                                <?php endforeach; ?>
-                            </select>
+                        <div style="margin-bottom:12px;display:flex;gap:10px;align-items:center;">
+                            <input type="text" id="workerSearchInput" placeholder="Search workers…" 
+                                   oninput="filterWorkerCheckboxes(this.value)"
+                                   style="flex:1;padding:10px 14px;border:1px solid #ddd;border-radius:8px;font-size:14px;">
+                            <label style="display:flex;align-items:center;gap:6px;font-size:13px;white-space:nowrap;cursor:pointer;color:#555;">
+                                <input type="checkbox" id="selectAllWorkersSchedule" onchange="toggleAllWorkerCheckboxes(this)"> Select All
+                            </label>
+                        </div>
+                        <div id="workerSelectionCount" style="font-size:13px;color:#888;margin-bottom:10px;">0 worker(s) selected</div>
+                        
+                        <div style="max-height:300px;overflow-y:auto;border:1px solid #eee;border-radius:10px;padding:8px;">
+                            <?php foreach ($workers as $worker): 
+                                $isPreselected = ($preselect_worker_id > 0 && $preselect_worker_id == $worker['worker_id']);
+                                $isPosted = (isset($_POST['worker_ids']) && in_array($worker['worker_id'], $_POST['worker_ids']));
+                                $isChecked = $isPreselected || $isPosted;
+                            ?>
+                            <label class="worker-select-item" data-name="<?php echo strtolower(htmlspecialchars($worker['first_name'] . ' ' . $worker['last_name'] . ' ' . $worker['worker_code'])); ?>"
+                                   style="display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:8px;cursor:pointer;transition:background 0.15s;<?php echo $isChecked ? 'background:#f8f4e8;' : ''; ?>">
+                                <input type="checkbox" class="worker-checkbox" name="worker_ids[]" 
+                                       value="<?php echo $worker['worker_id']; ?>"
+                                       <?php echo $isChecked ? 'checked' : ''; ?>
+                                       onchange="updateWorkerCount(); this.closest('label').style.background = this.checked ? '#f8f4e8' : '';"
+                                       style="width:18px;height:18px;accent-color:#DAA520;cursor:pointer;flex-shrink:0;">
+                                <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#DAA520,#B8860B);color:#fff;display:grid;place-items:center;font-size:13px;font-weight:600;flex-shrink:0;">
+                                    <?php echo getInitials($worker['first_name'] . ' ' . $worker['last_name']); ?>
+                                </div>
+                                <div style="flex:1;min-width:0;">
+                                    <div style="font-weight:600;font-size:14px;color:#333;">
+                                        <?php echo htmlspecialchars($worker['first_name'] . ' ' . $worker['last_name']); ?>
+                                    </div>
+                                    <div style="font-size:12px;color:#888;">
+                                        <?php echo htmlspecialchars($worker['worker_code'] . ' · ' . ($worker['position'] ?: 'No position')); ?>
+                                    </div>
+                                </div>
+                            </label>
+                            <?php endforeach; ?>
+                            <?php if (empty($workers)): ?>
+                            <div style="text-align:center;padding:30px;color:#aaa;">
+                                <i class="fas fa-user-slash" style="font-size:24px;display:block;margin-bottom:8px;"></i>
+                                No active workers found
+                            </div>
+                            <?php endif; ?>
                         </div>
                     </div>
                     
@@ -338,7 +386,34 @@ try {
         // Initialize hours calculation
         window.addEventListener('load', function() {
             calculateHours();
+            updateWorkerCount();
         });
+
+        function filterWorkerCheckboxes(query) {
+            const q = query.toLowerCase();
+            document.querySelectorAll('.worker-select-item').forEach(el => {
+                el.style.display = el.dataset.name.includes(q) ? '' : 'none';
+            });
+        }
+
+        function toggleAllWorkerCheckboxes(masterCb) {
+            document.querySelectorAll('.worker-select-item').forEach(el => {
+                if (el.style.display !== 'none') {
+                    const cb = el.querySelector('.worker-checkbox');
+                    if (cb) {
+                        cb.checked = masterCb.checked;
+                        el.style.background = masterCb.checked ? '#f8f4e8' : '';
+                    }
+                }
+            });
+            updateWorkerCount();
+        }
+
+        function updateWorkerCount() {
+            const checked = document.querySelectorAll('.worker-checkbox:checked').length;
+            const el = document.getElementById('workerSelectionCount');
+            if (el) el.textContent = checked + ' worker(s) selected';
+        }
     </script>
 </body>
 </html>

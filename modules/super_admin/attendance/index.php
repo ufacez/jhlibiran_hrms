@@ -261,9 +261,6 @@ try {
                     <div class="table-info">
                         <span>Showing <?php echo $total_records; ?> of <?php echo $total_workers_today; ?> workers</span>
                         <div style="display: flex; gap: 10px; align-items: center;">
-                            <button class="btn btn-recalculate" onclick="recalculateAttendance()" title="Recalculate all attendance statuses based on worker schedules">
-                                <i class="fas fa-sync-alt"></i> Recalculate
-                            </button>
                             <button class="btn btn-export" onclick="exportAttendance()">
                                 <i class="fas fa-download"></i> Export
                             </button>
@@ -397,6 +394,16 @@ try {
     
     <script src="<?php echo JS_URL; ?>/dashboard.js"></script>
     <script>
+    // --- Auto-mark absent on load (once per day per session) ---
+    (function() {
+        const key = 'autoAbsentRan_' + new Date().toISOString().slice(0, 10);
+        if (!sessionStorage.getItem(key)) {
+            fetch('/tracksite/api/attendance.php?action=auto_mark_absent', { credentials: 'same-origin' })
+                .then(() => sessionStorage.setItem(key, '1'))
+                .catch(() => {});
+        }
+    })();
+
     // Format schedule time (HH:MM:SS or HH:MM) to 12-hour AM/PM
     function formatScheduleTime(timeStr) {
         if (!timeStr) return '';

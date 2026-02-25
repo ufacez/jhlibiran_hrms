@@ -93,6 +93,11 @@ try {
                         <h1><i class="fas fa-calendar-check"></i> My Attendance</h1>
                         <p class="subtitle">View your attendance history and records</p>
                     </div>
+                    <div class="header-actions" style="display:flex;gap:10px;">
+                        <button class="btn btn-export" onclick="exportAttendance()" style="padding:10px 20px;background:#28a745;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:8px;transition:all .3s ease;">
+                            <i class="fas fa-file-excel"></i> Export Excel
+                        </button>
+                    </div>
                 </div>
                 
                 <!-- Statistics Cards -->
@@ -116,11 +121,16 @@ try {
                     </div>
                     
                     <div class="stat-card card-orange">
-                        <div class="stat-icon"><i class="fas fa-clock"></i></div>
+                        <div class="stat-icon"><i class="fas fa-award"></i></div>
                         <div class="stat-info">
-                            <div class="stat-label">Late</div>
-                            <div class="stat-value"><?php echo $stats['late_days'] ?? 0; ?></div>
-                            <div class="stat-sublabel">Days late</div>
+                            <div class="stat-label">Punctuality</div>
+                            <div class="stat-value"><?php 
+                                $totalDays = (int)($stats['total_days'] ?? 0);
+                                $presentDays = (int)($stats['present_days'] ?? 0);
+                                $punctualityRate = $totalDays > 0 ? round(($presentDays / $totalDays) * 100, 1) : 0;
+                                echo $punctualityRate . '%';
+                            ?></div>
+                            <div class="stat-sublabel">On-time rate</div>
                         </div>
                     </div>
                     
@@ -226,6 +236,14 @@ try {
             document.getElementById(id)?.remove();
         }
         setTimeout(() => closeAlert('flashMessage'), 5000);
+
+        function exportAttendance() {
+            const month = document.querySelector('input[name="month"]')?.value || '<?php echo $month; ?>';
+            const status = document.querySelector('select[name="status"]')?.value || '';
+            let url = 'attendance_export.php?month=' + encodeURIComponent(month);
+            if (status) url += '&status=' + encodeURIComponent(status);
+            window.location.href = url;
+        }
     </script>
 </body>
 </html>

@@ -186,8 +186,12 @@ try {
                             <div class="stat-label">Days This Month</div>
                             <div class="stat-value"><?php echo $month_summary['total_days'] ?? 0; ?></div>
                             <div class="stat-sublabel">
-                                <?php echo $month_summary['present_days'] ?? 0; ?> present, 
-                                <?php echo $month_summary['late_days'] ?? 0; ?> late
+                                <?php echo $month_summary['present_days'] ?? 0; ?> present<?php 
+                                    $totalD = (int)($month_summary['total_days'] ?? 0);
+                                    $presentD = (int)($month_summary['present_days'] ?? 0);
+                                    $punctRate = $totalD > 0 ? round(($presentD / $totalD) * 100, 0) : 0;
+                                    echo ", {$punctRate}% punctual";
+                                ?>
                             </div>
                         </div>
                     </div>

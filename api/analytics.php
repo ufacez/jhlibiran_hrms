@@ -2,17 +2,17 @@
 /**
  * Analytics & Reports API – TrackSite Construction Management System
  *
- * Provides calculated insights, KPIs, and chart data for
- * projects, workforce, attendance, and payroll.
+ * Provides calculated workforce insights:
+ *   - Attendance performance (Present vs Late rate)
+ *   - Workforce distribution (Regular / Project-Based, Active / Inactive)
+ *   - Role distribution (by work_types)
+ *   - Classification distribution (by worker_classifications)
  *
  * GET Actions:
- *   summary      – KPI summary cards
- *   charts       – Chart datasets (monthly trends)
- *   export_csv   – Export report as CSV
- *   export_excel – Export report as CSV (Excel-compatible)
+ *   insights    – All calculated analytics data
+ *   export_csv  – Export analytics as CSV
  */
 
-// Buffer output to prevent PHP warnings from corrupting JSON
 ob_start();
 
 define('TRACKSITE_INCLUDED', true);
@@ -24,7 +24,6 @@ require_once __DIR__ . '/../includes/functions.php';
 require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../includes/admin_functions.php';
 
-// Discard any accidental output from includes and set JSON header
 ob_end_clean();
 header('Content-Type: application/json');
 ini_set('display_errors', '0');
@@ -35,293 +34,282 @@ if (!isLoggedIn()) {
 }
 
 $action = $_GET['action'] ?? '';
-$period = $_GET['period'] ?? '6months'; // 3months, 6months, 12months, all, custom
 
-// Calculate date range
-$date_from = null;
-$date_to = null;
-if ($period === 'custom') {
-    $date_from = $_GET['date_from'] ?? null;
-    $date_to = $_GET['date_to'] ?? null;
-    if ($date_from) $date_from = date('Y-m-d', strtotime($date_from));
-    if ($date_to) $date_to = date('Y-m-d', strtotime($date_to));
-} else {
-    switch ($period) {
-        case '3months':  $date_from = date('Y-m-d', strtotime('-3 months')); break;
-        case '6months':  $date_from = date('Y-m-d', strtotime('-6 months')); break;
-        case '12months': $date_from = date('Y-m-d', strtotime('-12 months')); break;
-        case 'all':      $date_from = null; break;
-        default:         $date_from = date('Y-m-d', strtotime('-6 months'));
-    }
-}
+// Date range – unrestricted custom dates
+$date_from = isset($_GET['date_from']) && $_GET['date_from'] ? date('Y-m-d', strtotime($_GET['date_from'])) : null;
+$date_to   = isset($_GET['date_to'])   && $_GET['date_to']   ? date('Y-m-d', strtotime($_GET['date_to']))   : null;
 
 try {
     switch ($action) {
 
         /* ================================================================
-           SUMMARY – All KPI cards
+           INSIGHTS – All calculated analytics
            ================================================================ */
-        case 'summary':
+        case 'insights':
             $data = [];
 
-            // ── Project KPIs ──
-            $data['total_projects'] = (int)$db->query(
-                "SELECT COUNT(*) FROM projects WHERE is_archived = 0"
-            )->fetchColumn();
-
-            $data['active_projects'] = (int)$db->query(
-                "SELECT COUNT(*) FROM projects WHERE is_archived = 0 AND status IN ('active','in_progress','planning')"
-            )->fetchColumn();
-
-            $data['completed_projects'] = (int)$db->query(
-                "SELECT COUNT(*) FROM projects WHERE status = 'completed'"
-            )->fetchColumn();
-
-            $all_non_cancelled = (int)$db->query(
-                "SELECT COUNT(*) FROM projects WHERE status != 'cancelled'"
-            )->fetchColumn();
-            $data['completion_rate'] = $all_non_cancelled > 0
-                ? round(($data['completed_projects'] / $all_non_cancelled) * 100, 1)
-                : 0;
-
-            $data['ongoing_percentage'] = $all_non_cancelled > 0
-                ? round(($data['active_projects'] / $all_non_cancelled) * 100, 1)
-                : 0;
-
-            // Average project duration (completed projects with both dates)
-            $avg = $db->query(
-                "SELECT AVG(DATEDIFF(COALESCE(completed_at, end_date, NOW()), start_date)) as avg_days
-                 FROM projects WHERE status = 'completed' AND start_date IS NOT NULL"
-            )->fetch();
-            $data['avg_project_duration_days'] = round(floatval($avg['avg_days'] ?? 0), 0);
-
-            // ── Workforce KPIs ──
-            $data['total_active_workers'] = (int)$db->query(
-                "SELECT COUNT(*) FROM workers WHERE is_archived = 0 AND employment_status = 'active'"
-            )->fetchColumn();
-
-            $data['regular_workers'] = (int)$db->query(
-                "SELECT COUNT(*) FROM workers WHERE is_archived = 0 AND employment_status = 'active' AND employment_type = 'regular'"
-            )->fetchColumn();
-
-            $data['project_based_workers'] = (int)$db->query(
-                "SELECT COUNT(*) FROM workers WHERE is_archived = 0 AND employment_status = 'active' AND employment_type = 'project_based'"
-            )->fetchColumn();
-
-            // Employee utilization rate (workers currently assigned to active projects / total active workers)
-            $assigned = (int)$db->query(
-                "SELECT COUNT(DISTINCT pw.worker_id) FROM project_workers pw
-                 JOIN projects p ON pw.project_id = p.project_id
-                 WHERE pw.is_active = 1 AND p.is_archived = 0 AND p.status IN ('active','in_progress')"
-            )->fetchColumn();
-            $data['utilization_rate'] = $data['total_active_workers'] > 0
-                ? round(($assigned / $data['total_active_workers']) * 100, 1)
-                : 0;
-
-            // ── Attendance KPIs (current month) ──
-            $data['attendance_today'] = (int)$db->query(
-                "SELECT COUNT(DISTINCT a.worker_id) FROM attendance a
-                 JOIN workers w ON a.worker_id = w.worker_id
-                 WHERE a.attendance_date = CURDATE() AND a.status IN ('present','late','overtime')
-                 AND a.is_archived = 0 AND w.is_archived = 0"
-            )->fetchColumn();
-
-            $attn_month = $db->query(
-                "SELECT COUNT(*) as total,
-                        SUM(CASE WHEN status IN ('present','overtime') THEN 1 ELSE 0 END) as present,
-                        SUM(CASE WHEN status = 'late' THEN 1 ELSE 0 END) as late,
-                        SUM(CASE WHEN status = 'absent' THEN 1 ELSE 0 END) as absent
-                 FROM attendance
-                 WHERE MONTH(attendance_date) = MONTH(CURDATE())
-                   AND YEAR(attendance_date) = YEAR(CURDATE())
-                   AND is_archived = 0"
-            )->fetch();
-            $data['month_attendance_rate'] = ((int)$attn_month['total']) > 0
-                ? round((((int)$attn_month['present'] + (int)$attn_month['late']) / (int)$attn_month['total']) * 100, 1)
-                : 0;
-
-            // ── Payroll KPIs ──
-            $data['month_payroll'] = floatval($db->query(
-                "SELECT COALESCE(SUM(net_pay), 0) FROM payroll
-                 WHERE MONTH(pay_period_end) = MONTH(CURDATE())
-                   AND YEAR(pay_period_end) = YEAR(CURDATE())
-                   AND is_archived = 0"
-            )->fetchColumn());
-
-            $data['total_payroll_period'] = floatval($db->query(
-                "SELECT COALESCE(SUM(net_pay), 0) FROM payroll
-                 WHERE is_archived = 0" . ($date_from ? " AND pay_period_end >= '$date_from'" : "") . ($date_to ? " AND pay_period_end <= '$date_to'" : "")
-            )->fetchColumn());
-
-            $data['avg_payroll_per_worker'] = $data['total_active_workers'] > 0
-                ? round($data['month_payroll'] / $data['total_active_workers'], 2)
-                : 0;
-
-            // OT hours this month
-            $data['month_overtime_hours'] = floatval($db->query(
-                "SELECT COALESCE(SUM(overtime_hours), 0) FROM attendance
-                 WHERE MONTH(attendance_date) = MONTH(CURDATE())
-                   AND YEAR(attendance_date) = YEAR(CURDATE())
-                   AND is_archived = 0"
-            )->fetchColumn());
-
-            jsonSuccess('Analytics summary', $data);
-            break;
-
-        /* ================================================================
-           CHARTS – Monthly trend datasets
-           ================================================================ */
-        case 'charts':
-            $charts = [];
-
-            // Determine months to show
-            $months_count = 6;
-            if ($period === '3months') $months_count = 3;
-            elseif ($period === '12months') $months_count = 12;
-            elseif ($period === 'all') $months_count = 12;
-
-            // ── Monthly Project Completions ──
-            $labels = [];
-            $completed_data = [];
-            $started_data = [];
-            for ($i = $months_count - 1; $i >= 0; $i--) {
-                $m = date('Y-m', strtotime("-{$i} months"));
-                $labels[] = date('M Y', strtotime("-{$i} months"));
-
-                $stmt = $db->prepare(
-                    "SELECT COUNT(*) FROM projects
-                     WHERE DATE_FORMAT(COALESCE(completed_at, updated_at), '%Y-%m') = ?
-                       AND status = 'completed'"
-                );
-                $stmt->execute([$m]);
-                $completed_data[] = (int)$stmt->fetchColumn();
-
-                $stmt = $db->prepare(
-                    "SELECT COUNT(*) FROM projects
-                     WHERE DATE_FORMAT(start_date, '%Y-%m') = ?"
-                );
-                $stmt->execute([$m]);
-                $started_data[] = (int)$stmt->fetchColumn();
+            // ──────────────────────────────────────────────
+            // 1. ATTENDANCE PERFORMANCE (within date range)
+            // ──────────────────────────────────────────────
+            $attnWhere = "a.is_archived = 0 AND w.is_archived = 0";
+            $attnParams = [];
+            if ($date_from) {
+                $attnWhere .= " AND a.attendance_date >= ?";
+                $attnParams[] = $date_from;
             }
-            $charts['project_trends'] = [
-                'labels' => $labels,
-                'completed' => $completed_data,
-                'started' => $started_data
-            ];
-
-            // ── Monthly Workforce Utilization ──
-            $util_data = [];
-            $total_workers_data = [];
-            for ($i = $months_count - 1; $i >= 0; $i--) {
-                $m_start = date('Y-m-01', strtotime("-{$i} months"));
-                $m_end   = date('Y-m-t', strtotime("-{$i} months"));
-
-                // Workers who had at least one active assignment during the month
-                $stmt = $db->prepare(
-                    "SELECT COUNT(DISTINCT pw.worker_id) FROM project_workers pw
-                     WHERE pw.assigned_date <= ? AND (pw.removed_date IS NULL OR pw.removed_date >= ?)"
-                );
-                $stmt->execute([$m_end, $m_start]);
-                $assigned_m = (int)$stmt->fetchColumn();
-
-                $stmt = $db->prepare(
-                    "SELECT COUNT(*) FROM workers
-                     WHERE created_at <= ? AND (is_archived = 0 OR archived_at > ?)"
-                );
-                $stmt->execute([$m_end . ' 23:59:59', $m_start]);
-                $total_m = max((int)$stmt->fetchColumn(), 1);
-
-                $util_data[] = round(($assigned_m / $total_m) * 100, 1);
-                $total_workers_data[] = $total_m;
+            if ($date_to) {
+                $attnWhere .= " AND a.attendance_date <= ?";
+                $attnParams[] = $date_to;
             }
-            $charts['workforce_utilization'] = [
-                'labels' => $labels,
-                'utilization' => $util_data,
-                'total_workers' => $total_workers_data
+
+            // Overall counts
+            $sql = "SELECT
+                        COUNT(*) as total_records,
+                        SUM(CASE WHEN a.status IN ('present','overtime') THEN 1 ELSE 0 END) as present_count,
+                        SUM(CASE WHEN a.status = 'late' THEN 1 ELSE 0 END) as late_count,
+                        SUM(CASE WHEN a.status = 'absent' THEN 1 ELSE 0 END) as absent_count,
+                        SUM(CASE WHEN a.status = 'half_day' THEN 1 ELSE 0 END) as half_day_count,
+                        COUNT(DISTINCT a.worker_id) as unique_workers
+                    FROM attendance a
+                    JOIN workers w ON a.worker_id = w.worker_id
+                    WHERE {$attnWhere}";
+            $stmt = $db->prepare($sql);
+            $stmt->execute($attnParams);
+            $attn = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            $total = (int)$attn['total_records'];
+            $present = (int)$attn['present_count'];
+            $late = (int)$attn['late_count'];
+            $absent = (int)$attn['absent_count'];
+            $half_day = (int)$attn['half_day_count'];
+
+            $on_time_rate = $total > 0 ? round(($present / $total) * 100, 1) : 0;
+            $late_rate    = $total > 0 ? round(($late / $total) * 100, 1) : 0;
+            $absent_rate  = $total > 0 ? round(($absent / $total) * 100, 1) : 0;
+            // Performance = present + late (showed up) vs total
+            $performance_rate = $total > 0 ? round((($present + $late) / $total) * 100, 1) : 0;
+
+            $data['attendance'] = [
+                'total_records'    => $total,
+                'present'          => $present,
+                'late'             => $late,
+                'absent'           => $absent,
+                'half_day'         => $half_day,
+                'unique_workers'   => (int)$attn['unique_workers'],
+                'on_time_rate'     => $on_time_rate,
+                'late_rate'        => $late_rate,
+                'absent_rate'      => $absent_rate,
+                'performance_rate' => $performance_rate,
             ];
 
-            // ── Monthly Payroll Costs ──
-            $payroll_data = [];
-            $gross_data = [];
-            for ($i = $months_count - 1; $i >= 0; $i--) {
-                $m = date('Y-m', strtotime("-{$i} months"));
-                $stmt = $db->prepare(
-                    "SELECT COALESCE(SUM(net_pay),0) as net, COALESCE(SUM(gross_pay),0) as gross
-                     FROM payroll WHERE DATE_FORMAT(pay_period_end, '%Y-%m') = ? AND is_archived = 0"
-                );
-                $stmt->execute([$m]);
-                $row = $stmt->fetch();
-                $payroll_data[] = floatval($row['net']);
-                $gross_data[] = floatval($row['gross']);
-            }
-            $charts['payroll_trends'] = [
-                'labels' => $labels,
-                'net_pay' => $payroll_data,
-                'gross_pay' => $gross_data
+            // Daily breakdown for chart (within date range)
+            $dailySql = "SELECT
+                            a.attendance_date,
+                            SUM(CASE WHEN a.status IN ('present','overtime') THEN 1 ELSE 0 END) as present_c,
+                            SUM(CASE WHEN a.status = 'late' THEN 1 ELSE 0 END) as late_c,
+                            SUM(CASE WHEN a.status = 'absent' THEN 1 ELSE 0 END) as absent_c
+                         FROM attendance a
+                         JOIN workers w ON a.worker_id = w.worker_id
+                         WHERE {$attnWhere}
+                         GROUP BY a.attendance_date
+                         ORDER BY a.attendance_date ASC";
+            $stmt = $db->prepare($dailySql);
+            $stmt->execute($attnParams);
+            $dailyRows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            $data['attendance_daily'] = [
+                'labels'  => array_map(fn($r) => date('M d', strtotime($r['attendance_date'])), $dailyRows),
+                'present' => array_map(fn($r) => (int)$r['present_c'], $dailyRows),
+                'late'    => array_map(fn($r) => (int)$r['late_c'], $dailyRows),
+                'absent'  => array_map(fn($r) => (int)$r['absent_c'], $dailyRows),
             ];
 
-            // ── Attendance Trend (last 14 days) ──
-            $attn_labels = [];
-            $present_data = [];
-            $absent_data = [];
-            $late_data = [];
-            for ($i = 13; $i >= 0; $i--) {
-                $d = date('Y-m-d', strtotime("-{$i} days"));
-                $attn_labels[] = date('M d', strtotime("-{$i} days"));
+            // Top late workers
+            $topLateSql = "SELECT w.worker_code, w.first_name, w.last_name,
+                                  COUNT(*) as late_count,
+                                  (SELECT COUNT(*) FROM attendance a2
+                                   JOIN workers w2 ON a2.worker_id = w2.worker_id
+                                   WHERE a2.worker_id = a.worker_id AND a2.is_archived = 0 AND w2.is_archived = 0" .
+                            ($date_from ? " AND a2.attendance_date >= ?" : "") .
+                            ($date_to   ? " AND a2.attendance_date <= ?" : "") .
+                          ") as total_records
+                           FROM attendance a
+                           JOIN workers w ON a.worker_id = w.worker_id
+                           WHERE {$attnWhere} AND a.status = 'late'
+                           GROUP BY a.worker_id, w.worker_code, w.first_name, w.last_name
+                           ORDER BY late_count DESC
+                           LIMIT 10";
+            // Build params for subquery + main query
+            $topLateParams = [];
+            if ($date_from) $topLateParams[] = $date_from;
+            if ($date_to)   $topLateParams[] = $date_to;
+            $topLateParams = array_merge($topLateParams, $attnParams);
 
-                $stmt = $db->prepare(
-                    "SELECT
-                        SUM(CASE WHEN status IN ('present','overtime') THEN 1 ELSE 0 END) as present_c,
-                        SUM(CASE WHEN status = 'absent' THEN 1 ELSE 0 END) as absent_c,
-                        SUM(CASE WHEN status = 'late' THEN 1 ELSE 0 END) as late_c
-                     FROM attendance WHERE attendance_date = ? AND is_archived = 0"
-                );
-                $stmt->execute([$d]);
-                $row = $stmt->fetch();
-                $present_data[] = (int)($row['present_c'] ?? 0);
-                $absent_data[] = (int)($row['absent_c'] ?? 0);
-                $late_data[] = (int)($row['late_c'] ?? 0);
-            }
-            $charts['attendance_trend'] = [
-                'labels' => $attn_labels,
-                'present' => $present_data,
-                'absent' => $absent_data,
-                'late' => $late_data
-            ];
+            $stmt = $db->prepare($topLateSql);
+            $stmt->execute($topLateParams);
+            $topLate = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-            // ── Workforce Distribution (pie) ──
-            $reg = (int)$db->query(
-                "SELECT COUNT(*) FROM workers WHERE is_archived = 0 AND employment_status = 'active' AND employment_type = 'regular'"
-            )->fetchColumn();
-            $pb = (int)$db->query(
-                "SELECT COUNT(*) FROM workers WHERE is_archived = 0 AND employment_status = 'active' AND employment_type = 'project_based'"
-            )->fetchColumn();
-            $charts['workforce_distribution'] = [
-                'labels' => ['Regular', 'Project-Based'],
-                'data' => [$reg, $pb]
-            ];
+            $data['top_late_workers'] = array_map(function($r) {
+                $total = (int)$r['total_records'];
+                $lateC = (int)$r['late_count'];
+                return [
+                    'name'       => $r['first_name'] . ' ' . $r['last_name'],
+                    'code'       => $r['worker_code'],
+                    'late_count' => $lateC,
+                    'total'      => $total,
+                    'late_pct'   => $total > 0 ? round(($lateC / $total) * 100, 1) : 0,
+                ];
+            }, $topLate);
 
-            // ── Project Status Distribution (pie) ──
-            $proj_status = $db->query(
-                "SELECT status, COUNT(*) as cnt FROM projects WHERE is_archived = 0
-                 GROUP BY status ORDER BY cnt DESC"
+            // Top excellent workers (highest on-time rate)
+            $topExcSql = "SELECT w.worker_code, w.first_name, w.last_name,
+                                 COUNT(*) as total_records,
+                                 SUM(CASE WHEN a.status IN ('present','overtime') THEN 1 ELSE 0 END) as present_count,
+                                 SUM(CASE WHEN a.status = 'late' THEN 1 ELSE 0 END) as late_count,
+                                 SUM(CASE WHEN a.status = 'absent' THEN 1 ELSE 0 END) as absent_count
+                          FROM attendance a
+                          JOIN workers w ON a.worker_id = w.worker_id
+                          WHERE {$attnWhere}
+                          GROUP BY a.worker_id, w.worker_code, w.first_name, w.last_name
+                          HAVING total_records >= 3
+                          ORDER BY (SUM(CASE WHEN a.status IN ('present','overtime') THEN 1 ELSE 0 END) / COUNT(*)) DESC,
+                                   total_records DESC
+                          LIMIT 10";
+            $stmt = $db->prepare($topExcSql);
+            $stmt->execute($attnParams);
+            $topExc = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            $data['top_excellent_workers'] = array_map(function($r) {
+                $total   = (int)$r['total_records'];
+                $present = (int)$r['present_count'];
+                $late    = (int)$r['late_count'];
+                $absent  = (int)$r['absent_count'];
+                $onTimePct = $total > 0 ? round(($present / $total) * 100, 1) : 0;
+                $perfRate  = $total > 0 ? round((($present + $late) / $total) * 100, 1) : 0;
+                return [
+                    'name'         => $r['first_name'] . ' ' . $r['last_name'],
+                    'code'         => $r['worker_code'],
+                    'present'      => $present,
+                    'late'         => $late,
+                    'absent'       => $absent,
+                    'total'        => $total,
+                    'on_time_pct'  => $onTimePct,
+                    'performance'  => $perfRate,
+                ];
+            }, $topExc);
+
+            // ──────────────────────────────────────────────
+            // 2. WORKFORCE DISTRIBUTION (employment type & status)
+            // ──────────────────────────────────────────────
+            // By employment type
+            $typeRows = $db->query(
+                "SELECT
+                    COALESCE(employment_type, 'project_based') as emp_type,
+                    employment_status,
+                    COUNT(*) as cnt
+                 FROM workers
+                 WHERE is_archived = 0
+                 GROUP BY COALESCE(employment_type, 'project_based'), employment_status
+                 ORDER BY emp_type, employment_status"
             )->fetchAll(PDO::FETCH_ASSOC);
-            $charts['project_status'] = [
-                'labels' => array_map(fn($r) => ucwords(str_replace('_',' ',$r['status'])), $proj_status),
-                'data' => array_map(fn($r) => (int)$r['cnt'], $proj_status)
+
+            $totalWorkers = 0;
+            $byType = [];
+            $byStatus = [];
+            foreach ($typeRows as $r) {
+                $type = $r['emp_type'];
+                $status = $r['employment_status'];
+                $cnt = (int)$r['cnt'];
+                $totalWorkers += $cnt;
+
+                if (!isset($byType[$type])) $byType[$type] = 0;
+                $byType[$type] += $cnt;
+
+                if (!isset($byStatus[$status])) $byStatus[$status] = 0;
+                $byStatus[$status] += $cnt;
+            }
+
+            $data['workforce'] = [
+                'total' => $totalWorkers,
+                'by_type' => [],
+                'by_status' => [],
+            ];
+            foreach ($byType as $type => $cnt) {
+                $data['workforce']['by_type'][] = [
+                    'label' => ucwords(str_replace('_', ' ', $type)),
+                    'count' => $cnt,
+                    'pct'   => $totalWorkers > 0 ? round(($cnt / $totalWorkers) * 100, 1) : 0,
+                ];
+            }
+            foreach ($byStatus as $status => $cnt) {
+                $data['workforce']['by_status'][] = [
+                    'label' => ucwords(str_replace('_', ' ', $status)),
+                    'count' => $cnt,
+                    'pct'   => $totalWorkers > 0 ? round(($cnt / $totalWorkers) * 100, 1) : 0,
+                ];
+            }
+
+            // ──────────────────────────────────────────────
+            // 3. ROLE DISTRIBUTION (by work_types)
+            // ──────────────────────────────────────────────
+            $roleRows = $db->query(
+                "SELECT
+                    COALESCE(wt.work_type_name, 'Unassigned') as role_name,
+                    COUNT(*) as cnt
+                 FROM workers w
+                 LEFT JOIN work_types wt ON w.work_type_id = wt.work_type_id
+                 WHERE w.is_archived = 0
+                 GROUP BY COALESCE(wt.work_type_name, 'Unassigned')
+                 ORDER BY cnt DESC"
+            )->fetchAll(PDO::FETCH_ASSOC);
+
+            $data['roles'] = [
+                'total' => $totalWorkers,
+                'breakdown' => array_map(function($r) use ($totalWorkers) {
+                    return [
+                        'label' => $r['role_name'],
+                        'count' => (int)$r['cnt'],
+                        'pct'   => $totalWorkers > 0 ? round(((int)$r['cnt'] / $totalWorkers) * 100, 1) : 0,
+                    ];
+                }, $roleRows),
             ];
 
-            jsonSuccess('Chart data', $charts);
+            // ──────────────────────────────────────────────
+            // 4. CLASSIFICATION DISTRIBUTION
+            // ──────────────────────────────────────────────
+            $classRows = $db->query(
+                "SELECT
+                    COALESCE(wc.classification_name, wct.classification_name, 'Unclassified') as class_name,
+                    COUNT(*) as cnt
+                 FROM workers w
+                 LEFT JOIN worker_classifications wc ON w.classification_id = wc.classification_id
+                 LEFT JOIN work_types wt ON w.work_type_id = wt.work_type_id
+                 LEFT JOIN worker_classifications wct ON wt.classification_id = wct.classification_id
+                 WHERE w.is_archived = 0
+                 GROUP BY COALESCE(wc.classification_name, wct.classification_name, 'Unclassified')
+                 ORDER BY cnt DESC"
+            )->fetchAll(PDO::FETCH_ASSOC);
+
+            $data['classifications'] = [
+                'total' => $totalWorkers,
+                'breakdown' => array_map(function($r) use ($totalWorkers) {
+                    return [
+                        'label' => $r['class_name'],
+                        'count' => (int)$r['cnt'],
+                        'pct'   => $totalWorkers > 0 ? round(((int)$r['cnt'] / $totalWorkers) * 100, 1) : 0,
+                    ];
+                }, $classRows),
+            ];
+
+            jsonSuccess('Analytics insights', $data);
             break;
 
         /* ================================================================
-           EXPORT – CSV / Excel download
+           EXPORT – CSV download
            ================================================================ */
         case 'export_csv':
-        case 'export_excel':
             $report_type = $_GET['report'] ?? 'overview';
 
-            // Remove JSON header, set CSV headers
             header_remove('Content-Type');
             header('Content-Type: text/csv; charset=utf-8');
             header('Content-Disposition: attachment; filename="analytics_' . $report_type . '_' . date('Y-m-d') . '.csv"');
@@ -329,150 +317,173 @@ try {
             header('Expires: 0');
 
             $out = fopen('php://output', 'w');
-            // UTF-8 BOM for Excel
             fwrite($out, chr(0xEF) . chr(0xBB) . chr(0xBF));
 
-            switch ($report_type) {
-                case 'projects':
-                    fputcsv($out, ['TrackSite Analytics - Projects Report']);
-                    fputcsv($out, ['Generated:', date('M d, Y h:i A')]);
-                    fputcsv($out, []);
-                    fputcsv($out, ['Project Name', 'Location', 'Status', 'Start Date', 'End Date', 'Workers Assigned', 'Duration (days)']);
+            $dateLabel = '';
+            if ($date_from && $date_to) $dateLabel = "$date_from to $date_to";
+            elseif ($date_from) $dateLabel = "From $date_from";
+            elseif ($date_to) $dateLabel = "Up to $date_to";
+            else $dateLabel = 'All Time';
 
-                    $stmt = $db->query(
-                        "SELECT p.*, (SELECT COUNT(*) FROM project_workers pw WHERE pw.project_id = p.project_id) as worker_count
-                         FROM projects p ORDER BY p.start_date DESC"
-                    );
-                    $total_projects = 0;
-                    while ($row = $stmt->fetch()) {
-                        $duration = $row['start_date'] && ($row['end_date'] || $row['completed_at'])
-                            ? (int)((strtotime($row['completed_at'] ?? $row['end_date']) - strtotime($row['start_date'])) / 86400)
-                            : 'Ongoing';
-                        fputcsv($out, [
-                            $row['project_name'],
-                            $row['location'],
-                            ucwords(str_replace('_', ' ', $row['status'])),
-                            $row['start_date'],
-                            $row['end_date'] ?? 'N/A',
-                            $row['worker_count'],
-                            $duration
-                        ]);
-                        $total_projects++;
-                    }
+            switch ($report_type) {
+                case 'attendance':
+                    fputcsv($out, ['TrackSite Analytics - Attendance Performance Report']);
+                    fputcsv($out, ['Generated:', date('M d, Y h:i A')]);
+                    fputcsv($out, ['Date Range:', $dateLabel]);
                     fputcsv($out, []);
-                    fputcsv($out, ['Total Projects', $total_projects]);
+
+                    $attnWhere = "a.is_archived = 0 AND w.is_archived = 0";
+                    $attnParams = [];
+                    if ($date_from) { $attnWhere .= " AND a.attendance_date >= ?"; $attnParams[] = $date_from; }
+                    if ($date_to)   { $attnWhere .= " AND a.attendance_date <= ?"; $attnParams[] = $date_to; }
+
+                    $stmt = $db->prepare(
+                        "SELECT COUNT(*) as total,
+                                SUM(CASE WHEN a.status IN ('present','overtime') THEN 1 ELSE 0 END) as present_c,
+                                SUM(CASE WHEN a.status = 'late' THEN 1 ELSE 0 END) as late_c,
+                                SUM(CASE WHEN a.status = 'absent' THEN 1 ELSE 0 END) as absent_c
+                         FROM attendance a JOIN workers w ON a.worker_id = w.worker_id WHERE {$attnWhere}"
+                    );
+                    $stmt->execute($attnParams);
+                    $a = $stmt->fetch();
+                    $total = (int)$a['total'];
+                    $present = (int)$a['present_c'];
+                    $late = (int)$a['late_c'];
+                    $absent = (int)$a['absent_c'];
+
+                    fputcsv($out, ['== ATTENDANCE SUMMARY ==']);
+                    fputcsv($out, ['Total Records', $total]);
+                    fputcsv($out, ['Present (On Time)', $present, $total > 0 ? round(($present/$total)*100,1).'%' : '0%']);
+                    fputcsv($out, ['Late', $late, $total > 0 ? round(($late/$total)*100,1).'%' : '0%']);
+                    fputcsv($out, ['Absent', $absent, $total > 0 ? round(($absent/$total)*100,1).'%' : '0%']);
+                    fputcsv($out, ['Overall Performance Rate', $total > 0 ? round((($present+$late)/$total)*100,1).'%' : '0%']);
+                    fputcsv($out, []);
+
+                    fputcsv($out, ['== DAILY BREAKDOWN ==']);
+                    fputcsv($out, ['Date', 'Present', 'Late', 'Absent', 'Total']);
+                    $stmt = $db->prepare(
+                        "SELECT a.attendance_date,
+                                SUM(CASE WHEN a.status IN ('present','overtime') THEN 1 ELSE 0 END) as p,
+                                SUM(CASE WHEN a.status = 'late' THEN 1 ELSE 0 END) as l,
+                                SUM(CASE WHEN a.status = 'absent' THEN 1 ELSE 0 END) as ab,
+                                COUNT(*) as t
+                         FROM attendance a JOIN workers w ON a.worker_id = w.worker_id
+                         WHERE {$attnWhere}
+                         GROUP BY a.attendance_date ORDER BY a.attendance_date"
+                    );
+                    $stmt->execute($attnParams);
+                    while ($row = $stmt->fetch()) {
+                        fputcsv($out, [
+                            date('M d, Y', strtotime($row['attendance_date'])),
+                            $row['p'], $row['l'], $row['ab'], $row['t']
+                        ]);
+                    }
                     break;
 
                 case 'workforce':
-                    fputcsv($out, ['TrackSite Analytics - Workforce Report']);
+                    fputcsv($out, ['TrackSite Analytics - Workforce Distribution Report']);
                     fputcsv($out, ['Generated:', date('M d, Y h:i A')]);
                     fputcsv($out, []);
-                    fputcsv($out, ['Worker Code', 'Name', 'Position', 'Employment Type', 'Status', 'Daily Rate', 'Date Hired', 'Current Project']);
 
-                    $stmt = $db->query(
-                        "SELECT w.*, 
-                                (SELECT GROUP_CONCAT(p.project_name SEPARATOR ', ')
-                                 FROM project_workers pw JOIN projects p ON pw.project_id = p.project_id
-                                 WHERE pw.worker_id = w.worker_id AND pw.is_active = 1) as current_projects
-                         FROM workers w WHERE w.is_archived = 0 ORDER BY w.last_name"
-                    );
-                    $count = 0;
-                    while ($row = $stmt->fetch()) {
-                        fputcsv($out, [
-                            $row['worker_code'],
-                            $row['first_name'] . ' ' . $row['last_name'],
-                            $row['position'],
-                            ucwords(str_replace('_', ' ', $row['employment_type'] ?? 'project_based')),
-                            ucwords(str_replace('_', ' ', $row['employment_status'])),
-                            number_format($row['daily_rate'], 2),
-                            $row['date_hired'],
-                            $row['current_projects'] ?? 'Unassigned'
-                        ]);
-                        $count++;
+                    fputcsv($out, ['== EMPLOYMENT TYPE ==']);
+                    fputcsv($out, ['Type', 'Count', 'Percentage']);
+                    $rows = $db->query("SELECT COALESCE(employment_type,'project_based') as t, COUNT(*) as c FROM workers WHERE is_archived=0 GROUP BY t")->fetchAll();
+                    $tw = array_sum(array_column($rows, 'c'));
+                    foreach ($rows as $r) {
+                        fputcsv($out, [ucwords(str_replace('_',' ',$r['t'])), $r['c'], $tw > 0 ? round(($r['c']/$tw)*100,1).'%' : '0%']);
+                    }
+                    fputcsv($out, ['Total', $tw]);
+                    fputcsv($out, []);
+
+                    fputcsv($out, ['== EMPLOYMENT STATUS ==']);
+                    fputcsv($out, ['Status', 'Count', 'Percentage']);
+                    $rows = $db->query("SELECT employment_status as s, COUNT(*) as c FROM workers WHERE is_archived=0 GROUP BY s")->fetchAll();
+                    foreach ($rows as $r) {
+                        fputcsv($out, [ucwords(str_replace('_',' ',$r['s'])), $r['c'], $tw > 0 ? round(($r['c']/$tw)*100,1).'%' : '0%']);
                     }
                     fputcsv($out, []);
-                    fputcsv($out, ['Total Workers', $count]);
-                    break;
 
-                case 'payroll':
-                    fputcsv($out, ['TrackSite Analytics - Payroll Report']);
-                    fputcsv($out, ['Generated:', date('M d, Y h:i A')]);
-                    fputcsv($out, []);
-                    fputcsv($out, ['Worker Code', 'Name', 'Period Start', 'Period End', 'Days Worked', 'Gross Pay', 'Deductions', 'Net Pay', 'Status']);
-
-                    $where = ($date_from ? "AND p.pay_period_end >= '$date_from'" : "") . ($date_to ? " AND p.pay_period_end <= '$date_to'" : "");
-                    $stmt = $db->query(
-                        "SELECT p.*, w.worker_code, w.first_name, w.last_name
-                         FROM payroll p JOIN workers w ON p.worker_id = w.worker_id
-                         WHERE p.is_archived = 0 $where
-                         ORDER BY p.pay_period_end DESC, w.last_name"
-                    );
-                    $total_gross = 0; $total_ded = 0; $total_net = 0; $count = 0;
-                    while ($row = $stmt->fetch()) {
-                        fputcsv($out, [
-                            $row['worker_code'],
-                            $row['first_name'] . ' ' . $row['last_name'],
-                            $row['pay_period_start'],
-                            $row['pay_period_end'],
-                            $row['days_worked'],
-                            number_format($row['gross_pay'], 2),
-                            number_format($row['total_deductions'], 2),
-                            number_format($row['net_pay'], 2),
-                            ucwords($row['payment_status'])
-                        ]);
-                        $total_gross += $row['gross_pay'];
-                        $total_ded += $row['total_deductions'];
-                        $total_net += $row['net_pay'];
-                        $count++;
+                    fputcsv($out, ['== ROLES ==']);
+                    fputcsv($out, ['Role', 'Count', 'Percentage']);
+                    $rows = $db->query("SELECT COALESCE(wt.work_type_name,'Unassigned') as r, COUNT(*) as c FROM workers w LEFT JOIN work_types wt ON w.work_type_id=wt.work_type_id WHERE w.is_archived=0 GROUP BY r ORDER BY c DESC")->fetchAll();
+                    foreach ($rows as $r) {
+                        fputcsv($out, [$r['r'], $r['c'], $tw > 0 ? round(($r['c']/$tw)*100,1).'%' : '0%']);
                     }
                     fputcsv($out, []);
-                    fputcsv($out, ['Totals', '', '', '', '', number_format($total_gross,2), number_format($total_ded,2), number_format($total_net,2)]);
-                    fputcsv($out, ['Records', $count]);
+
+                    fputcsv($out, ['== CLASSIFICATIONS ==']);
+                    fputcsv($out, ['Classification', 'Count', 'Percentage']);
+                    $rows = $db->query("SELECT COALESCE(wc.classification_name, wct.classification_name, 'Unclassified') as cl, COUNT(*) as c FROM workers w LEFT JOIN worker_classifications wc ON w.classification_id=wc.classification_id LEFT JOIN work_types wt ON w.work_type_id=wt.work_type_id LEFT JOIN worker_classifications wct ON wt.classification_id=wct.classification_id WHERE w.is_archived=0 GROUP BY cl ORDER BY c DESC")->fetchAll();
+                    foreach ($rows as $r) {
+                        fputcsv($out, [$r['cl'], $r['c'], $tw > 0 ? round(($r['c']/$tw)*100,1).'%' : '0%']);
+                    }
                     break;
 
                 default: // overview
-                    fputcsv($out, ['TrackSite Analytics - Overview Report']);
+                    fputcsv($out, ['TrackSite Analytics - Complete Report']);
                     fputcsv($out, ['Generated:', date('M d, Y h:i A')]);
-                    fputcsv($out, ['Period:', $period]);
+                    fputcsv($out, ['Date Range:', $dateLabel]);
                     fputcsv($out, []);
 
-                    // Project summary
-                    fputcsv($out, ['== PROJECT SUMMARY ==']);
-                    $total_p = (int)$db->query("SELECT COUNT(*) FROM projects WHERE is_archived = 0")->fetchColumn();
-                    $active_p = (int)$db->query("SELECT COUNT(*) FROM projects WHERE is_archived = 0 AND status IN ('active','in_progress','planning')")->fetchColumn();
-                    $completed_p = (int)$db->query("SELECT COUNT(*) FROM projects WHERE status = 'completed'")->fetchColumn();
-                    fputcsv($out, ['Total Projects', $total_p]);
-                    fputcsv($out, ['Active Projects', $active_p]);
-                    fputcsv($out, ['Completed Projects', $completed_p]);
-                    $rate = $total_p > 0 ? round(($completed_p/$total_p)*100,1) : 0;
-                    fputcsv($out, ['Completion Rate', $rate . '%']);
+                    $attnWhere = "a.is_archived = 0 AND w.is_archived = 0";
+                    $attnParams = [];
+                    if ($date_from) { $attnWhere .= " AND a.attendance_date >= ?"; $attnParams[] = $date_from; }
+                    if ($date_to)   { $attnWhere .= " AND a.attendance_date <= ?"; $attnParams[] = $date_to; }
+
+                    $stmt = $db->prepare(
+                        "SELECT COUNT(*) as total,
+                                SUM(CASE WHEN a.status IN ('present','overtime') THEN 1 ELSE 0 END) as present_c,
+                                SUM(CASE WHEN a.status = 'late' THEN 1 ELSE 0 END) as late_c,
+                                SUM(CASE WHEN a.status = 'absent' THEN 1 ELSE 0 END) as absent_c
+                         FROM attendance a JOIN workers w ON a.worker_id = w.worker_id WHERE {$attnWhere}"
+                    );
+                    $stmt->execute($attnParams);
+                    $a = $stmt->fetch();
+                    $total = (int)$a['total']; $present = (int)$a['present_c']; $late = (int)$a['late_c']; $absent = (int)$a['absent_c'];
+
+                    fputcsv($out, ['== ATTENDANCE PERFORMANCE ==']);
+                    fputcsv($out, ['Total Records', $total]);
+                    fputcsv($out, ['Present', $present, $total > 0 ? round(($present/$total)*100,1).'%' : '0%']);
+                    fputcsv($out, ['Late', $late, $total > 0 ? round(($late/$total)*100,1).'%' : '0%']);
+                    fputcsv($out, ['Absent', $absent, $total > 0 ? round(($absent/$total)*100,1).'%' : '0%']);
+                    fputcsv($out, ['Performance Rate', $total > 0 ? round((($present+$late)/$total)*100,1).'%' : '0%']);
                     fputcsv($out, []);
 
-                    // Workforce summary
-                    fputcsv($out, ['== WORKFORCE SUMMARY ==']);
-                    $tw = (int)$db->query("SELECT COUNT(*) FROM workers WHERE is_archived = 0 AND employment_status = 'active'")->fetchColumn();
-                    $rw = (int)$db->query("SELECT COUNT(*) FROM workers WHERE is_archived = 0 AND employment_status = 'active' AND employment_type = 'regular'")->fetchColumn();
-                    $pbw = (int)$db->query("SELECT COUNT(*) FROM workers WHERE is_archived = 0 AND employment_status = 'active' AND employment_type = 'project_based'")->fetchColumn();
-                    fputcsv($out, ['Total Active Workers', $tw]);
-                    fputcsv($out, ['Regular Workers', $rw]);
-                    fputcsv($out, ['Project-Based Workers', $pbw]);
+                    $rows = $db->query("SELECT COALESCE(employment_type,'project_based') as t, COUNT(*) as c FROM workers WHERE is_archived=0 GROUP BY t")->fetchAll();
+                    $tw = array_sum(array_column($rows, 'c'));
+                    fputcsv($out, ['== WORKFORCE DISTRIBUTION ==']);
+                    fputcsv($out, ['Type', 'Count', 'Percentage']);
+                    foreach ($rows as $r) {
+                        fputcsv($out, [ucwords(str_replace('_',' ',$r['t'])), $r['c'], $tw > 0 ? round(($r['c']/$tw)*100,1).'%' : '0%']);
+                    }
+                    fputcsv($out, ['Total', $tw]);
                     fputcsv($out, []);
 
-                    // Payroll summary
-                    fputcsv($out, ['== PAYROLL SUMMARY ==']);
-                    $mPay = floatval($db->query("SELECT COALESCE(SUM(net_pay),0) FROM payroll WHERE MONTH(pay_period_end) = MONTH(CURDATE()) AND YEAR(pay_period_end) = YEAR(CURDATE()) AND is_archived = 0")->fetchColumn());
-                    fputcsv($out, ['Current Month Payroll', 'PHP ' . number_format($mPay, 2)]);
+                    fputcsv($out, ['== ROLE DISTRIBUTION ==']);
+                    fputcsv($out, ['Role', 'Count', 'Percentage']);
+                    $rows = $db->query("SELECT COALESCE(wt.work_type_name,'Unassigned') as r, COUNT(*) as c FROM workers w LEFT JOIN work_types wt ON w.work_type_id=wt.work_type_id WHERE w.is_archived=0 GROUP BY r ORDER BY c DESC")->fetchAll();
+                    foreach ($rows as $r) {
+                        fputcsv($out, [$r['r'], $r['c'], $tw > 0 ? round(($r['c']/$tw)*100,1).'%' : '0%']);
+                    }
+                    fputcsv($out, []);
+
+                    fputcsv($out, ['== CLASSIFICATION DISTRIBUTION ==']);
+                    fputcsv($out, ['Classification', 'Count', 'Percentage']);
+                    $rows = $db->query("SELECT COALESCE(wc.classification_name, wct.classification_name, 'Unclassified') as cl, COUNT(*) as c FROM workers w LEFT JOIN worker_classifications wc ON w.classification_id=wc.classification_id LEFT JOIN work_types wt ON w.work_type_id=wt.work_type_id LEFT JOIN worker_classifications wct ON wt.classification_id=wct.classification_id WHERE w.is_archived=0 GROUP BY cl ORDER BY c DESC")->fetchAll();
+                    foreach ($rows as $r) {
+                        fputcsv($out, [$r['cl'], $r['c'], $tw > 0 ? round(($r['c']/$tw)*100,1).'%' : '0%']);
+                    }
                     break;
             }
 
             fclose($out);
             logActivity($db, getCurrentUserId(), 'export_analytics', 'analytics', null,
-                "Exported analytics: {$report_type} report ({$period})");
+                "Exported analytics: {$report_type} report");
             exit;
 
         default:
             http_response_code(400);
-            jsonError('Invalid action. Supported: summary, charts, export_csv, export_excel');
+            jsonError('Invalid action. Supported: insights, export_csv');
     }
 
 } catch (PDOException $e) {

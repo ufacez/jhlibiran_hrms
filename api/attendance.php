@@ -339,6 +339,121 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
     try {
         switch ($action) {
+
+            /* ================================================================
+               AUTO MARK ABSENT
+               Automatically inserts 'absent' records for workers who were
+               scheduled to work (have an active schedule for that day_of_week)
+               AND are assigned to an active project, but have no attendance
+               record. Scans from the worker's project assignment date
+               (or project start_date) up to yesterday.
+               ================================================================ */
+            case 'auto_mark_absent':
+                if (!isSuperAdmin()) {
+                    http_response_code(403);
+                    jsonError('Admin privileges required');
+                }
+
+                $yesterday = date('Y-m-d', strtotime('-1 day'));
+                $inserted = 0;
+                $skipped = 0;
+
+                // Get all active workers assigned to active projects
+                $workersSql = "
+                    SELECT pw.worker_id,
+                           pw.project_id,
+                           COALESCE(pw.assigned_date, p.start_date) AS effective_start,
+                           COALESCE(p.end_date, :yesterday1) AS effective_end,
+                           p.project_name
+                    FROM project_workers pw
+                    JOIN projects p ON pw.project_id = p.project_id
+                    JOIN workers w ON pw.worker_id = w.worker_id
+                    WHERE pw.is_active = 1
+                      AND p.status = 'active'
+                      AND p.is_archived = 0
+                      AND w.is_archived = 0
+                      AND w.employment_status = 'active'
+                ";
+                $stmt = $db->prepare($workersSql);
+                $stmt->execute([':yesterday1' => $yesterday]);
+                $assignments = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+                // Get each worker's active schedule days
+                $schedStmt = $db->prepare(
+                    "SELECT day_of_week FROM schedules WHERE worker_id = ? AND is_active = 1"
+                );
+
+                // Check if attendance exists
+                $checkStmt = $db->prepare(
+                    "SELECT 1 FROM attendance WHERE worker_id = ? AND attendance_date = ? LIMIT 1"
+                );
+
+                // Insert absent record
+                $insertStmt = $db->prepare(
+                    "INSERT INTO attendance 
+                     (worker_id, attendance_date, time_in, time_out, status, hours_worked, 
+                      raw_hours_worked, break_hours, late_minutes, overtime_hours, 
+                      calculated_at, notes, verified_by)
+                     VALUES (?, ?, NULL, NULL, 'absent', 0, 0, 0, 0, 0, NOW(), ?, ?)"
+                );
+
+                foreach ($assignments as $asgn) {
+                    $workerId  = (int)$asgn['worker_id'];
+                    $projectName = $asgn['project_name'];
+
+                    // Load this worker's scheduled days
+                    $schedStmt->execute([$workerId]);
+                    $scheduledDays = $schedStmt->fetchAll(PDO::FETCH_COLUMN);
+                    if (empty($scheduledDays)) {
+                        $skipped++;
+                        continue; // no schedule = can't determine absent
+                    }
+
+                    // Determine date range
+                    $startDate = $asgn['effective_start'];
+                    $endDate = min($asgn['effective_end'], $yesterday);
+
+                    if ($startDate > $endDate) continue;
+
+                    // Limit how far back we scan (max 90 days to avoid huge first-run)
+                    $maxLookback = date('Y-m-d', strtotime('-90 days'));
+                    if ($startDate < $maxLookback) $startDate = $maxLookback;
+
+                    $current = new DateTime($startDate);
+                    $end = new DateTime($endDate);
+
+                    while ($current <= $end) {
+                        $dayName = strtolower($current->format('l'));
+                        $dateStr = $current->format('Y-m-d');
+
+                        if (in_array($dayName, $scheduledDays)) {
+                            // Check if attendance exists (any status)
+                            $checkStmt->execute([$workerId, $dateStr]);
+                            if (!$checkStmt->fetch()) {
+                                // No record — mark absent
+                                $note = "Auto-marked absent (scheduled but no attendance) - Project: {$projectName}";
+                                $insertStmt->execute([$workerId, $dateStr, $note, $user_id]);
+                                $inserted++;
+                            }
+                            $checkStmt->closeCursor();
+                        }
+
+                        $current->modify('+1 day');
+                    }
+                }
+
+                if ($inserted > 0) {
+                    logActivity($db, $user_id, 'auto_mark_absent', 'attendance', null,
+                        "Auto-marked {$inserted} absent record(s) for workers with no attendance on scheduled days");
+                }
+
+                jsonSuccess("Auto-absent complete", [
+                    'inserted' => $inserted,
+                    'skipped_no_schedule' => $skipped,
+                    'scan_up_to' => $yesterday
+                ]);
+                break;
+
             case 'get':
                 $attendance_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
                 

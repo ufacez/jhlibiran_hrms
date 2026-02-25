@@ -706,18 +706,26 @@ function loadProjectWorkers(id) {
 }
 
 /* ================================================================
-   ASSIGN / REMOVE WORKERS
+   ASSIGN / REMOVE WORKERS  (multi-select)
    ================================================================ */
+let selectedWorkerIds = new Set();
+
 function openAssignModal() {
     if (!currentProjectId) return;
+    selectedWorkerIds.clear();
+    updateSelectedCount();
     document.getElementById('assignModal').classList.add('active');
     document.body.style.overflow = 'hidden';
+    const selAll = document.getElementById('selectAllWorkers');
+    if (selAll) selAll.checked = false;
     loadAvailableWorkers();
 }
 
 function loadAvailableWorkers() {
     const list = document.getElementById('availableWorkersList');
     list.innerHTML = '<div class="aw-empty"><i class="fas fa-spinner fa-spin"></i> Loading…</div>';
+    selectedWorkerIds.clear();
+    updateSelectedCount();
 
     fetch(`${API}?action=available_workers&project_id=${currentProjectId}`, {
         credentials: 'same-origin'
@@ -734,23 +742,64 @@ function loadAvailableWorkers() {
             if (!res.success) { list.innerHTML = '<div class="aw-empty">Error</div>'; return; }
             const workers = res.data.workers;
             if (workers.length === 0) {
-                list.innerHTML = '<div class="aw-empty">All active workers are already assigned to this project.</div>';
+                list.innerHTML = '<div class="aw-empty">All active workers are already assigned to a project.</div>';
                 return;
             }
             list.innerHTML = workers.map(w => {
                 const initials = getInitials(w.first_name + ' ' + w.last_name);
-                return `<div class="aw-item" data-name="${(w.first_name + ' ' + w.last_name).toLowerCase()}">
+                return `<div class="aw-item" data-worker-id="${w.worker_id}" data-name="${(w.first_name + ' ' + w.last_name).toLowerCase()}">
                     <div class="aw-info">
-                        <div class="aw-avatar">${initials}</div>
-                        <div>
-                            <div class="aw-name">${escHtml(w.first_name + ' ' + w.last_name)}</div>
-                            <div class="aw-code">${escHtml(w.worker_code)} · ${escHtml(w.position)}</div>
-                        </div>
+                        <label style="display:flex;align-items:center;gap:12px;cursor:pointer;margin:0;width:100%;">
+                            <input type="checkbox" class="aw-check" value="${w.worker_id}" onchange="toggleWorkerSelection(${w.worker_id}, this.checked)" style="width:18px;height:18px;accent-color:#DAA520;cursor:pointer;">
+                            <div class="aw-avatar">${initials}</div>
+                            <div>
+                                <div class="aw-name">${escHtml(w.first_name + ' ' + w.last_name)}</div>
+                                <div class="aw-code">${escHtml(w.worker_code)} · ${escHtml(w.position || 'No position')}</div>
+                            </div>
+                        </label>
                     </div>
-                    <button class="btn-assign" onclick="assignWorker(${w.worker_id})">Assign</button>
                 </div>`;
             }).join('');
         });
+}
+
+function toggleWorkerSelection(workerId, checked) {
+    if (checked) {
+        selectedWorkerIds.add(workerId);
+    } else {
+        selectedWorkerIds.delete(workerId);
+    }
+    updateSelectedCount();
+}
+
+function toggleSelectAllWorkers(masterCheckbox) {
+    const checkboxes = document.querySelectorAll('#availableWorkersList .aw-check');
+    checkboxes.forEach(cb => {
+        // Only toggle visible ones
+        const item = cb.closest('.aw-item');
+        if (item && item.style.display !== 'none') {
+            cb.checked = masterCheckbox.checked;
+            const wid = parseInt(cb.value);
+            if (masterCheckbox.checked) {
+                selectedWorkerIds.add(wid);
+            } else {
+                selectedWorkerIds.delete(wid);
+            }
+        }
+    });
+    updateSelectedCount();
+}
+
+function updateSelectedCount() {
+    const countEl = document.getElementById('selectedCount');
+    const btn = document.getElementById('btnAssignSelected');
+    const count = selectedWorkerIds.size;
+    if (countEl) countEl.textContent = `${count} selected`;
+    if (btn) {
+        btn.disabled = count === 0;
+        btn.style.opacity = count === 0 ? '0.5' : '1';
+        btn.innerHTML = `<i class="fas fa-user-plus"></i> Assign Selected (${count})`;
+    }
 }
 
 function filterAvailableWorkers(input) {
@@ -760,6 +809,56 @@ function filterAvailableWorkers(input) {
     });
 }
 
+function assignSelectedWorkers() {
+    if (selectedWorkerIds.size === 0) return;
+
+    const count = selectedWorkerIds.size;
+    if (!confirm(`Assign ${count} worker(s) to this project?\n\nA default schedule (Mon-Sat, 8AM-5PM) will be auto-created for workers without an existing schedule.`)) return;
+
+    const btn = document.getElementById('btnAssignSelected');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Assigning…';
+
+    const data = new FormData();
+    data.append('action', 'assign_workers_bulk');
+    data.append('project_id', currentProjectId);
+    data.append('worker_ids', Array.from(selectedWorkerIds).join(','));
+
+    fetch(API, { 
+        method: 'POST', 
+        body: data,
+        credentials: 'same-origin'
+    })
+        .then(r => {
+            if (r.status === 401) {
+                window.location.href = '/tracksite/login.php';
+                return;
+            }
+            return r.json();
+        })
+        .then(res => {
+            if (!res) return;
+            if (res.success) {
+                selectedWorkerIds.clear();
+                updateSelectedCount();
+                loadAvailableWorkers();
+                loadProjectWorkers(currentProjectId);
+                loadProjects();
+                showToast(res.message, 'success');
+            } else {
+                showToast(res.message, 'error');
+                btn.disabled = false;
+                btn.innerHTML = `<i class="fas fa-user-plus"></i> Assign Selected (${count})`;
+            }
+        })
+        .catch(() => {
+            showToast('Network error – please try again.', 'error');
+            btn.disabled = false;
+            btn.innerHTML = `<i class="fas fa-user-plus"></i> Assign Selected (${count})`;
+        });
+}
+
+// Keep single-assign for backwards compatibility
 function assignWorker(workerId) {
     const data = new FormData();
     data.append('action', 'assign_worker');

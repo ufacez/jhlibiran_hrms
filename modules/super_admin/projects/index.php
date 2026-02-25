@@ -29,166 +29,12 @@ $flash = getFlashMessage();
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Projects - <?php echo SYSTEM_NAME; ?></title>
-    <link rel="stylesheet" href="https://pro.fontawesome.com/releases/v5.10.0/css/all.css" />
+    <link rel="stylesheet" href="https://pro.fontawesome.com/releases/v5.10.0/css/all.css">
     <link rel="stylesheet" href="<?php echo CSS_URL; ?>/dashboard.css">
     <link rel="stylesheet" href="<?php echo CSS_URL; ?>/workers.css">
     <link rel="stylesheet" href="<?php echo CSS_URL; ?>/buttons.css">
     <style>
-        .projects-content { padding: 30px; }
-
-        /* Page Header */
-        .page-header {
-            display: flex; justify-content: space-between; align-items: center;
-            margin-bottom: 25px;
-        }
-        .header-left h1 {
-            font-size: 28px; color: #1a1a1a; font-weight: 700; margin-bottom: 5px;
-        }
-        .header-actions { display: flex; gap: 10px; align-items: center; }
-
-        .btn-outline {
-            padding: 12px 24px;
-            background: #6c757d;
-            color: #fff; border: none; border-radius: 8px;
-            font-size: 14px; font-weight: 600; cursor: pointer;
-            display: inline-flex; align-items: center; gap: 8px;
-            transition: all 0.3s ease; text-decoration: none;
-        }
-        .btn-outline:hover { background: #5a6268; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(108, 117, 125, 0.3); }
-        .btn-outline i { font-size: 14px; }
-
-        .btn-primary {
-            padding: 12px 24px;
-            background: linear-gradient(135deg, #DAA520, #B8860B);
-            color: #1a1a1a; border: none; border-radius: 8px;
-            font-size: 14px; font-weight: 600; cursor: pointer;
-            display: inline-flex; align-items: center; gap: 8px;
-            transition: all 0.3s ease; text-decoration: none;
-        }
-        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(218,165,32,0.3); }
-
-        /* Filter Card - matches Worker Manager design */
-        .filter-card {
-            background: #fff;
-            padding: 20px;
-            border-radius: 12px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
-            margin-bottom: 25px;
-        }
-        .filter-row {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr) auto;
-            gap: 15px;
-            align-items: end;
-        }
-        .filter-group {
-            position: relative;
-        }
-        .filter-group label {
-            display: block;
-            font-size: 11px;
-            font-weight: 600;
-            color: #666;
-            letter-spacing: 0.5px;
-            text-transform: uppercase;
-            margin-bottom: 6px;
-        }
-        .filter-group select,
-        .filter-group input[type="text"] {
-            width: 100%;
-            padding: 12px 15px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            font-size: 14px;
-            background: #f8f9fa;
-            cursor: pointer;
-            outline: none;
-            transition: all 0.3s ease;
-            appearance: none;
-            box-sizing: border-box;
-        }
-        .filter-group select {
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23666' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
-            background-repeat: no-repeat;
-            background-position: right 15px center;
-            padding-right: 40px;
-        }
-        .filter-group select:focus,
-        .filter-group input[type="text"]:focus {
-            border-color: #DAA520;
-            background: #fff;
-        }
-        .filter-actions {
-            display: flex;
-            gap: 8px;
-            align-items: end;
-            padding-bottom: 1px;
-        }
-        .btn-filter-apply {
-            padding: 12px 24px;
-            background: linear-gradient(135deg, #DAA520, #B8860B);
-            color: #1a1a1a;
-            border: none;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            transition: all 0.3s ease;
-            white-space: nowrap;
-            height: 46px;
-        }
-        .btn-filter-apply:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(218,165,32,0.3);
-        }
-        .btn-filter-reset {
-            padding: 12px 18px;
-            background: #f0f0f0;
-            color: #666;
-            border: none;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: 500;
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            transition: all 0.2s ease;
-            white-space: nowrap;
-            height: 46px;
-        }
-        .btn-filter-reset:hover { background: #e0e0e0; }
-
-        /* Projects Table - matches standard table design across all pages */
-        .projects-table-wrap {
-            background: #fff; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.08);
-            overflow: hidden;
-        }
-        .projects-table {
-            width: 100%; border-collapse: collapse; background: #fff;
-        }
-        .projects-table thead {
-            background: #1a1a1a;
-        }
-        .projects-table thead th {
-            padding: 18px 20px; text-align: left;
-            font-size: 13px; font-weight: 600; color: #fff; text-transform: uppercase;
-            letter-spacing: 0.5px; white-space: nowrap;
-        }
-        .projects-table tbody tr {
-            border-bottom: 1px solid #f0f0f0; transition: all 0.3s ease; cursor: pointer;
-        }
-        .projects-table tbody tr:last-child { border-bottom: none; }
-        .projects-table tbody tr:hover { background: #f8f9fa; }
-        .projects-table td { padding: 20px; vertical-align: middle; color: #333; font-size: 14px; }
-        .projects-table td.name-cell { font-weight: 600; }
-        .projects-table td.location-cell { color: #666; }
-        .projects-table td.date-cell { color: #555; white-space: nowrap; }
-
-        /* Status badges */
+        /* ===== Project-specific status pills ===== */
         .status-pill {
             display: inline-flex; align-items: center; gap: 4px; padding: 4px 12px; border-radius: 20px;
             font-size: 11px; font-weight: 600; text-transform: capitalize; letter-spacing: 0.3px;
@@ -211,66 +57,40 @@ $flash = getFlashMessage();
         .status-pill.archived  { background: #f3e5f5; color: #6a1b9a; }
         .status-pill.archived::before { display: none; }
 
-        /* Action buttons - standardized across all pages */
-        .projects-table .action-buttons { display: flex; gap: 8px; }
-        .projects-table .action-btn {
-            padding: 8px 12px; border: none; border-radius: 6px;
-            cursor: pointer; transition: all 0.3s ease; font-size: 14px;
-            display: inline-flex; align-items: center; justify-content: center; color: #fff;
-        }
-        .projects-table .action-btn:hover { transform: translateY(-2px); opacity: 0.9; }
-        .projects-table .action-btn.btn-view { background: #17a2b8; }
-        .projects-table .action-btn.btn-view:hover { background: #138496; }
-        .projects-table .action-btn.btn-edit { background: #ffc107; color: #1a1a1a; }
-        .projects-table .action-btn.btn-edit:hover { background: #e0a800; }
-        .projects-table .action-btn.btn-complete { background: #28a745; gap: 5px; font-size: 12px; font-weight: 600; }
-        .projects-table .action-btn.btn-complete:hover { background: #218838; }
-        .projects-table .action-btn.btn-archive { background: #6c757d; }
-        .projects-table .action-btn.btn-archive:hover { background: #5a6268; }
+        /* ===== Action button overrides for Complete/Archive ===== */
+        .action-btn.btn-complete { background: #28a745; gap: 5px; font-size: 12px; font-weight: 600; color: #fff; }
+        .action-btn.btn-complete:hover { background: #218838; }
+        .action-btn.btn-archive { background: #6c757d; color: #fff; }
+        .action-btn.btn-archive:hover { background: #5a6268; }
+        .action-btn.btn-view { color: #fff; }
 
-        /* Empty State */
-        .empty-state { text-align: center; padding: 60px 20px; color: #888; }
-        .empty-state i { font-size: 48px; margin-bottom: 15px; color: #ddd; }
-        .empty-state h3 { font-size: 18px; margin-bottom: 8px; color: #666; }
+        /* ===== Form rows for modals ===== */
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .form-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; }
+        .form-hint { font-size: 12px; color: #888; margin-top: 5px; }
 
-        /* Modal (same as before) */
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; justify-content: center; align-items: center; }
-        .modal.active { display: flex; }
-        .modal-content { background: #fff; border-radius: 12px; width: 100%; max-height: 90vh; overflow-y: auto; animation: modalSlide 0.3s ease; }
+        /* ===== Modal overrides (uses .active instead of .show) ===== */
+        .modal.active { display: flex; align-items: center; justify-content: center; }
         .modal-sm { max-width: 580px; }
         .modal-lg { max-width: 1100px; }
         .modal-md { max-width: 500px; }
-        @keyframes modalSlide { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
 
-        .modal-header { padding: 20px 25px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; background: linear-gradient(135deg, #1a1a1a, #2d2d2d); color: #fff; border-radius: 12px 12px 0 0; }
-        .modal-header h2 { font-size: 18px; font-weight: 600; color: #fff; display: flex; align-items: center; gap: 10px; margin: 0; }
-        .modal-header h2 i { color: #DAA520; }
-        .modal-close { background: none; border: none; font-size: 24px; color: #fff; cursor: pointer; transition: color 0.2s; }
-        .modal-close:hover { color: #DAA520; }
+        /* ===== Center action buttons in table ===== */
+        .action-buttons { justify-content: center; align-items: center; }
 
-        .modal-body { padding: 25px; }
-        .modal-footer { padding: 20px 25px; border-top: 1px solid #eee; display: flex; justify-content: flex-end; gap: 12px; }
-
+        /* ===== Form controls for modal forms ===== */
         .form-group { margin-bottom: 20px; }
         .form-group label { display: block; font-size: 13px; font-weight: 600; color: #333; margin-bottom: 8px; }
         .form-group label .required { color: #e74c3c; }
         .form-control { width: 100%; padding: 10px 14px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; transition: all 0.2s; box-sizing: border-box; }
         .form-control:focus { outline: none; border-color: #DAA520; box-shadow: 0 0 0 3px rgba(218,165,32,0.15); }
-        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-        .form-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; }
-        .form-hint { font-size: 12px; color: #888; margin-top: 5px; }
-        .btn-cancel { padding: 10px 20px; background: #f5f5f5; color: #333; border: none; border-radius: 8px; cursor: pointer; font-weight: 500; }
-        .btn-cancel:hover { background: #e8e8e8; }
-        .btn-submit { padding: 10px 24px; background: linear-gradient(135deg, #DAA520, #B8860B); color: #1a1a1a; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; }
-        .btn-submit:hover { box-shadow: 0 4px 12px rgba(218,165,32,0.3); }
+        .modal-footer { display: flex; justify-content: center; align-items: center; gap: 12px; padding: 20px 30px; border-top: 1px solid #eee; background: #fafafa; border-radius: 0 0 15px 15px; }
+        .btn-cancel { padding: 10px 24px; background: #f5f5f5; color: #333; border: 1px solid #ddd; border-radius: 8px; cursor: pointer; font-weight: 500; font-size: 14px; transition: all 0.2s; }
+        .btn-cancel:hover { background: #e8e8e8; border-color: #ccc; }
+        .btn-submit { padding: 10px 28px; background: linear-gradient(135deg, #DAA520, #B8860B); color: #1a1a1a; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 14px; transition: all 0.2s; display: inline-flex; align-items: center; gap: 8px; }
+        .btn-submit:hover { box-shadow: 0 4px 12px rgba(218,165,32,0.3); transform: translateY(-1px); }
 
-        /* Flash messages */
-        .flash-message { padding: 15px 20px; border-radius: 8px; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; animation: flashSlide 0.3s ease; }
-        @keyframes flashSlide { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
-        .flash-message.success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
-        .flash-message.error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
-
-        /* Detail modal styles */
+        /* ===== Detail modal styles ===== */
         .detail-title { font-size: 22px; font-weight: 700; color: #333; margin: 0 0 8px; }
         .detail-meta { display: flex; flex-wrap: wrap; gap: 18px; font-size: 13px; color: #777; }
         .detail-meta i { color: #DAA520; margin-right: 5px; }
@@ -300,7 +120,7 @@ $flash = getFlashMessage();
         .btn-remove-worker { background: none; border: none; color: #ccc; cursor: pointer; font-size: 18px; transition: .2s; }
         .btn-remove-worker:hover { color: #e53935; }
 
-        /* Assign Workers modal */
+        /* ===== Assign Workers modal ===== */
         .assign-search input { width: 100%; padding: 10px 14px; border-radius: 8px; border: 1px solid #ddd; font-size: 14px; box-sizing: border-box; margin-bottom: 14px; }
         .assign-search input:focus { border-color: #DAA520; outline: none; box-shadow: 0 0 0 3px rgba(218,165,32,.15); }
         .aw-list { max-height: 350px; overflow-y: auto; }
@@ -314,7 +134,7 @@ $flash = getFlashMessage();
         .btn-assign { padding: 6px 16px; border-radius: 6px; border: none; background: linear-gradient(135deg, #DAA520, #B8860B); color: #fff; font-size: 13px; font-weight: 500; cursor: pointer; transition: .2s; }
         .btn-assign:hover { box-shadow: 0 3px 10px rgba(218,165,32,.4); }
 
-        /* Toast */
+        /* ===== Toast ===== */
         .project-toast { display: flex; align-items: center; gap: 10px; padding: 14px 22px; border-radius: 10px; font-size: 14px; font-weight: 500; box-shadow: 0 4px 16px rgba(0,0,0,.15); animation: toastSlide .3s ease; }
         .project-toast.success { background: #43A047; color: #fff; }
         .project-toast.error { background: #e53935; color: #fff; }
@@ -323,9 +143,6 @@ $flash = getFlashMessage();
 
         @media (max-width: 900px) {
             .form-row, .form-row-3 { grid-template-columns: 1fr; }
-            .filter-row { grid-template-columns: 1fr; }
-            .projects-table { font-size: 13px; }
-            .projects-table thead th, .projects-table td { padding: 12px 14px; }
         }
     </style>
 </head>
@@ -342,7 +159,7 @@ $flash = getFlashMessage();
         <div class="main">
             <?php include __DIR__ . '/../../../includes/topbar.php'; ?>
 
-            <div class="projects-content">
+            <div class="workers-content">
                 <!-- Flash Message -->
                 <?php if ($flash): ?>
                 <div class="alert alert-<?php echo $flash['type']; ?>" id="flashMessage">
@@ -358,7 +175,7 @@ $flash = getFlashMessage();
                         <p class="subtitle">Manage construction projects and assignments</p>
                     </div>
                     <div class="header-actions">
-                        <button class="btn-primary" onclick="openAddModal()">
+                        <button class="btn btn-add-worker" onclick="openAddModal()">
                             <i class="fas fa-plus"></i> Add New Project
                         </button>
                     </div>
@@ -405,12 +222,12 @@ $flash = getFlashMessage();
                 </div>
 
                 <!-- Projects Table -->
-                <div class="projects-table-wrap">
+                <div class="workers-table-card">
                     <div class="table-info">
                         <span id="projectsCount">Loading projects…</span>
                     </div>
                     <div class="table-wrapper">
-                        <table class="projects-table">
+                        <table class="workers-table">
                             <thead>
                                 <tr>
                                     <th>Project Name</th>
@@ -497,13 +314,8 @@ $flash = getFlashMessage();
                         <select id="fieldStatus" class="form-control">
                             <option value="planning">Planning</option>
                             <option value="active">Active</option>
-                            <option value="in_progress">In Progress</option>
-                            <option value="on_hold">On Hold</option>
-                            <option value="delayed">Delayed</option>
-                            <option value="cancelled">Cancelled</option>
-                            <option value="completed">✔ Completed</option>
+                            <option value="completed">Completed</option>
                         </select>
-                        <small style="color:#666;margin-top:4px;display:block;"><i class="fas fa-info-circle"></i> Setting status to <strong>Completed</strong> will also archive project-based workers.</small>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -528,7 +340,7 @@ $flash = getFlashMessage();
                         <h3><i class="fas fa-users" style="color:#DAA520;margin-right:8px"></i> Workers & Schedule</h3>
                         <div style="display:flex;align-items:center;gap:14px">
                             <span id="detailWorkerCount"></span>
-                            <button class="btn-primary" onclick="openAssignModal()" style="padding:7px 16px;font-size:13px">
+                            <button class="btn btn-add-worker" onclick="openAssignModal()" style="padding:7px 16px;font-size:13px">
                                 <i class="fas fa-user-plus"></i> Assign Worker
                             </button>
                         </div>
@@ -552,16 +364,25 @@ $flash = getFlashMessage();
 
     <!-- ========================= ASSIGN WORKER MODAL ========================= -->
     <div class="modal" id="assignModal">
-        <div class="modal-content modal-md">
+        <div class="modal-content modal-md" style="max-width:560px">
             <div class="modal-header">
                 <h2><i class="fas fa-user-plus"></i> Assign Workers</h2>
                 <button class="modal-close" onclick="closeModalById('assignModal')">&times;</button>
             </div>
             <div class="modal-body">
-                <div class="assign-search">
-                    <input type="text" placeholder="Search workers…" oninput="filterAvailableWorkers(this)">
+                <div class="assign-search" style="display:flex;gap:10px;align-items:center;margin-bottom:14px;">
+                    <input type="text" placeholder="Search workers…" oninput="filterAvailableWorkers(this)" style="flex:1">
+                    <label style="display:flex;align-items:center;gap:6px;font-size:13px;white-space:nowrap;cursor:pointer;color:#555;">
+                        <input type="checkbox" id="selectAllWorkers" onchange="toggleSelectAllWorkers(this)"> Select All
+                    </label>
                 </div>
                 <div class="aw-list" id="availableWorkersList"></div>
+            </div>
+            <div class="modal-footer" style="display:flex;justify-content:space-between;align-items:center;padding:16px 24px;border-top:1px solid #eee;background:#fafafa;border-radius:0 0 15px 15px;">
+                <span id="selectedCount" style="font-size:13px;color:#888;">0 selected</span>
+                <button class="btn-submit" id="btnAssignSelected" onclick="assignSelectedWorkers()" disabled style="opacity:0.5;">
+                    <i class="fas fa-user-plus"></i> Assign Selected
+                </button>
             </div>
         </div>
     </div>
