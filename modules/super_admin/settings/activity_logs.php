@@ -36,7 +36,7 @@ $filter_module = $_GET['filter_module'] ?? '';
 $filter_severity = $_GET['filter_severity'] ?? '';
 
 // Build query
-$where = ["at.user_level IN ('super_admin', 'admin')"];
+$where = ["(at.user_level IN ('super_admin', 'admin', 'worker') OR at.username = 'Biometric System')"];
 $params = [];
 
 if ($filter_user) {
@@ -156,6 +156,8 @@ function getActionBadge($action) {
         'password_change' => ['icon' => 'key', 'color' => '#FF9800', 'bg' => '#FFF3E0'],
         'status_change' => ['icon' => 'toggle-on', 'color' => '#2196F3', 'bg' => '#E3F2FD'],
         'export' => ['icon' => 'file-export', 'color' => '#3F51B5', 'bg' => '#E8EAF6'],
+        'time_in' => ['icon' => 'portrait', 'color' => '#2E7D32', 'bg' => '#E8F5E9'],
+        'time_out' => ['icon' => 'portrait', 'color' => '#C62828', 'bg' => '#FFEBEE'],
     ];
     
     return $badges[$action] ?? ['icon' => 'info-circle', 'color' => '#607D8B', 'bg' => '#ECEFF1'];
@@ -359,6 +361,12 @@ function getSeverityBadge($severity) {
             border: 1px solid #FFCDD2;
         }
         
+        .user-badge.biometric {
+            background: #E8F5E9;
+            color: #2E7D32;
+            border: 1px solid #A5D6A7;
+        }
+        
         .pagination {
             display: flex;
             justify-content: center;
@@ -505,10 +513,19 @@ function getSeverityBadge($severity) {
                                     <div style="font-weight: 600; margin-bottom: 3px;">
                                         <?php echo htmlspecialchars($log['user_name'] ?? $log['username'] ?? 'Unknown'); ?>
                                     </div>
+                                    <?php 
+                                    $isBiometric = ($log['username'] ?? '') === 'Biometric System';
+                                    if ($isBiometric): ?>
+                                    <span class="user-badge biometric">
+                                        <i class="fas fa-portrait"></i>
+                                        Facial Recognition
+                                    </span>
+                                    <?php else: ?>
                                     <span class="user-badge <?php echo ($log['user_level'] ?? '') ?: 'system'; ?>">
                                         <i class="fas fa-<?php echo ($log['user_level'] ?? '') === 'super_admin' ? 'crown' : (($log['user_level'] ?? '') === 'admin' ? 'user-shield' : 'robot'); ?>"></i>
                                         <?php echo ($log['user_level'] ?? '') === 'super_admin' ? 'Super Admin' : (($log['user_level'] ?? '') === 'admin' ? 'Admin' : 'System'); ?>
                                     </span>
+                                    <?php endif; ?>
                                 </td>
                                 <td>
                                     <span class="action-badge" style="background: <?php echo $badge['bg']; ?>; color: <?php echo $badge['color']; ?>">

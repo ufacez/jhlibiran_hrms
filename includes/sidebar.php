@@ -345,6 +345,17 @@ if (!isset($db) || !$db) {
             </a>
         </li>
         
+        <!-- Biometric -->
+        <?php if (getCurrentUserLevel() === 'super_admin' || (function_exists('hasPermission') && hasPermission($db, 'can_view_biometric'))): ?>
+        <li>
+            <a href="<?php echo BASE_URL; ?>/modules/super_admin/biometric/index.php"
+               class="<?php echo ($current_dir === 'biometric') ? 'active' : ''; ?>">
+                <i class="fas fa-portrait"></i>
+                <div class="title">Biometric</div>
+            </a>
+        </li>
+        <?php endif; ?>
+        
         <!-- Schedule -->
         <li>
             <a href="<?php echo BASE_URL; ?>/modules/super_admin/schedule/index.php"

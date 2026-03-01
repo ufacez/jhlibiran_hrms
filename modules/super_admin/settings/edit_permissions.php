@@ -76,6 +76,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_permissions'])
         $all_permissions = [
             'can_view_workers', 'can_add_workers', 'can_edit_workers', 'can_delete_workers', 'can_manage_work_types',
             'can_view_attendance', 'can_mark_attendance', 'can_edit_attendance', 'can_delete_attendance',
+            'can_view_biometric', 'can_manage_biometric',
             'can_view_schedule', 'can_manage_schedule',
             'can_view_payroll', 'can_generate_payroll', 'can_approve_payroll', 'can_mark_paid', 'can_edit_payroll', 'can_delete_payroll',
             'can_view_payroll_settings', 'can_edit_payroll_settings',
@@ -343,6 +344,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_permissions'])
                                 <input type="checkbox" name="can_delete_attendance" id="can_delete_attendance" value="1"
                                        <?php echo ($permissions['can_delete_attendance'] ?? 0) ? 'checked' : ''; ?>>
                                 <label for="can_delete_attendance">Delete Attendance</label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Biometric Permissions -->
+                    <div class="form-card">
+                        <div class="section-header">
+                            <h3 class="section-title">
+                                <i class="fas fa-portrait"></i> Biometric Management
+                            </h3>
+                            <button type="button" class="select-all-btn" onclick="toggleSection('biometric')">
+                                Toggle All
+                            </button>
+                        </div>
+                        <div class="permissions-grid">
+                            <div class="permission-item" onclick="toggleCheckbox('can_view_biometric')">
+                                <input type="checkbox" name="can_view_biometric" id="can_view_biometric" value="1"
+                                       <?php echo ($permissions['can_view_biometric'] ?? 0) ? 'checked' : ''; ?>>
+                                <label for="can_view_biometric">View Biometric</label>
+                            </div>
+                            <div class="permission-item" onclick="toggleCheckbox('can_manage_biometric')">
+                                <input type="checkbox" name="can_manage_biometric" id="can_manage_biometric" value="1"
+                                       <?php echo ($permissions['can_manage_biometric'] ?? 0) ? 'checked' : ''; ?>>
+                                <label for="can_manage_biometric">Manage Biometric</label>
                             </div>
                         </div>
                     </div>
@@ -656,6 +681,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_permissions'])
             const sections = {
                 'workers': ['can_view_workers', 'can_add_workers', 'can_edit_workers', 'can_delete_workers', 'can_manage_work_types'],
                 'attendance': ['can_view_attendance', 'can_mark_attendance', 'can_edit_attendance', 'can_delete_attendance'],
+                'biometric': ['can_view_biometric', 'can_manage_biometric'],
                 'schedule': ['can_view_schedule', 'can_manage_schedule'],
                 'payroll': ['can_view_payroll', 'can_generate_payroll', 'can_approve_payroll', 'can_mark_paid', 'can_edit_payroll', 'can_delete_payroll', 'can_view_payroll_settings', 'can_edit_payroll_settings'],
                 'deductions': ['can_view_deductions', 'can_manage_deductions'],
