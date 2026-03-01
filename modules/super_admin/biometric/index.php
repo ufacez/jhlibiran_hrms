@@ -25,6 +25,9 @@ $full_name = $_SESSION['full_name'] ?? 'Administrator';
 // Filters
 $search = $_GET['search'] ?? '';
 $status_filter = $_GET['status'] ?? '';
+$project_filter = isset($_GET['project']) ? intval($_GET['project']) : 0;
+$classification_filter = $_GET['classification'] ?? '';
+$work_type_filter = $_GET['work_type'] ?? '';
 
 // Get workers with biometric info
 $sql = "SELECT 
@@ -54,10 +57,28 @@ $sql = "SELECT
 
 $params = [];
 
+if ($project_filter > 0) {
+    $sql .= " AND w.worker_id IN (SELECT pw.worker_id FROM project_workers pw WHERE pw.project_id = ? AND pw.is_active = 1)";
+    $params[] = $project_filter;
+}
+
+if (!empty($classification_filter)) {
+    $sql .= " AND (w.classification_id = ? OR wt.classification_id = ?)";
+    $params[] = $classification_filter;
+    $params[] = $classification_filter;
+}
+
+if (!empty($work_type_filter)) {
+    $sql .= " AND w.work_type_id = ?";
+    $params[] = $work_type_filter;
+}
+
 if (!empty($search)) {
     $sql .= " AND (w.first_name LIKE ? OR w.last_name LIKE ? OR w.worker_code LIKE ?)";
     $s = "%{$search}%";
-    $params = [$s, $s, $s];
+    $params[] = $s;
+    $params[] = $s;
+    $params[] = $s;
 }
 
 if ($status_filter === 'registered') {
@@ -101,6 +122,26 @@ try {
     $auditLogs = $auditStmt->fetchAll();
 } catch (PDOException $e) {
     $auditLogs = [];
+}
+
+// Get filter dropdown data (same as worker management)
+try {
+    $stmt = $db->query("SELECT classification_id, classification_name FROM worker_classifications WHERE is_active = 1 ORDER BY classification_name");
+    $classifications = $stmt->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {
+    $classifications = [];
+}
+try {
+    $stmt = $db->query("SELECT work_type_id, work_type_name FROM work_types WHERE is_active = 1 ORDER BY work_type_name");
+    $work_types = $stmt->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {
+    $work_types = [];
+}
+try {
+    $stmt = $db->query("SELECT project_id, project_name FROM projects WHERE is_archived = 0 AND status IN ('active','planning','in_progress') ORDER BY project_name");
+    $projects_list = $stmt->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {
+    $projects_list = [];
 }
 
 /**
@@ -163,8 +204,9 @@ function formatDateTime12hr($datetime) {
     <style>
         .bio-content { padding: 30px; }
         
-        /* Filter row: 2 groups + actions */
-        .filter-row-bio { grid-template-columns: 1fr 1fr auto; }
+        /* Filter row: 5 groups + actions (matches worker management) */
+        .filter-row-bio { grid-template-columns: repeat(5, 1fr) auto; }
+        @media (max-width: 1100px) { .filter-row-bio { grid-template-columns: repeat(3, 1fr); } }
         @media (max-width: 768px) { .filter-row-bio { grid-template-columns: 1fr; } }
         
         /* Two-column layout - 60/40 split */
@@ -385,13 +427,18 @@ function formatDateTime12hr($datetime) {
             
             <div class="bio-content">
                 <!-- Page Header -->
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+                <div class="page-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
                     <div>
                         <h1 style="margin: 0; font-size: 24px; color: #1a1a1a;">
                             Biometric Management
                         </h1>
                         <p style="margin: 5px 0 0; color: #888; font-size: 13px;">Facial recognition enrollment and attendance tracking</p>
                     </div>
+                    <?php if (isSuperAdmin() || ($permissions['can_manage_biometric'] ?? false)): ?>
+                    <button class="btn-filter-apply" onclick="launchTrainFace()" style="padding: 10px 20px; font-size: 13px;">
+                        <i class="fas fa-camera"></i> Register Face
+                    </button>
+                    <?php endif; ?>
                 </div>
                 
                 <!-- Filters -->
@@ -399,9 +446,37 @@ function formatDateTime12hr($datetime) {
                     <form method="GET" action="" id="filterForm">
                         <div class="filter-row filter-row-bio">
                             <div class="filter-group">
-                                <label>Search</label>
-                                <input type="text" name="search" placeholder="Search worker name or code..." 
-                                       value="<?php echo htmlspecialchars($search); ?>">
+                                <label>Project</label>
+                                <select name="project">
+                                    <option value="">All Projects</option>
+                                    <?php foreach ($projects_list as $proj): ?>
+                                    <option value="<?php echo $proj['project_id']; ?>" <?php echo $project_filter == $proj['project_id'] ? 'selected' : ''; ?>>
+                                        <?php echo htmlspecialchars($proj['project_name']); ?>
+                                    </option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <div class="filter-group">
+                                <label>Classification</label>
+                                <select name="classification">
+                                    <option value="">All Classifications</option>
+                                    <?php foreach ($classifications as $c): ?>
+                                    <option value="<?php echo $c['classification_id']; ?>" <?php echo $classification_filter == $c['classification_id'] ? 'selected' : ''; ?>>
+                                        <?php echo htmlspecialchars($c['classification_name']); ?>
+                                    </option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <div class="filter-group">
+                                <label>Role</label>
+                                <select name="work_type">
+                                    <option value="">All Roles</option>
+                                    <?php foreach ($work_types as $wt): ?>
+                                    <option value="<?php echo $wt['work_type_id']; ?>" <?php echo $work_type_filter == $wt['work_type_id'] ? 'selected' : ''; ?>>
+                                        <?php echo htmlspecialchars($wt['work_type_name']); ?>
+                                    </option>
+                                    <?php endforeach; ?>
+                                </select>
                             </div>
                             <div class="filter-group">
                                 <label>Biometric Status</label>
@@ -410,6 +485,11 @@ function formatDateTime12hr($datetime) {
                                     <option value="registered" <?php echo $status_filter === 'registered' ? 'selected' : ''; ?>>Registered</option>
                                     <option value="unregistered" <?php echo $status_filter === 'unregistered' ? 'selected' : ''; ?>>Not Registered</option>
                                 </select>
+                            </div>
+                            <div class="filter-group">
+                                <label>Search</label>
+                                <input type="text" name="search" placeholder="Name or code..." 
+                                       value="<?php echo htmlspecialchars($search); ?>">
                             </div>
                             <div class="filter-actions">
                                 <button type="submit" class="btn-filter-apply">
@@ -617,6 +697,38 @@ function formatDateTime12hr($datetime) {
     
     <script src="<?php echo JS_URL; ?>/dashboard.js"></script>
     <script>
+    function launchTrainFace() {
+        if (!confirm('This will launch the Face Registration tool (train_face.py).\n\nMake sure the camera device is connected.\n\nContinue?')) {
+            return;
+        }
+        
+        const btn = event.target.closest('button');
+        const origText = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Launching...';
+        btn.disabled = true;
+        
+        fetch('<?php echo BASE_URL; ?>/api/biometric.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: 'action=launch_train_face'
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message || 'Face Registration tool launched successfully!\nCheck the terminal window.');
+            } else {
+                alert(data.message || 'Failed to launch Face Registration tool.');
+            }
+        })
+        .catch(err => {
+            alert('Error: ' + err.message);
+        })
+        .finally(() => {
+            btn.innerHTML = origText;
+            btn.disabled = false;
+        });
+    }
+    
     function removeEncoding(workerId, workerName) {
         if (!confirm('Are you sure you want to remove the face encoding for ' + workerName + '?\n\nThis worker will need to be re-registered on the facial recognition device.')) {
             return;

@@ -182,6 +182,54 @@ try {
             jsonSuccess("Face encoding removed for {$workerName}");
             break;
             
+        case 'launch_train_face':
+            // Launch the Face Registration GUI (super admin or manage biometric permission)
+            if (!isSuperAdmin()) {
+                // Check permission
+                require_once __DIR__ . '/../includes/admin_functions.php';
+                $perms = getAdminPermissions($db);
+                if (!($perms['can_manage_biometric'] ?? false)) {
+                    jsonError('Permission denied');
+                }
+            }
+            
+            // Path to the facial recognition project
+            $project_dir = 'D:\\Projects\\jhlibiran_facial_recognition';
+            $gui_script = $project_dir . '\\train_face_gui.py';
+            $cli_script = $project_dir . '\\train_face.py';
+            $venv_pythonw = $project_dir . '\\venv\\Scripts\\pythonw.exe';
+            $venv_python = $project_dir . '\\venv\\Scripts\\python.exe';
+            
+            // Prefer GUI version, fall back to CLI
+            if (file_exists($gui_script)) {
+                $script = $gui_script;
+                
+                // Use pythonw.exe for GUI (no console window)
+                if (file_exists($venv_pythonw)) {
+                    $python = $venv_pythonw;
+                } elseif (file_exists($venv_python)) {
+                    $python = $venv_python;
+                } else {
+                    $python = PYTHON_EXECUTABLE;
+                }
+                
+                // Launch GUI app directly (no cmd window needed)
+                $cmd = 'start "" "' . $python . '" "' . $script . '"';
+                pclose(popen($cmd, 'r'));
+                
+                jsonSuccess('Face Registration app launched.');
+            } elseif (file_exists($cli_script)) {
+                // Fall back to terminal version
+                $python = file_exists($venv_python) ? $venv_python : PYTHON_EXECUTABLE;
+                $cmd = 'start "Face Registration" cmd /k "cd /d ' . $project_dir . ' && "' . $python . '" train_face.py"';
+                pclose(popen($cmd, 'r'));
+                
+                jsonSuccess('Face Registration tool launched. Check the terminal window.');
+            } else {
+                jsonError('Face registration script not found at: ' . $project_dir);
+            }
+            break;
+            
         default:
             jsonError('Invalid action');
     }
