@@ -42,25 +42,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             $time_in = strlen($time_in_raw) === 5 ? $time_in_raw . ':00' : $time_in_raw;
             
-            // Validate time_out
+            // Validate time_out (optional — can save with only time_in)
             $time_out_raw = isset($_POST['time_out']) ? trim($_POST['time_out']) : '';
-            if (!$time_out_raw || !preg_match('/^\d{2}:\d{2}(:\d{2})?$/', $time_out_raw)) {
-                echo json_encode(['success' => false, 'message' => 'Please select a valid Time Out']);
-                exit();
-            }
-            $time_out = strlen($time_out_raw) === 5 ? $time_out_raw . ':00' : $time_out_raw;
-            
-            // Time Out cannot exceed current server time (prevent manipulation)
-            $server_now = date('H:i:s');
-            if ($time_out > $server_now) {
-                echo json_encode(['success' => false, 'message' => 'Time Out cannot be later than the current time (' . date('g:i A') . ')']);
-                exit();
-            }
-            
-            // Time Out must be after Time In
-            if ($time_out <= $time_in) {
-                echo json_encode(['success' => false, 'message' => 'Time Out must be after Time In']);
-                exit();
+            $time_out = null;
+            if ($time_out_raw && preg_match('/^\d{2}:\d{2}(:\d{2})?$/', $time_out_raw)) {
+                $time_out = strlen($time_out_raw) === 5 ? $time_out_raw . ':00' : $time_out_raw;
+                
+                // Time Out must be after Time In
+                if ($time_out <= $time_in) {
+                    echo json_encode(['success' => false, 'message' => 'Time Out must be after Time In']);
+                    exit();
+                }
             }
             
             // Check if attendance already exists today
@@ -73,32 +65,98 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
             // Calculate hours using AttendanceCalculator
             $calculator = new AttendanceCalculator($db);
-            $calc = $calculator->calculateWorkHours($time_in, $time_out, $today, $worker_id);
             
-            $stmt = $db->prepare("INSERT INTO attendance 
-                (worker_id, attendance_date, time_in, time_out, status, hours_worked, raw_hours_worked, 
-                 break_hours, late_minutes, overtime_hours, calculated_at) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())");
-            $stmt->execute([
-                $worker_id, $today, $time_in, $time_out, 
-                $calc['status'], $calc['worked_hours'], $calc['raw_hours'],
-                $calc['break_hours'], $calc['late_minutes'], $calc['overtime_hours']
-            ]);
+            if ($time_out) {
+                $calc = $calculator->calculateWorkHours($time_in, $time_out, $today, $worker_id);
+                $stmt = $db->prepare("INSERT INTO attendance 
+                    (worker_id, attendance_date, time_in, time_out, status, hours_worked, raw_hours_worked, 
+                     break_hours, late_minutes, overtime_hours, calculated_at) 
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())");
+                $stmt->execute([
+                    $worker_id, $today, $time_in, $time_out, 
+                    $calc['status'], $calc['worked_hours'], $calc['raw_hours'],
+                    $calc['break_hours'], $calc['late_minutes'], $calc['overtime_hours']
+                ]);
+            } else {
+                $stmt = $db->prepare("INSERT INTO attendance 
+                    (worker_id, attendance_date, time_in, status, hours_worked, calculated_at) 
+                    VALUES (?, ?, ?, 'present', 0, NOW())");
+                $stmt->execute([$worker_id, $today, $time_in]);
+            }
             
             // Log activity
             $wStmt = $db->prepare("SELECT CONCAT(first_name, ' ', last_name) AS name FROM workers WHERE worker_id = ?");
             $wStmt->execute([$worker_id]);
             $wName = $wStmt->fetchColumn() ?: "Worker #{$worker_id}";
+            $hoursMsg = $time_out ? number_format($calc['worked_hours'] ?? 0, 2) . 'hrs' : 'Time-in only';
             logActivity($db, getCurrentUserId(), 'mark_attendance', 'attendance', $db->lastInsertId(), 
-                       "Marked attendance for {$wName}: {$time_in} - {$time_out} ({$calc['worked_hours']}hrs)");
+                       "Marked attendance for {$wName}: {$time_in}" . ($time_out ? " - {$time_out} ({$hoursMsg})" : " (time-in only)"));
             
             echo json_encode([
                 'success' => true, 
-                'message' => "Attendance marked — " . number_format($calc['worked_hours'], 2) . " hrs",
+                'message' => $time_out 
+                    ? "Attendance marked — " . number_format($calc['worked_hours'], 2) . " hrs"
+                    : "Time-in recorded for {$wName}",
                 'time_in' => date('g:i A', strtotime($time_in)),
-                'time_out' => date('g:i A', strtotime($time_out)),
-                'hours' => number_format($calc['worked_hours'], 2),
-                'status' => $calc['status']
+                'time_out' => $time_out ? date('g:i A', strtotime($time_out)) : null,
+                'hours' => $time_out ? number_format($calc['worked_hours'], 2) : '0.00',
+                'status' => $time_out ? ($calc['status'] ?? 'present') : 'present'
+            ]);
+        } elseif ($action === 'update') {
+            // Update existing attendance record
+            $attendance_id = isset($_POST['attendance_id']) ? intval($_POST['attendance_id']) : 0;
+            if ($attendance_id <= 0) {
+                echo json_encode(['success' => false, 'message' => 'Invalid attendance ID']);
+                exit();
+            }
+            
+            $time_in_raw = isset($_POST['time_in']) ? trim($_POST['time_in']) : '';
+            if (!$time_in_raw || !preg_match('/^\d{2}:\d{2}(:\d{2})?$/', $time_in_raw)) {
+                echo json_encode(['success' => false, 'message' => 'Please select a valid Time In']);
+                exit();
+            }
+            $time_in = strlen($time_in_raw) === 5 ? $time_in_raw . ':00' : $time_in_raw;
+            
+            $time_out_raw = isset($_POST['time_out']) ? trim($_POST['time_out']) : '';
+            $time_out = null;
+            if ($time_out_raw && preg_match('/^\d{2}:\d{2}(:\d{2})?$/', $time_out_raw)) {
+                $time_out = strlen($time_out_raw) === 5 ? $time_out_raw . ':00' : $time_out_raw;
+                if ($time_out <= $time_in) {
+                    echo json_encode(['success' => false, 'message' => 'Time Out must be after Time In']);
+                    exit();
+                }
+            }
+            
+            $calculator = new AttendanceCalculator($db);
+            
+            if ($time_out) {
+                $calc = $calculator->calculateWorkHours($time_in, $time_out, $today, $worker_id);
+                $stmt = $db->prepare("UPDATE attendance SET time_in = ?, time_out = ?, status = ?, 
+                    hours_worked = ?, raw_hours_worked = ?, break_hours = ?, late_minutes = ?, 
+                    overtime_hours = ?, calculated_at = NOW(), updated_at = NOW() WHERE attendance_id = ?");
+                $stmt->execute([$time_in, $time_out, $calc['status'], $calc['worked_hours'], 
+                    $calc['raw_hours'], $calc['break_hours'], $calc['late_minutes'], 
+                    $calc['overtime_hours'], $attendance_id]);
+            } else {
+                $stmt = $db->prepare("UPDATE attendance SET time_in = ?, updated_at = NOW() WHERE attendance_id = ?");
+                $stmt->execute([$time_in, $attendance_id]);
+            }
+            
+            $wStmt = $db->prepare("SELECT CONCAT(first_name, ' ', last_name) AS name FROM workers WHERE worker_id = ?");
+            $wStmt->execute([$worker_id]);
+            $wName = $wStmt->fetchColumn() ?: "Worker #{$worker_id}";
+            logActivity($db, getCurrentUserId(), 'update_attendance', 'attendance', $attendance_id, 
+                       "Updated attendance for {$wName}: {$time_in}" . ($time_out ? " - {$time_out}" : " (time-in only)"));
+            
+            echo json_encode([
+                'success' => true,
+                'message' => $time_out 
+                    ? "Updated — " . number_format($calc['worked_hours'], 2) . " hrs"
+                    : "Updated time-in for {$wName}",
+                'time_in' => date('g:i A', strtotime($time_in)),
+                'time_out' => $time_out ? date('g:i A', strtotime($time_out)) : null,
+                'hours' => $time_out ? number_format($calc['worked_hours'], 2) : '0.00',
+                'status' => $time_out ? ($calc['status'] ?? 'present') : 'present'
             ]);
         } else {
             echo json_encode(['success' => false, 'message' => 'Invalid action']);
@@ -346,7 +404,10 @@ $pending_count = $total_workers - $marked_count;
                                                 <i class="fas fa-check"></i>
                                             </button>
                                         <?php else: ?>
-                                            <span style="color: #28a745;"><i class="fas fa-check-circle"></i></span>
+                                            <button class="action-btn" title="Edit Attendance" style="background: #DAA520;"
+                                                    onclick="editMarkAttendance(<?php echo $worker['worker_id']; ?>, <?php echo intval($worker['attendance_id']); ?>, '<?php echo $worker['att_time_in'] ? substr($worker['att_time_in'], 0, 5) : ''; ?>', '<?php echo $worker['att_time_out'] ? substr($worker['att_time_out'], 0, 5) : ''; ?>')">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
                                         <?php endif; ?>
                                         </div>
                                     </td>
@@ -365,6 +426,34 @@ $pending_count = $total_workers - $marked_count;
     <!-- Alert container -->
     <div id="alertContainer" style="position: fixed; top: 80px; right: 20px; z-index: 9999;"></div>
     
+    <!-- Edit Modal -->
+    <div id="editMarkModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:10000; align-items:center; justify-content:center;">
+        <div style="background:#fff; border-radius:12px; padding:28px; width:420px; max-width:90%; box-shadow:0 10px 40px rgba(0,0,0,0.2);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px;">
+                <h3 style="margin:0; font-size:18px; color:#1a1a1a;"><i class="fas fa-edit"></i> Edit Attendance</h3>
+                <button onclick="closeEditModal()" style="background:none; border:none; font-size:20px; cursor:pointer; color:#888;">&times;</button>
+            </div>
+            <input type="hidden" id="editMarkAttId">
+            <input type="hidden" id="editMarkWorkerId">
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+                <div>
+                    <label style="display:block; font-size:12px; font-weight:600; color:#555; margin-bottom:4px;">Time In</label>
+                    <input type="time" id="editMarkTimeIn" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px; font-size:14px;">
+                </div>
+                <div>
+                    <label style="display:block; font-size:12px; font-weight:600; color:#555; margin-bottom:4px;">Time Out (optional)</label>
+                    <input type="time" id="editMarkTimeOut" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px; font-size:14px;">
+                </div>
+            </div>
+            <div style="display:flex; gap:10px; margin-top:20px; justify-content:flex-end;">
+                <button onclick="closeEditModal()" style="padding:8px 18px; border:1px solid #ddd; border-radius:6px; background:#f5f5f5; cursor:pointer;">Cancel</button>
+                <button id="editMarkSaveBtn" onclick="saveEditMark()" style="padding:8px 18px; border:none; border-radius:6px; background:#DAA520; color:#fff; font-weight:600; cursor:pointer;">
+                    <i class="fas fa-save"></i> Save
+                </button>
+            </div>
+        </div>
+    </div>
+    
     <script src="<?php echo JS_URL; ?>/dashboard.js"></script>
     <script>
     // Mark attendance with manual time_in and time_out
@@ -376,23 +465,6 @@ $pending_count = $total_workers - $marked_count;
             showAlert('Please select a Time In', 'error');
             return;
         }
-        if (!timeOutInput || !timeOutInput.value) {
-            showAlert('Please select a Time Out', 'error');
-            return;
-        }
-        
-        // Client-side check: time_out cannot exceed current time
-        const now = new Date();
-        const currentHHMM = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
-        if (timeOutInput.value > currentHHMM) {
-            showAlert('Time Out cannot be later than the current time (' + formatTime12(currentHHMM) + ')', 'error');
-            return;
-        }
-        
-        if (timeOutInput.value <= timeInInput.value) {
-            showAlert('Time Out must be after Time In', 'error');
-            return;
-        }
         
         const btn = document.getElementById('btn-' + workerId);
         btn.disabled = true;
@@ -402,7 +474,15 @@ $pending_count = $total_workers - $marked_count;
         formData.append('action', 'mark');
         formData.append('worker_id', workerId);
         formData.append('time_in', timeInInput.value);
-        formData.append('time_out', timeOutInput.value);
+        if (timeOutInput && timeOutInput.value) {
+            if (timeOutInput.value <= timeInInput.value) {
+                showAlert('Time Out must be after Time In', 'error');
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-check"></i>';
+                return;
+            }
+            formData.append('time_out', timeOutInput.value);
+        }
         
         fetch('mark.php<?php echo $selected_project ? "?project={$selected_project}" : ""; ?>', {
             method: 'POST',
@@ -495,6 +575,72 @@ $pending_count = $total_workers - $marked_count;
             setTimeout(() => alertEl.remove(), 300);
         }, 3000);
     }
+    // Edit already-marked attendance
+    function editMarkAttendance(workerId, attId, timeIn, timeOut) {
+        document.getElementById('editMarkWorkerId').value = workerId;
+        document.getElementById('editMarkAttId').value = attId;
+        document.getElementById('editMarkTimeIn').value = timeIn || '';
+        document.getElementById('editMarkTimeOut').value = timeOut || '';
+        document.getElementById('editMarkModal').style.display = 'flex';
+    }
+    
+    function closeEditModal() {
+        document.getElementById('editMarkModal').style.display = 'none';
+    }
+    
+    function saveEditMark() {
+        const workerId = document.getElementById('editMarkWorkerId').value;
+        const attId = document.getElementById('editMarkAttId').value;
+        const timeIn = document.getElementById('editMarkTimeIn').value;
+        const timeOut = document.getElementById('editMarkTimeOut').value;
+        
+        if (!timeIn) {
+            showAlert('Time In is required', 'error');
+            return;
+        }
+        if (timeOut && timeOut <= timeIn) {
+            showAlert('Time Out must be after Time In', 'error');
+            return;
+        }
+        
+        const btn = document.getElementById('editMarkSaveBtn');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+        
+        const formData = new FormData();
+        formData.append('action', 'update');
+        formData.append('worker_id', workerId);
+        formData.append('attendance_id', attId);
+        formData.append('time_in', timeIn);
+        if (timeOut) formData.append('time_out', timeOut);
+        
+        fetch('mark.php<?php echo $selected_project ? "?project={$selected_project}" : ""; ?>', {
+            method: 'POST',
+            body: formData
+        })
+        .then(r => r.json())
+        .then(data => {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-save"></i> Save';
+            if (data.success) {
+                closeEditModal();
+                showAlert(data.message, 'success');
+                setTimeout(() => window.location.reload(), 1000);
+            } else {
+                showAlert(data.message, 'error');
+            }
+        })
+        .catch(() => {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-save"></i> Save';
+            showAlert('Failed to update', 'error');
+        });
+    }
+    
+    // Close edit modal on outside click
+    document.getElementById('editMarkModal').addEventListener('click', function(e) {
+        if (e.target === this) closeEditModal();
+    });
     </script>
 </body>
 </html>
