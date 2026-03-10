@@ -22,11 +22,20 @@ $flash = getFlashMessage();
 $month = isset($_GET['month']) ? sanitizeString($_GET['month']) : date('Y-m');
 $status_filter = isset($_GET['status']) ? sanitizeString($_GET['status']) : '';
 
-// Get attendance records
+// Get attendance records with schedule info
 try {
-    $sql = "SELECT * FROM attendance 
-            WHERE worker_id = ? 
-            AND DATE_FORMAT(attendance_date, '%Y-%m') = ?";
+    $sql = "SELECT a.*, 
+                COALESCE(ds.start_time, s.start_time) as sched_start,
+                COALESCE(ds.end_time, s.end_time) as sched_end,
+                CASE WHEN ds.is_rest_day = 1 THEN 1 ELSE 0 END as is_rest_day
+            FROM attendance a
+            LEFT JOIN daily_schedules ds ON ds.worker_id = a.worker_id 
+                AND ds.schedule_date = a.attendance_date AND ds.is_active = 1
+            LEFT JOIN schedules s ON s.worker_id = a.worker_id 
+                AND s.day_of_week = LOWER(DAYNAME(a.attendance_date)) AND s.is_active = 1
+                AND ds.daily_schedule_id IS NULL
+            WHERE a.worker_id = ? 
+            AND DATE_FORMAT(a.attendance_date, '%Y-%m') = ?";
     $params = [$worker_id, $month];
     
     if (!empty($status_filter)) {
@@ -187,6 +196,7 @@ try {
                                 <tr>
                                     <th>Date</th>
                                     <th>Day</th>
+                                    <th>Schedule</th>
                                     <th>Time In</th>
                                     <th>Time Out</th>
                                     <th>Hours</th>
@@ -198,7 +208,7 @@ try {
                             <tbody>
                                 <?php if (empty($attendance_records)): ?>
                                 <tr>
-                                    <td colspan="8" class="no-data">
+                                    <td colspan="9" class="no-data">
                                         <i class="fas fa-calendar-times"></i>
                                         <p>No attendance records found</p>
                                     </td>
@@ -207,7 +217,16 @@ try {
                                     <?php foreach ($attendance_records as $record): ?>
                                     <tr>
                                         <td><strong><?php echo formatDate($record['attendance_date']); ?></strong></td>
-                                        <td><?php echo date('l', strtotime($record['attendance_date'])); ?></td>
+                                    <td><?php echo date('l', strtotime($record['attendance_date'])); ?></td>
+                                        <td class="time-cell">
+                                            <?php if (!empty($record['sched_start']) && !empty($record['sched_end'])): ?>
+                                                <span style="font-size:12px;"><?php echo date('g:iA', strtotime($record['sched_start'])); ?> - <?php echo date('g:iA', strtotime($record['sched_end'])); ?></span>
+                                            <?php elseif (!empty($record['is_rest_day']) && $record['is_rest_day']): ?>
+                                                <span style="color:#e91e63;font-size:12px;font-weight:600;">Rest Day</span>
+                                            <?php else: ?>
+                                                <span style="color:#999;">--</span>
+                                            <?php endif; ?>
+                                        </td>
                                         <td class="time-cell"><?php echo formatTime($record['time_in']); ?></td>
                                         <td class="time-cell"><?php echo $record['time_out'] ? formatTime($record['time_out']) : '--'; ?></td>
                                         <td><strong><?php echo number_format(max(0, floatval($record['hours_worked'] ?? 0)), 2); ?>h</strong></td>

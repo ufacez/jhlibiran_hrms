@@ -140,15 +140,19 @@ if ($selected_project) {
                             COALESCE(wc.classification_name, '') as classification_name,
                             COALESCE(wt.work_type_name, '') as work_type_name,
                             a.attendance_id, a.time_in as att_time_in, a.time_out as att_time_out, a.status as att_status,
-                            a.hours_worked as att_hours
+                            a.hours_worked as att_hours,
+                            COALESCE(ds.start_time, sch.start_time) AS sched_start,
+                            COALESCE(ds.end_time, sch.end_time) AS sched_end
                             FROM workers w 
                             INNER JOIN project_workers pw ON w.worker_id = pw.worker_id AND pw.project_id = ? AND pw.is_active = 1
                             LEFT JOIN worker_classifications wc ON w.classification_id = wc.classification_id
                             LEFT JOIN work_types wt ON w.work_type_id = wt.work_type_id
                             LEFT JOIN attendance a ON a.worker_id = w.worker_id AND a.attendance_date = ?
+                            LEFT JOIN daily_schedules ds ON ds.worker_id = w.worker_id AND ds.schedule_date = ? AND ds.is_active = 1 AND ds.is_rest_day = 0
+                            LEFT JOIN schedules sch ON sch.worker_id = w.worker_id AND sch.day_of_week = LOWER(DAYNAME(?)) AND sch.is_active = 1 AND ds.daily_schedule_id IS NULL
                             WHERE w.employment_status = 'active' AND w.is_archived = FALSE
                             ORDER BY w.first_name, w.last_name");
-        $stmt->execute([$selected_project, $today]);
+        $stmt->execute([$selected_project, $today, $today, $today]);
         $workers = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
         // Get project name
@@ -269,6 +273,7 @@ $pending_count = $total_workers - $marked_count;
                                     <th>Worker</th>
                                     <th>Classification</th>
                                     <th>Role</th>
+                                    <th>Schedule</th>
                                     <th>Time In</th>
                                     <th>Time Out</th>
                                     <th>Status</th>
@@ -300,6 +305,13 @@ $pending_count = $total_workers - $marked_count;
                                     </td>
                                     <td><?php echo htmlspecialchars($worker['classification_name'] ?: 'N/A'); ?></td>
                                     <td><?php echo htmlspecialchars($worker['work_type_name'] ?: 'N/A'); ?></td>
+                                    <td>
+                                        <?php if (!empty($worker['sched_start']) && !empty($worker['sched_end'])): ?>
+                                            <span class="schedule-chip"><?php echo date('g:i A', strtotime($worker['sched_start'])); ?> – <?php echo date('g:i A', strtotime($worker['sched_end'])); ?></span>
+                                        <?php else: ?>
+                                            <span style="color: #999;">No schedule</span>
+                                        <?php endif; ?>
+                                    </td>
                                     <td id="time-in-cell-<?php echo $worker['worker_id']; ?>">
                                         <?php if ($has_time_in): ?>
                                             <span style="font-weight: 500;"><?php echo date('g:i A', strtotime($worker['att_time_in'])); ?></span>

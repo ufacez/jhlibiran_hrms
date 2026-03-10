@@ -218,7 +218,7 @@ class PayrollSettingsManager {
         $standardHours = $this->getSetting('standard_hours_per_day') ?? 8;
         $standardDays = $this->getSetting('standard_days_per_week') ?? 6;
         $otMultiplier = $this->getSetting('overtime_multiplier') ?? 1.25;
-        $nightDiffPct = $this->getSetting('night_diff_percentage') ?? 10;
+        $nightDiffPct = $this->getSetting('night_diff_percentage') ?? 0;
         $regularHolidayMult = $this->getSetting('regular_holiday_multiplier') ?? 2.0;
         $specialHolidayMult = $this->getSetting('special_holiday_multiplier') ?? 1.3;
         $restDayMult = $this->getSetting('rest_day_multiplier') ?? 1.3;

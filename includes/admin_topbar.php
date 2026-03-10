@@ -17,6 +17,9 @@ $profile_image = null;
 if ($user_level === 'admin' || $user_level === 'super_admin') {
     $profile_table = ($user_level === 'super_admin') ? 'super_admin_profile' : 'admin_profile';
     try {
+        if (!isset($db)) {
+            require_once __DIR__ . '/../config/database.php';
+        }
         $stmt = $db->prepare("SELECT profile_image FROM {$profile_table} WHERE user_id = ?");
         $stmt->execute([$user_id]);
         $profile_image = $stmt->fetchColumn();

@@ -36,15 +36,21 @@ $day_of_week_expr = "LOWER(DAYNAME(a.attendance_date))";
 $sql = "SELECT a.*, w.worker_code, w.first_name, w.last_name,
            COALESCE(wc.classification_name, wct.classification_name) AS classification_name,
            wt.work_type_name,
-           s.start_time AS sched_start, s.end_time AS sched_end
+           COALESCE(ds.start_time, s.start_time) AS sched_start, 
+           COALESCE(ds.end_time, s.end_time) AS sched_end
     FROM attendance a
         JOIN workers w ON a.worker_id = w.worker_id
         LEFT JOIN worker_classifications wc ON w.classification_id = wc.classification_id
         LEFT JOIN work_types wt ON w.work_type_id = wt.work_type_id
         LEFT JOIN worker_classifications wct ON wt.classification_id = wct.classification_id
+        LEFT JOIN daily_schedules ds ON ds.worker_id = a.worker_id
+            AND ds.schedule_date = a.attendance_date
+            AND ds.is_active = 1
+            AND ds.is_rest_day = 0
         LEFT JOIN schedules s ON s.worker_id = a.worker_id 
             AND s.day_of_week = {$day_of_week_expr}
             AND s.is_active = 1
+            AND ds.daily_schedule_id IS NULL
         WHERE a.is_archived = FALSE AND w.is_archived = FALSE";
 
 if (!empty($date_to_filter)) {
@@ -353,6 +359,11 @@ try {
                                                         title="View Details">
                                                     <i class="fas fa-eye"></i>
                                                 </button>
+                                                <button class="action-btn" style="background: #DAA520;"
+                                                        onclick="editAttendance(<?php echo $record['attendance_id']; ?>)"
+                                                        title="Edit">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
                                                 <?php if ($permissions['can_delete_attendance'] ?? false): ?>
                                                 <button class="action-btn btn-archive" 
                                                         onclick="archiveAttendance(this, <?php echo $record['attendance_id']; ?>, '<?php echo htmlspecialchars(addslashes($record['first_name'] . ' ' . $record['last_name'])); ?>')"
@@ -387,6 +398,42 @@ try {
                 <div style="text-align: center; padding: 40px;">
                     <i class="fas fa-spinner fa-spin" style="font-size: 32px; color: #DAA520;"></i>
                     <p style="margin-top: 15px; color: #666;">Loading details...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Attendance Modal -->
+    <div id="editModal" class="modal">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h2><i class="fas fa-edit"></i> Edit Attendance</h2>
+                <button class="modal-close" onclick="closeModal('editModal')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="editAttId">
+                <div id="editWorkerName" style="font-weight: 600; font-size: 16px; margin-bottom: 15px; color: #1a1a1a;"></div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <div class="filter-group">
+                        <label><i class="fas fa-sign-in-alt"></i> Time In</label>
+                        <input type="time" id="editTimeIn" step="60" style="padding: 8px 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; width: 100%;">
+                    </div>
+                    <div class="filter-group">
+                        <label><i class="fas fa-sign-out-alt"></i> Time Out</label>
+                        <input type="time" id="editTimeOut" step="60" style="padding: 8px 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; width: 100%;">
+                    </div>
+                    <div class="filter-group" style="grid-column: 1 / -1;">
+                        <label><i class="fas fa-sticky-note"></i> Notes</label>
+                        <textarea id="editNotes" rows="2" style="padding: 8px 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; width: 100%; resize: vertical;"></textarea>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 10px; margin-top: 20px; justify-content: flex-end;">
+                    <button class="btn btn-secondary" onclick="closeModal('editModal')">Cancel</button>
+                    <button class="btn btn-primary" id="editSaveBtn" onclick="saveEdit()">
+                        <i class="fas fa-save"></i> Save Changes
+                    </button>
                 </div>
             </div>
         </div>
@@ -563,10 +610,81 @@ try {
     
     // Close modal when clicking outside
     window.onclick = function(event) {
-        const modal = document.getElementById('viewModal');
-        if (event.target == modal) {
-            modal.classList.remove('show');
+        const viewModal = document.getElementById('viewModal');
+        const editModal = document.getElementById('editModal');
+        if (event.target == viewModal) {
+            viewModal.classList.remove('show');
         }
+        if (event.target == editModal) {
+            editModal.classList.remove('show');
+        }
+    }
+
+    // Edit Attendance
+    function editAttendance(id) {
+        const modal = document.getElementById('editModal');
+        modal.classList.add('show');
+        document.getElementById('editAttId').value = id;
+        document.getElementById('editTimeIn').value = '';
+        document.getElementById('editTimeOut').value = '';
+        document.getElementById('editNotes').value = '';
+        document.getElementById('editWorkerName').textContent = 'Loading...';
+
+        fetch('<?php echo BASE_URL; ?>/api/attendance.php?action=get&id=' + id)
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    const a = data.data;
+                    document.getElementById('editWorkerName').textContent = a.first_name + ' ' + a.last_name + ' — ' + (a.attendance_date || '');
+                    if (a.time_in) document.getElementById('editTimeIn').value = a.time_in.substring(0, 5);
+                    if (a.time_out) document.getElementById('editTimeOut').value = a.time_out.substring(0, 5);
+                    document.getElementById('editNotes').value = a.notes || '';
+                }
+            });
+    }
+
+    // Save Edit
+    function saveEdit() {
+        const id = document.getElementById('editAttId').value;
+        const timeIn = document.getElementById('editTimeIn').value;
+        const timeOut = document.getElementById('editTimeOut').value;
+        const notes = document.getElementById('editNotes').value;
+
+        if (!timeIn) {
+            showAlert('Time In is required', 'error');
+            return;
+        }
+
+        const btn = document.getElementById('editSaveBtn');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+
+        const formData = new FormData();
+        formData.append('action', 'update');
+        formData.append('id', id);
+        formData.append('time_in', timeIn);
+        if (timeOut) formData.append('time_out', timeOut);
+        formData.append('notes', notes);
+        formData.append('status', timeOut ? '' : 'present');
+
+        fetch('<?php echo BASE_URL; ?>/api/attendance.php', { method: 'POST', body: formData })
+            .then(r => r.json())
+            .then(data => {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-save"></i> Save Changes';
+                if (data.success) {
+                    closeModal('editModal');
+                    showAlert(data.message, 'success');
+                    setTimeout(() => window.location.reload(), 1000);
+                } else {
+                    showAlert(data.message || 'Failed to update', 'error');
+                }
+            })
+            .catch(() => {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-save"></i> Save Changes';
+                showAlert('Failed to update attendance', 'error');
+            });
     }
     
     // Export Attendance
@@ -634,6 +752,8 @@ try {
     // Expose functions to global scope so inline onclick handlers work reliably
     window.archiveAttendance = archiveAttendance;
     window.viewAttendance = viewAttendance;
+    window.editAttendance = editAttendance;
+    window.saveEdit = saveEdit;
     
     // Add CSS animations
     const style = document.createElement('style');

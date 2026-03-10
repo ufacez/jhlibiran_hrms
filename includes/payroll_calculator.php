@@ -1083,7 +1083,7 @@ class PayrollCalculator {
      */
     public function calculateNightDiffPay($hours, $hourlyRate = null) {
         $rate = $hourlyRate ?? $this->getRate('hourly_rate');
-        $percentage = $this->getRate('night_diff_percentage', 10) / 100;
+        $percentage = $this->getRate('night_diff_percentage', 0) / 100;
         $amount = round($hours * $rate * $percentage, 2);
         
         return [
@@ -1370,7 +1370,8 @@ class PayrollCalculator {
         }
         // Calculate night differential (applies to all day types)
         $nightDiffHours = $this->calculateNightDiffHours($timeIn, $timeOut, $date);
-        if ($nightDiffHours > 0) {
+        $nightDiffPct = $this->getRate('night_diff_percentage', 0);
+        if ($nightDiffHours > 0 && $nightDiffPct > 0) {
             $earning = $this->calculateNightDiffPay($nightDiffHours, $hourlyRate);
             if (!isset($earning['multiplier'])) $earning['multiplier'] = 1.0;
             $earnings[] = $earning;
@@ -1646,7 +1647,7 @@ class PayrollCalculator {
         }
         // Calculate night differential with worker-specific percentage
         $nightDiffHours = $this->calculateNightDiffHours($timeIn, $timeOut, $date);
-        if ($nightDiffHours > 0) {
+        if ($nightDiffHours > 0 && $workerRates['night_diff_percentage'] > 0) {
             $earning = $this->calculateNightDiffPayWithRate($nightDiffHours, $hourlyRate, $workerRates['night_diff_percentage']);
             if (!isset($earning['multiplier'])) $earning['multiplier'] = 1.0;
             $earnings[] = $earning;

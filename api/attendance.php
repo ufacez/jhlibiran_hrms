@@ -186,24 +186,66 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 
                 $attendance_id = isset($_POST['id']) ? intval($_POST['id']) : 0;
                 
-                // SECURITY: Only allow updating status and notes - NOT time_in or time_out
-                $status = isset($_POST['status']) ? sanitizeString($_POST['status']) : 'present';
-                $notes = isset($_POST['notes']) ? sanitizeString($_POST['notes']) : null;
-                
                 if ($attendance_id <= 0) {
                     http_response_code(400);
                     jsonError('Invalid attendance ID');
                 }
                 
-                // Update only status and notes - preserve original times
-                $stmt = $db->prepare("UPDATE attendance 
-                                     SET status = ?, 
-                                         notes = ?,
-                                         updated_at = NOW()
-                                     WHERE attendance_id = ?");
-                $stmt->execute([$status, $notes, $attendance_id]);
+                $status = isset($_POST['status']) ? sanitizeString($_POST['status']) : 'present';
+                $notes = isset($_POST['notes']) ? sanitizeString($_POST['notes']) : null;
+                $time_in_raw = isset($_POST['time_in']) ? trim($_POST['time_in']) : '';
+                $time_out_raw = isset($_POST['time_out']) ? trim($_POST['time_out']) : '';
                 
-                // Get updated record with hours worked
+                // Get existing record
+                $stmt = $db->prepare("SELECT * FROM attendance WHERE attendance_id = ?");
+                $stmt->execute([$attendance_id]);
+                $existing = $stmt->fetch();
+                if (!$existing) {
+                    http_response_code(404);
+                    jsonError('Attendance record not found');
+                }
+                
+                // Determine time values
+                $time_in = $existing['time_in'];
+                $time_out = $existing['time_out'];
+                
+                if ($time_in_raw && preg_match('/^\d{2}:\d{2}(:\d{2})?$/', $time_in_raw)) {
+                    $time_in = strlen($time_in_raw) === 5 ? $time_in_raw . ':00' : $time_in_raw;
+                }
+                if ($time_out_raw && preg_match('/^\d{2}:\d{2}(:\d{2})?$/', $time_out_raw)) {
+                    $time_out = strlen($time_out_raw) === 5 ? $time_out_raw . ':00' : $time_out_raw;
+                }
+                
+                // If both time_in and time_out exist, recalculate hours
+                if ($time_in && $time_out) {
+                    if ($time_out <= $time_in) {
+                        http_response_code(400);
+                        jsonError('Time Out must be after Time In');
+                    }
+                    
+                    require_once __DIR__ . '/../includes/attendance_calculator.php';
+                    $calculator = new AttendanceCalculator($db);
+                    $calc = $calculator->calculateWorkHours($time_in, $time_out, $existing['attendance_date'], $existing['worker_id']);
+                    
+                    $stmt = $db->prepare("UPDATE attendance 
+                                         SET time_in = ?, time_out = ?, status = ?, notes = ?,
+                                             hours_worked = ?, raw_hours_worked = ?, break_hours = ?,
+                                             late_minutes = ?, overtime_hours = ?,
+                                             calculated_at = NOW(), updated_at = NOW()
+                                         WHERE attendance_id = ?");
+                    $stmt->execute([$time_in, $time_out, $calc['status'], $notes,
+                                    $calc['worked_hours'], $calc['raw_hours'], $calc['break_hours'],
+                                    $calc['late_minutes'], $calc['overtime_hours'], $attendance_id]);
+                    $status = $calc['status'];
+                } else {
+                    // Update only what we have (no time_out yet or absent record)
+                    $stmt = $db->prepare("UPDATE attendance 
+                                         SET time_in = ?, status = ?, notes = ?, updated_at = NOW()
+                                         WHERE attendance_id = ?");
+                    $stmt->execute([$time_in, $status, $notes, $attendance_id]);
+                }
+                
+                // Get updated record
                 $stmt = $db->prepare("SELECT hours_worked FROM attendance WHERE attendance_id = ?");
                 $stmt->execute([$attendance_id]);
                 $result = $stmt->fetch();
