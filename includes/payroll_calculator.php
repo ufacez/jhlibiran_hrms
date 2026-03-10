@@ -970,13 +970,30 @@ class PayrollCalculator {
     }
     
     /**
-     * Check if a date is a rest day for a worker
+     * Check if a date is a rest day for a worker.
+     * Priority: daily_schedules (per-date override) → worker_rest_days → schedules (no template = rest)
      * 
      * @param int $workerId Worker ID
      * @param string $date Date to check
      * @return bool
      */
     public function isRestDay($workerId, $date) {
+        // 1) Check daily_schedules first (per-date override)
+        $stmt = $this->pdo->prepare("
+            SELECT is_rest_day FROM daily_schedules 
+            WHERE worker_id = ? 
+            AND schedule_date = ? 
+            AND is_active = 1
+            LIMIT 1
+        ");
+        $stmt->execute([$workerId, $date]);
+        $daily = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if ($daily) {
+            return (bool)$daily['is_rest_day'];
+        }
+        
+        // 2) Check worker_rest_days table
         $dayOfWeek = strtolower(date('l', strtotime($date)));
         
         $stmt = $this->pdo->prepare("
@@ -989,7 +1006,20 @@ class PayrollCalculator {
         ");
         $stmt->execute([$workerId, $dayOfWeek, $date, $date]);
         
-        return $stmt->fetchColumn() > 0;
+        if ($stmt->fetchColumn() > 0) {
+            return true;
+        }
+        
+        // 3) If no weekly schedule template exists for this day_of_week, treat as rest day
+        $stmt = $this->pdo->prepare("
+            SELECT COUNT(*) FROM schedules 
+            WHERE worker_id = ? 
+            AND day_of_week = ? 
+            AND is_active = 1
+        ");
+        $stmt->execute([$workerId, $dayOfWeek]);
+        
+        return ($stmt->fetchColumn() == 0);
     }
     
     /**

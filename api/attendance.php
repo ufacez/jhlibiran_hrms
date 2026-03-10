@@ -401,13 +401,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $workerId  = (int)$asgn['worker_id'];
                     $projectName = $asgn['project_name'];
 
-                    // Load this worker's scheduled days
+                    // Load this worker's scheduled days (weekly templates)
                     $schedStmt->execute([$workerId]);
                     $scheduledDays = $schedStmt->fetchAll(PDO::FETCH_COLUMN);
-                    if (empty($scheduledDays)) {
+                    
+                    // Also check if worker has any daily_schedules entries
+                    $hasDailyStmt = $db->prepare("SELECT COUNT(*) FROM daily_schedules WHERE worker_id = ? AND is_active = 1");
+                    $hasDailyStmt->execute([$workerId]);
+                    $hasDailySchedules = $hasDailyStmt->fetchColumn() > 0;
+                    
+                    if (empty($scheduledDays) && !$hasDailySchedules) {
                         $skipped++;
                         continue; // no schedule = can't determine absent
                     }
+
+                    // Prepare daily schedule check
+                    $dailyCheckStmt = $db->prepare(
+                        "SELECT is_rest_day, start_time FROM daily_schedules WHERE worker_id = ? AND schedule_date = ? AND is_active = 1 LIMIT 1"
+                    );
 
                     // Determine date range
                     $startDate = $asgn['effective_start'];
@@ -425,8 +436,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     while ($current <= $end) {
                         $dayName = strtolower($current->format('l'));
                         $dateStr = $current->format('Y-m-d');
+                        
+                        // Check daily_schedules first (per-date override)
+                        $isScheduled = false;
+                        $dailyCheckStmt->execute([$workerId, $dateStr]);
+                        $dailyEntry = $dailyCheckStmt->fetch(PDO::FETCH_ASSOC);
+                        $dailyCheckStmt->closeCursor();
+                        
+                        if ($dailyEntry) {
+                            // Daily override exists: scheduled only if NOT rest day
+                            $isScheduled = !$dailyEntry['is_rest_day'];
+                        } else {
+                            // Fall back to weekly template
+                            $isScheduled = in_array($dayName, $scheduledDays);
+                        }
 
-                        if (in_array($dayName, $scheduledDays)) {
+                        if ($isScheduled) {
                             // Check if attendance exists (any status)
                             $checkStmt->execute([$workerId, $dateStr]);
                             if (!$checkStmt->fetch()) {
@@ -463,20 +488,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
                 
                 // Get attendance details with worker info, role, classification, and schedule
+                // Use daily_schedules first (per-date), fall back to weekly schedules
                 $day_of_week_expr = "LOWER(DAYNAME(a.attendance_date))";
                 $stmt = $db->prepare("SELECT a.*, w.worker_code, w.first_name, w.last_name, w.position,
                                      COALESCE(wc.classification_name, wct.classification_name) AS classification_name,
                                      wt.work_type_name,
-                                     s.start_time AS sched_start, s.end_time AS sched_end,
+                                     COALESCE(ds.start_time, s.start_time) AS sched_start, 
+                                     COALESCE(ds.end_time, s.end_time) AS sched_end,
+                                     CASE WHEN ds.daily_schedule_id IS NOT NULL THEN 'daily' ELSE 'weekly' END AS sched_source,
                                      u.username as verified_by_name
                                      FROM attendance a
                                      JOIN workers w ON a.worker_id = w.worker_id
                                      LEFT JOIN worker_classifications wc ON w.classification_id = wc.classification_id
                                      LEFT JOIN work_types wt ON w.work_type_id = wt.work_type_id
                                      LEFT JOIN worker_classifications wct ON wt.classification_id = wct.classification_id
+                                     LEFT JOIN daily_schedules ds ON ds.worker_id = a.worker_id
+                                         AND ds.schedule_date = a.attendance_date
+                                         AND ds.is_active = 1
+                                         AND ds.is_rest_day = 0
                                      LEFT JOIN schedules s ON s.worker_id = a.worker_id
                                          AND s.day_of_week = {$day_of_week_expr}
                                          AND s.is_active = 1
+                                         AND ds.daily_schedule_id IS NULL
                                      LEFT JOIN users u ON a.verified_by = u.user_id
                                      WHERE a.attendance_id = ?");
                 $stmt->execute([$attendance_id]);

@@ -15,7 +15,7 @@ $user_level = getCurrentUserLevel();
 
 
 // Generate avatar URL
-$avatar_url = "https://ui-avatars.com/api/?name=" . urlencode($full_name) . "&background=f39c12&color=fff";
+$avatar_url = "https://ui-avatars.com/api/?name=" . urlencode($full_name) . "&background=DAA520&color=1a1a1a";
 
 // Prefer user's uploaded profile image when available
 try {

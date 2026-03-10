@@ -61,18 +61,42 @@ class AttendanceCalculator {
     }
     
     /**
-     * Get the worker's schedule for a specific date (by day_of_week)
+     * Get the worker's schedule for a specific date.
+     * Priority: daily_schedules (per-date override) → schedules (weekly template)
      * 
      * @param int $workerId Worker ID
      * @param string $date Date (Y-m-d)
-     * @return array|null Schedule record or null if no schedule
+     * @return array|null Schedule record or null if no schedule / rest day
      */
     public function getWorkerScheduleForDate($workerId, $date) {
         try {
+            // 1) Check daily_schedules first (per-date override)
+            $stmt = $this->pdo->prepare("
+                SELECT daily_schedule_id as schedule_id, start_time, end_time, is_active, is_rest_day,
+                       'daily' as source
+                FROM daily_schedules 
+                WHERE worker_id = ? 
+                  AND schedule_date = ? 
+                  AND is_active = 1
+                LIMIT 1
+            ");
+            $stmt->execute([$workerId, $date]);
+            $daily = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if ($daily) {
+                // If it's marked as a rest day, return null (no schedule)
+                if ($daily['is_rest_day']) {
+                    return null;
+                }
+                return $daily;
+            }
+            
+            // 2) Fall back to weekly template
             $dayOfWeek = strtolower(date('l', strtotime($date))); // e.g. 'monday'
             
             $stmt = $this->pdo->prepare("
-                SELECT schedule_id, start_time, end_time, is_active
+                SELECT schedule_id, start_time, end_time, is_active,
+                       'weekly' as source
                 FROM schedules 
                 WHERE worker_id = ? 
                   AND day_of_week = ? 
