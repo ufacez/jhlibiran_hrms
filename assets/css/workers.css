@@ -494,12 +494,12 @@
     height: 100%;
     background: rgba(0, 0, 0, 0.6);
     animation: fadeIn 0.3s ease;
+    align-items: center;
+    justify-content: center;
 }
 
 .modal.show {
     display: flex;
-    align-items: center;
-    justify-content: center;
 }
 
 @keyframes fadeIn {
@@ -518,6 +518,7 @@
     width: 90%;
     max-width: 600px;
     max-height: 90vh;
+    margin: auto;
     overflow-y: auto;
     animation: slideUp 0.3s ease;
 }

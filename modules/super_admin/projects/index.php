@@ -192,9 +192,9 @@ $flash = getFlashMessage();
                                 <option value="planning">Planning</option>
                                 <option value="in_progress">In Progress</option>
                                 <option value="on_hold">On Hold</option>
-                                <option value="completed">✔ Completed</option>
+                                <option value="completed">Completed</option>
                                 <option value="cancelled">Cancelled</option>
-                                <option value="archived">📦 Archived</option>
+                                <option value="archived">Archived</option>
                             </select>
                         </div>
                         <div class="filter-group">

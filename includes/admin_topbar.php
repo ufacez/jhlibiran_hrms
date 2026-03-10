@@ -33,18 +33,8 @@ if ($profile_image && file_exists(UPLOADS_PATH . '/' . $profile_image)) {
 }
 ?>
 <div class="top-bar">
-    <!-- Search Bar -->
-    <div class="search">
-        <input type="text" 
-               name="search" 
-               id="searchInput" 
-               placeholder="Search workers, attendance, payroll..."
-               autocomplete="off"
-               aria-label="Search">
-        <label for="searchInput">
-            <i class="fas fa-search"></i>
-        </label>
-    </div>
+    <!-- Spacer for layout -->
+    <div></div>
     
     <!-- User Profile -->
     <div class="user">

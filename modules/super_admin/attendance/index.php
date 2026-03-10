@@ -467,7 +467,7 @@ try {
         const modalBody = document.getElementById('modalBody');
         
         // Show modal with loading state
-        modal.style.display = 'flex';
+        modal.classList.add('show');
         modalBody.innerHTML = `
             <div style="text-align: center; padding: 40px;">
                 <i class="fas fa-spinner fa-spin" style="font-size: 32px; color: #DAA520;"></i>
@@ -558,14 +558,14 @@ try {
     
     // Close Modal
     function closeModal(modalId) {
-        document.getElementById(modalId).style.display = 'none';
+        document.getElementById(modalId).classList.remove('show');
     }
     
     // Close modal when clicking outside
     window.onclick = function(event) {
         const modal = document.getElementById('viewModal');
         if (event.target == modal) {
-            modal.style.display = 'none';
+            modal.classList.remove('show');
         }
     }
     
