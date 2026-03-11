@@ -420,7 +420,14 @@ function formatDateTime12hr($datetime) {
 </head>
 <body>
     <div class="container">
-        <?php include __DIR__ . '/../../../includes/sidebar.php'; ?>
+        <?php
+        $user_level = getCurrentUserLevel();
+        if ($user_level === 'super_admin') {
+            include __DIR__ . '/../../../includes/sidebar.php';
+        } else {
+            include __DIR__ . '/../../../includes/admin_sidebar.php';
+        }
+        ?>
         
         <div class="main">
             <?php include __DIR__ . '/../../../includes/topbar.php'; ?>

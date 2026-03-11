@@ -339,7 +339,7 @@ try {
 
             <div class="page-header">
                 <div class="header-left">
-                    <h1><i class="fas fa-calendar-alt" style="color:#DAA520;"></i> Worker Schedule</h1>
+                    <h1></i> Worker Schedule</h1>
                     <p class="subtitle">Click days to select, then edit them in bulk</p>
                 </div>
                 <div style="display:flex;gap:10px;">

@@ -280,7 +280,7 @@ $pending_count = $total_workers - $marked_count;
                 <!-- Header -->
                 <div class="page-header">
                     <div class="header-left">
-                        <h1><i class="fas fa-clipboard-check"></i> Mark Attendance</h1>
+                        <h1></i> Mark Attendance</h1>
                         <p class="subtitle">Mark attendance for <?php echo formatDate($today); ?></p>
                     </div>
                     <button class="btn btn-secondary" onclick="window.location.href='index.php'">
