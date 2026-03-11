@@ -223,6 +223,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         jsonError('Time Out must be after Time In');
                     }
                     
+                    // Prevent future time-out for today's records
+                    if ($existing['attendance_date'] === date('Y-m-d')) {
+                        $now_time = date('H:i:s');
+                        if ($time_out > $now_time) {
+                            http_response_code(400);
+                            jsonError('Time Out cannot be in the future. Please select the current time or earlier.');
+                        }
+                    }
+                    
                     require_once __DIR__ . '/../includes/attendance_calculator.php';
                     $calculator = new AttendanceCalculator($db);
                     $calc = $calculator->calculateWorkHours($time_in, $time_out, $existing['attendance_date'], $existing['worker_id']);

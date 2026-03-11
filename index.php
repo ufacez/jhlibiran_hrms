@@ -25,7 +25,7 @@ if ($user_level === 'super_admin') {
     header('Location: ' . BASE_URL . '/modules/super_admin/dashboard.php');
     exit();
 } elseif ($user_level === 'admin') {
-    header('Location: ' . BASE_URL . '/modules/admin/dashboard.php');
+    header('Location: ' . BASE_URL . '/modules/super_admin/dashboard.php');
     exit();
 } elseif ($user_level === 'worker') {
     header('Location: ' . BASE_URL . '/modules/worker/dashboard.php');

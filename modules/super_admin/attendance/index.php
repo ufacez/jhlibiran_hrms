@@ -414,6 +414,7 @@ try {
             </div>
             <div class="modal-body">
                 <input type="hidden" id="editAttId">
+                <input type="hidden" id="editAttDate">
                 <div id="editWorkerName" style="font-weight: 600; font-size: 16px; margin-bottom: 15px; color: #1a1a1a;"></div>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
                     <div class="filter-group">
@@ -636,6 +637,7 @@ try {
                 if (data.success) {
                     const a = data.data;
                     document.getElementById('editWorkerName').textContent = a.first_name + ' ' + a.last_name + ' — ' + (a.attendance_date || '');
+                    document.getElementById('editAttDate').value = a.attendance_date || '';
                     if (a.time_in) document.getElementById('editTimeIn').value = a.time_in.substring(0, 5);
                     if (a.time_out) document.getElementById('editTimeOut').value = a.time_out.substring(0, 5);
                     document.getElementById('editNotes').value = a.notes || '';
@@ -653,6 +655,20 @@ try {
         if (!timeIn) {
             showAlert('Time In is required', 'error');
             return;
+        }
+
+        // Prevent future time-out for today's records
+        if (timeOut) {
+            const attDate = document.getElementById('editAttDate').value;
+            const today = new Date().toISOString().split('T')[0];
+            if (attDate === today) {
+                const now = new Date();
+                const currentTime = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+                if (timeOut > currentTime) {
+                    showAlert('Time Out cannot be in the future. Please select the current time or earlier.', 'error');
+                    return;
+                }
+            }
         }
 
         const btn = document.getElementById('editSaveBtn');

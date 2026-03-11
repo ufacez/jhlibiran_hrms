@@ -46,6 +46,9 @@ if ($is_admin && !$is_super_admin) {
         'can_manage_deductions' => true,
         'can_view_cashadvance' => true,
         'can_approve_cashadvance' => true,
+        'can_view_biometric' => true,
+        'can_manage_biometric' => true,
+        'can_view_reports' => true,
         'can_access_archive' => true,
         'can_access_audit' => true,
         'can_access_settings' => true,
@@ -373,6 +376,17 @@ $module_path = '/modules/super_admin';
                class="<?php echo ($current_dir === 'attendance') ? 'active' : ''; ?>">
                 <i class="fas fa-clock"></i>
                 <div class="title">Attendance</div>
+            </a>
+        </li>
+        <?php endif; ?>
+        
+        <!-- Biometric -->
+        <?php if ($permissions['can_view_biometric'] ?? false): ?>
+        <li>
+            <a href="<?php echo BASE_URL . $module_path; ?>/biometric/index.php"
+               class="<?php echo ($current_dir === 'biometric') ? 'active' : ''; ?>">
+                <i class="fas fa-portrait"></i>
+                <div class="title">Biometric</div>
             </a>
         </li>
         <?php endif; ?>

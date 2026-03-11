@@ -53,6 +53,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     echo json_encode(['success' => false, 'message' => 'Time Out must be after Time In']);
                     exit();
                 }
+                
+                // Time Out cannot be in the future
+                $now_time = date('H:i:s');
+                if ($time_out > $now_time) {
+                    echo json_encode(['success' => false, 'message' => 'Time Out cannot be in the future. Please select the current time or earlier.']);
+                    exit();
+                }
             }
             
             // Check if attendance already exists today
@@ -134,6 +141,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             if ($time_out <= $existing['time_in']) {
                 echo json_encode(['success' => false, 'message' => 'Time Out must be after Time In']);
+                exit();
+            }
+            
+            // Time Out cannot be in the future
+            $now_time = date('H:i:s');
+            if ($time_out > $now_time) {
+                echo json_encode(['success' => false, 'message' => 'Time Out cannot be in the future. Please select the current time or earlier.']);
                 exit();
             }
             
@@ -473,6 +487,15 @@ $pending_count = $total_workers - $marked_count;
                 btn.innerHTML = '<i class="fas fa-check"></i>';
                 return;
             }
+            // Prevent future time-out
+            const now = new Date();
+            const currentTime = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+            if (timeOutInput.value > currentTime) {
+                showAlert('Time Out cannot be in the future. Please select the current time or earlier.', 'error');
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-check"></i>';
+                return;
+            }
             formData.append('time_out', timeOutInput.value);
         }
         
@@ -501,8 +524,10 @@ $pending_count = $total_workers - $marked_count;
                     // Time-in only: show as "Timed In" with time-out input
                     row.dataset.status = 'timed_in';
                     const attId = data.attendance_id || 0;
+                    const nowD = new Date();
+                    const maxTime = nowD.getHours().toString().padStart(2, '0') + ':' + nowD.getMinutes().toString().padStart(2, '0');
                     document.getElementById('time-out-cell-' + workerId).innerHTML = 
-                        '<input type="time" id="time-out-input-' + workerId + '" style="padding: 5px 8px; border: 1px solid #ddd; border-radius: 6px; font-size: 13px;">';
+                        '<input type="time" id="time-out-input-' + workerId + '" max="' + maxTime + '" style="padding: 5px 8px; border: 1px solid #ddd; border-radius: 6px; font-size: 13px;">';
                     document.getElementById('status-cell-' + workerId).innerHTML = 
                         '<span class="status-badge" style="background: #e3f2fd; color: #1565c0; padding: 5px 12px;"><i class="fas fa-sign-in-alt"></i> Timed In</span>';
                     document.getElementById('action-cell-' + workerId).innerHTML = 
@@ -530,6 +555,14 @@ $pending_count = $total_workers - $marked_count;
         
         if (!timeOutInput || !timeOutInput.value) {
             showAlert('Please select a Time Out', 'error');
+            return;
+        }
+        
+        // Prevent future time-out
+        const now = new Date();
+        const currentTime = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+        if (timeOutInput.value > currentTime) {
+            showAlert('Time Out cannot be in the future. Please select the current time or earlier.', 'error');
             return;
         }
         
