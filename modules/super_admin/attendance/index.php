@@ -359,11 +359,6 @@ try {
                                                         title="View Details">
                                                     <i class="fas fa-eye"></i>
                                                 </button>
-                                                <button class="action-btn" style="background: #DAA520;"
-                                                        onclick="editAttendance(<?php echo $record['attendance_id']; ?>)"
-                                                        title="Edit">
-                                                    <i class="fas fa-edit"></i>
-                                                </button>
                                                 <?php if ($permissions['can_delete_attendance'] ?? false): ?>
                                                 <button class="action-btn btn-archive" 
                                                         onclick="archiveAttendance(this, <?php echo $record['attendance_id']; ?>, '<?php echo htmlspecialchars(addslashes($record['first_name'] . ' ' . $record['last_name'])); ?>')"

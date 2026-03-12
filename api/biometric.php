@@ -194,7 +194,7 @@ try {
             }
             
             // Path to the facial recognition project
-            $project_dir = 'D:\\Projects\\jhlibiran_facial_recognition';
+            $project_dir = "C:\\xampp\\htdocs\\facial_recognition_system";
             $gui_script = $project_dir . '\\train_face_gui.py';
             $cli_script = $project_dir . '\\train_face.py';
             $venv_pythonw = $project_dir . '\\venv\\Scripts\\pythonw.exe';
