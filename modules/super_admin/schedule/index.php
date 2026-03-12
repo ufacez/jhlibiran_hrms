@@ -19,6 +19,9 @@ require_once __DIR__ . '/../../../includes/admin_functions.php';
 // Allow both super_admin and admin with schedule view permission
 requireAdminWithPermission($db, 'can_view_schedule', 'You do not have permission to view schedules');
 
+$permissions = getAdminPermissions($db);
+$canManageSchedule = isSuperAdmin() || ($permissions['can_manage_schedule'] ?? false);
+
 $pdo = getDBConnection();
 $full_name = $_SESSION['full_name'] ?? 'Administrator';
 $flash = getFlashMessage();
@@ -343,9 +346,11 @@ try {
                     <p class="subtitle">Click days to select, then edit them in bulk</p>
                 </div>
                 <div style="display:flex;gap:10px;">
+                    <?php if ($canManageSchedule): ?>
                     <button class="btn btn-add-worker" style="background:#2e7d32;" onclick="generateMonthBulk()">
                         <i class="fas fa-magic"></i> Generate Month
                     </button>
+                    <?php endif; ?>
                 </div>
             </div>
 

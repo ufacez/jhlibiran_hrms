@@ -183,13 +183,13 @@ try {
             break;
             
         case 'launch_train_face':
-            // Launch the Face Registration GUI (super admin or manage biometric permission)
+            // Launch the Face Registration GUI (super admin or register face permission)
             if (!isSuperAdmin()) {
-                // Check permission
+                // Check permission — requires can_register_face
                 require_once __DIR__ . '/../includes/admin_functions.php';
                 $perms = getAdminPermissions($db);
-                if (!($perms['can_manage_biometric'] ?? false)) {
-                    jsonError('Permission denied');
+                if (!($perms['can_register_face'] ?? false)) {
+                    jsonError('Permission denied: Face registration access required');
                 }
             }
             

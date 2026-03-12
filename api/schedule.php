@@ -14,6 +14,17 @@ require_once __DIR__ . '/../config/session.php';
 require_once __DIR__ . '/../includes/functions.php';
 require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../includes/audit_trail.php';
+require_once __DIR__ . '/../includes/admin_functions.php';
+
+/**
+ * Check if the current user can manage schedules.
+ * Super admins always can; regular admins need the can_manage_schedule permission.
+ */
+function canManageSchedule($db) {
+    if (isSuperAdmin()) return true;
+    $perms = getAdminPermissions($db);
+    return !empty($perms['can_manage_schedule']);
+}
 
 // Set JSON header
 header('Content-Type: application/json');
@@ -47,9 +58,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
             case 'daily_save':
                 // Save/update a single daily schedule for a specific date
-                if (!isSuperAdmin()) {
+                if (!canManageSchedule($db)) {
                     http_response_code(403);
-                    jsonError('Unauthorized access. Admin privileges required.');
+                    jsonError('Unauthorized access. Schedule management permission required.');
                 }
                 
                 $worker_id = isset($_POST['worker_id']) ? intval($_POST['worker_id']) : 0;
@@ -122,9 +133,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 
             case 'daily_save_bulk':
                 // Save the same schedule to multiple worker+date combos
-                if (!isSuperAdmin()) {
+                if (!canManageSchedule($db)) {
                     http_response_code(403);
-                    jsonError('Unauthorized access. Admin privileges required.');
+                    jsonError('Unauthorized access. Schedule management permission required.');
                 }
                 
                 $entries_json = isset($_POST['entries']) ? $_POST['entries'] : '[]';
@@ -194,9 +205,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             case 'daily_delete':
                 // Delete a daily schedule override
-                if (!isSuperAdmin()) {
+                if (!canManageSchedule($db)) {
                     http_response_code(403);
-                    jsonError('Unauthorized access. Admin privileges required.');
+                    jsonError('Unauthorized access. Schedule management permission required.');
                 }
                 
                 $daily_id = isset($_POST['id']) ? intval($_POST['id']) : 0;
@@ -229,9 +240,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 
             case 'daily_generate_month':
                 // Generate daily schedules for an entire month from weekly templates
-                if (!isSuperAdmin()) {
+                if (!canManageSchedule($db)) {
                     http_response_code(403);
-                    jsonError('Unauthorized access. Admin privileges required.');
+                    jsonError('Unauthorized access. Schedule management permission required.');
                 }
                 
                 $worker_id = isset($_POST['worker_id']) ? intval($_POST['worker_id']) : 0;
@@ -336,9 +347,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 
             case 'daily_generate_bulk':
                 // Generate daily schedules for ALL workers that have weekly templates
-                if (!isSuperAdmin()) {
+                if (!canManageSchedule($db)) {
                     http_response_code(403);
-                    jsonError('Unauthorized access. Admin privileges required.');
+                    jsonError('Unauthorized access. Schedule management permission required.');
                 }
                 
                 $year = isset($_POST['year']) ? intval($_POST['year']) : (int)date('Y');
@@ -429,10 +440,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
                 break;
             case 'delete':
-                // Require super admin access
-                if (!isSuperAdmin()) {
+                // Require schedule management permission
+                if (!canManageSchedule($db)) {
                     http_response_code(403);
-                    jsonError('Unauthorized access. Admin privileges required.');
+                    jsonError('Unauthorized access. Schedule management permission required.');
                 }
                 
                 $schedule_id = isset($_POST['id']) ? intval($_POST['id']) : 0;
@@ -471,10 +482,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 break;
                 
             case 'update':
-                // Require super admin access
-                if (!isSuperAdmin()) {
+                // Require schedule management permission
+                if (!canManageSchedule($db)) {
                     http_response_code(403);
-                    jsonError('Unauthorized access. Admin privileges required.');
+                    jsonError('Unauthorized access. Schedule management permission required.');
                 }
                 
                 $schedule_id = isset($_POST['id']) ? intval($_POST['id']) : 0;
@@ -512,10 +523,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 break;
                 
             case 'create':
-                // Require super admin access
-                if (!isSuperAdmin()) {
+                // Require schedule management permission
+                if (!canManageSchedule($db)) {
                     http_response_code(403);
-                    jsonError('Unauthorized access. Admin privileges required.');
+                    jsonError('Unauthorized access. Schedule management permission required.');
                 }
                 
                 $worker_id = isset($_POST['worker_id']) ? intval($_POST['worker_id']) : 0;
@@ -563,10 +574,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 break;
 
             case 'create_bulk':
-                // Require super admin access
-                if (!isSuperAdmin()) {
+                // Require schedule management permission
+                if (!canManageSchedule($db)) {
                     http_response_code(403);
-                    jsonError('Unauthorized access. Admin privileges required.');
+                    jsonError('Unauthorized access. Schedule management permission required.');
                 }
 
                 $worker_ids_raw = $_POST['worker_ids'] ?? '';

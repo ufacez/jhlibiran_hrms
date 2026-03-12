@@ -441,7 +441,7 @@ function formatDateTime12hr($datetime) {
                         </h1>
                         <p style="margin: 5px 0 0; color: #888; font-size: 13px;">Facial recognition enrollment and attendance tracking</p>
                     </div>
-                    <?php if (isSuperAdmin() || ($permissions['can_manage_biometric'] ?? false)): ?>
+                    <?php if (isSuperAdmin() || ($permissions['can_register_face'] ?? false)): ?>
                     <button class="btn-filter-apply" onclick="launchTrainFace()" style="padding: 10px 20px; font-size: 13px;">
                         <i class="fas fa-camera"></i> Register Face
                     </button>
