@@ -30,7 +30,7 @@ if (!$recordId || !is_numeric($recordId)) {
 // Get record with worker details
 try {
     $sql = "SELECT pr.*, 
-         p.period_start, p.period_end,
+         p.period_start, p.period_end, p.period_label,
          w.first_name, w.middle_name, w.last_name, w.worker_code, w.position, w.daily_rate,
            w.sss_number, w.philhealth_number, w.pagibig_number, w.tin_number AS tin, w.worker_type,
            wt.work_type_name, wc.classification_name, wc.skill_level
@@ -146,16 +146,51 @@ if (empty($manualDeductions)) {
     }
 }
 
-// Map deduction types to friendly labels
-$deductionTypeLabels = [
-    'cashadvance' => 'Cash Advance',
-    'loan' => 'Loan',
-    'uniform' => 'Uniform',
-    'tools' => 'Tools',
-    'damage' => 'Damage',
-    'absence' => 'Absence',
-    'other' => 'Other'
+// Aggregate manual deductions into fixed buckets so rows always show
+$manualBuckets = [
+  'cashadvance' => 0.00,
+  'loan' => 0.00,
+  'uniform_tool' => 0.00,
+  'damage' => 0.00,
+  'other' => 0.00
 ];
+
+foreach ($manualDeductions as $md) {
+  $amt = max(0, abs(floatval($md['amount'])));
+  $type = strtolower($md['deduction_type']);
+  switch ($type) {
+    case 'cashadvance':
+      $manualBuckets['cashadvance'] += $amt;
+      break;
+    case 'loan':
+      $manualBuckets['loan'] += $amt;
+      break;
+    case 'uniform':
+    case 'tools':
+      $manualBuckets['uniform_tool'] += $amt;
+      break;
+    case 'damage':
+      $manualBuckets['damage'] += $amt;
+      break;
+    default:
+      $manualBuckets['other'] += $amt;
+      break;
+  }
+}
+
+$statutoryTotal = $sssWeekly + $philhealthWeekly + $pagibigWeekly + $taxWeekly;
+if (empty($manualDeductions)) {
+  $fallbackOther = floatval($totalDeductions) - floatval($statutoryTotal);
+  if ($fallbackOther < 0) $fallbackOther = 0.00;
+  $manualBuckets['other'] = $fallbackOther;
+}
+
+$manualTotal = array_sum($manualBuckets);
+
+$payPeriodLabel = !empty($record['period_label'])
+  ? htmlspecialchars($record['period_label'])
+  : date('M j, Y', strtotime($record['period_start'])) . ' — ' . date('M j, Y', strtotime($record['period_end']));
+$payReleaseLabel = date('M j, Y', strtotime($record['period_end'] . ' +1 day'));
 
 // Generate a fresh payroll calculation for display accuracy (rates, earnings, formulas)
 // All government deductions are handled by calculateAllDeductions which only applies them on the last payroll of the month
@@ -245,7 +280,7 @@ try {
         <div class="header">
           <div class="company">JHLIBIRAN CONSTRUCTION CORPORATION</div>
           <div class="title">PAYROLL SLIP</div>
-          <div class="period">Pay Period: <?php echo date('M j, Y', strtotime($record['period_start'])); ?> — <?php echo date('M j, Y', strtotime($record['period_end'])); ?></div>
+          <div class="period">Payroll Period: <?php echo $payPeriodLabel; ?> &nbsp;|&nbsp; Release: <?php echo $payReleaseLabel; ?></div>
         </div>
 
         <table class="info" aria-hidden="false">
@@ -376,87 +411,32 @@ try {
                 </tr>
               </tbody>
             </table>
-            <!-- Contributions and Taxes small tables -->
-            <div style="display:flex;gap:12px;margin-top:10px;flex-wrap:wrap">
-              <?php if ($sssWeekly > 0 || $philhealthWeekly > 0 || $pagibigWeekly > 0): ?>
-              <div style="flex:1;min-width:200px">
-                <div class="table-label">Contributions (End of Month)</div>
-                <table class="compact" style="width:100%">
-                  <tbody>
-                    <?php if ($sssWeekly > 0): ?>
-                    <tr><td>SSS</td><td class="right">₱<?php echo number_format($sssWeekly,2); ?></td></tr>
-                    <?php endif; ?>
-                    <?php if ($philhealthWeekly > 0): ?>
-                    <tr><td>PhilHealth</td><td class="right">₱<?php echo number_format($philhealthWeekly,2); ?></td></tr>
-                    <?php endif; ?>
-                    <?php if ($pagibigWeekly > 0): ?>
-                    <tr><td>Pag-IBIG</td><td class="right">₱<?php echo number_format($pagibigWeekly,2); ?></td></tr>
-                    <?php endif; ?>
-                  </tbody>
-                </table>
-              </div>
-              <?php else: ?>
-              <div style="flex:1;min-width:200px">
-                <div class="table-label">Contributions</div>
-                <p style="color:#999;font-size:10px;margin:4px 0">Deducted on the last payroll of the month only.</p>
-              </div>
-              <?php endif; ?>
-
-              <?php if ($taxWeekly > 0): ?>
-              <div style="flex:1;min-width:200px">
-                <div class="table-label">Taxes (End of Month)</div>
-                <table class="compact" style="width:100%">
-                  <tbody>
-                    <tr><td>BIR Withholding</td><td class="right">₱<?php echo number_format($taxWeekly,2); ?></td></tr>
-                  </tbody>
-                </table>
-              </div>
-              <?php endif; ?>
-
-              <div style="flex:1;min-width:260px">
-                <div class="table-label">Other Deductions</div>
-                <table class="compact" style="width:100%">
-                  <thead>
-                    <tr style="font-size:10px;color:#888;border-bottom:1px solid #eee">
-                      <th style="text-align:left;padding:3px 4px;font-weight:600">Type</th>
-                      <th style="text-align:right;padding:3px 4px;font-weight:600">Amount</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <?php
-                      $otherTotal = 0;
-                      if (!empty($manualDeductions)):
-                        foreach ($manualDeductions as $md):
-                          $mdAmount = max(0, abs(floatval($md['amount'])));
-                          $otherTotal += $mdAmount;
-                          $mdLabel = $deductionTypeLabels[$md['deduction_type']] ?? ucfirst($md['deduction_type']);
-                          if (!empty($md['description'])) {
-                              $mdLabel .= ' <span style="color:#888;font-size:10px">(' . htmlspecialchars(mb_strimwidth($md['description'], 0, 25, '...')) . ')</span>';
-                          }
-                    ?>
-                    <tr>
-                      <td style="padding:4px"><?php echo $mdLabel; ?></td>
-                      <td class="right" style="padding:4px">₱<?php echo number_format($mdAmount,2); ?></td>
-                    </tr>
-                    <?php
-                        endforeach;
-                      else:
-                        // Fallback: compute from total_deductions minus statutory
-                        $otherTotal = floatval($totalDeductions) - (floatval($sssWeekly) + floatval($philhealthWeekly) + floatval($pagibigWeekly) + floatval($taxWeekly));
-                        if ($otherTotal < 0) $otherTotal = 0.00;
-                        if ($otherTotal > 0):
-                    ?>
-                    <tr><td>Other</td><td class="right">₱<?php echo number_format($otherTotal,2); ?></td></tr>
-                    <?php
-                        endif;
-                      endif;
-                      if (empty($manualDeductions) && $otherTotal <= 0):
-                    ?>
-                    <tr><td colspan="2" style="color:#999;font-size:10px">None</td></tr>
-                    <?php endif; ?>
-                  </tbody>
-                </table>
-              </div>
+            <!-- Unified Deductions (statutory + other) -->
+            <div style="margin-top:10px">
+              <div class="table-label">Deductions</div>
+              <table class="compact" style="width:100%">
+                <thead>
+                  <tr style="font-size:10px;color:#888;border-bottom:1px solid #eee">
+                    <th style="text-align:left;padding:3px 4px;font-weight:600">Type</th>
+                    <th style="text-align:right;padding:3px 4px;font-weight:600">Amount</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr><td style="padding:4px">SSS</td><td class="right" style="padding:4px">₱<?php echo number_format($sssWeekly,2); ?></td></tr>
+                  <tr><td style="padding:4px">PhilHealth</td><td class="right" style="padding:4px">₱<?php echo number_format($philhealthWeekly,2); ?></td></tr>
+                  <tr><td style="padding:4px">Pag-IBIG</td><td class="right" style="padding:4px">₱<?php echo number_format($pagibigWeekly,2); ?></td></tr>
+                  <tr><td style="padding:4px">BIR Withholding</td><td class="right" style="padding:4px">₱<?php echo number_format($taxWeekly,2); ?></td></tr>
+                  <tr><td style="padding:4px">Cash Advance</td><td class="right" style="padding:4px">₱<?php echo number_format($manualBuckets['cashadvance'],2); ?></td></tr>
+                  <tr><td style="padding:4px">Loan</td><td class="right" style="padding:4px">₱<?php echo number_format($manualBuckets['loan'],2); ?></td></tr>
+                  <tr><td style="padding:4px">Uniform / Tool</td><td class="right" style="padding:4px">₱<?php echo number_format($manualBuckets['uniform_tool'],2); ?></td></tr>
+                  <tr><td style="padding:4px">Damage</td><td class="right" style="padding:4px">₱<?php echo number_format($manualBuckets['damage'],2); ?></td></tr>
+                  <tr><td style="padding:4px">Other</td><td class="right" style="padding:4px">₱<?php echo number_format($manualBuckets['other'],2); ?></td></tr>
+                  <tr style="font-weight:700">
+                    <td style="padding:4px">Total Deductions</td>
+                    <td class="right" style="padding:4px">₱<?php echo number_format($totalDeductions,2); ?></td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
           </div>
 
@@ -465,6 +445,8 @@ try {
             <div style="background:#fafafa;border:1px solid #eee;padding:10px;border-radius:6px">
               <table style="width:100%;border-collapse:collapse;font-size:13px">
                 <tbody>
+                  <tr><td style="padding:6px 4px">Payroll Period</td><td style="padding:6px 4px;text-align:right"><?php echo $payPeriodLabel; ?></td></tr>
+                  <tr><td style="padding:6px 4px">Release</td><td style="padding:6px 4px;text-align:right"><?php echo $payReleaseLabel; ?></td></tr>
                   <tr><td style="padding:6px 4px">Total Gross</td><td style="padding:6px 4px;text-align:right">₱<?php echo number_format($record['gross_pay'],2); ?></td></tr>
                   <tr><td style="padding:6px 4px">Total Deductions</td><td style="padding:6px 4px;text-align:right">₱<?php echo number_format($totalDeductions,2); ?></td></tr>
                   <tr style="font-weight:900;font-size:16px;border-top:1px solid #eee"><td style="padding:8px 4px">Net Pay</td><td style="padding:8px 4px;text-align:right">₱<?php echo number_format($netPay,2); ?></td></tr>

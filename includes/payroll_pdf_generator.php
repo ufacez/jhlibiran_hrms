@@ -237,8 +237,8 @@ class PayrollPDFGenerator {
     private function getPayrollRecord($recordId) {
         try {
             $stmt = $this->pdo->prepare("
-                SELECT pr.*, 
-                       p.period_start, p.period_end,
+                  SELECT pr.*, 
+                      p.period_start, p.period_end, p.period_label,
                        w.first_name, w.last_name, w.worker_code, w.position, w.employment_type, w.tin_number AS tin
                 FROM payroll_records pr
                 JOIN payroll_periods p ON pr.period_id = p.period_id
@@ -283,8 +283,8 @@ class PayrollPDFGenerator {
     private function getPeriodDetails($periodId) {
         try {
             $stmt = $this->pdo->prepare("
-                SELECT period_id, period_start, period_end, total_workers, 
-                       total_gross, total_deductions, total_net
+                  SELECT period_id, period_start, period_end, period_label, total_workers, 
+                      total_gross, total_deductions, total_net
                 FROM payroll_periods
                 WHERE period_id = ?
             ");
@@ -416,10 +416,18 @@ class PayrollPDFGenerator {
 
         // Period info (compact)
         $this->pdf->SetFont('dejavusans', 'B', 8); // was 9
-        $this->pdf->Cell(50, 4, 'Period:', 0, 0, 'L'); // was 60,5
+        $this->pdf->Cell(30, 4, 'Period:', 0, 0, 'L');
         $this->pdf->SetFont('dejavusans', '', 8); // was 9
-        $periodStr = date('M d, Y', strtotime($period['period_start'])) . ' - ' . date('M d, Y', strtotime($period['period_end']));
-        $this->pdf->Cell(0, 4, $periodStr, 0, 1, 'L'); // was 5
+        $periodStr = !empty($period['period_label'])
+            ? $period['period_label']
+            : date('M d, Y', strtotime($period['period_start'])) . ' - ' . date('M d, Y', strtotime($period['period_end']));
+        $this->pdf->Cell(70, 4, $periodStr, 0, 0, 'L');
+
+        $releaseStr = date('M d, Y', strtotime($period['period_end'] . ' +1 day'));
+        $this->pdf->SetFont('dejavusans', 'B', 8);
+        $this->pdf->Cell(25, 4, 'Release:', 0, 0, 'L');
+        $this->pdf->SetFont('dejavusans', '', 8);
+        $this->pdf->Cell(0, 4, $releaseStr, 0, 1, 'L');
 
         // Employee info (single line compact)
         $this->pdf->SetFont('dejavusans', 'B', 8); // was 9
@@ -587,80 +595,49 @@ class PayrollPDFGenerator {
             }
         }
 
-        $deductionTypeLabels = [
-            'cashadvance' => 'Cash Advance',
-            'loan' => 'Loan',
-            'uniform' => 'Uniform',
-            'tools' => 'Tools',
-            'damage' => 'Damage',
-            'absence' => 'Absence',
-            'other' => 'Other'
+        $manualBuckets = [
+            'cashadvance' => 0.00,
+            'loan' => 0.00,
+            'uniform_tool' => 0.00,
+            'damage' => 0.00,
+            'other' => 0.00
         ];
 
-        // --- Contributions column (only shown on end-of-month payroll when contributions > 0) ---
-        $w1 = 75;
-        $startX = $this->pdf->GetX();
-        $startY = $this->pdf->GetY();
-
-        if ($sss > 0 || $philhealth > 0 || $pagibig > 0) {
-            $this->pdf->SetFont('dejavusans', 'B', 9);
-            $this->pdf->SetFillColor(245, 245, 245);
-            $this->pdf->MultiCell($w1, 6, "Contributions (Monthly)", 1, 'L', true, 0, '', '', true, 0, false, true, 0, 'M');
-            $this->pdf->Ln(0);
-            $this->pdf->SetFont('dejavusans', '', 9);
-            
-            $contribLabels = '';
-            $contribAmounts = '';
-            if ($sss > 0) {
-                $contribLabels .= "SSS\n";
-                $contribAmounts .= "P" . number_format($sss,2) . "\n";
+        foreach ($manualDeductions as $md) {
+            $amt = max(0, abs(floatval($md['amount'])));
+            $type = strtolower($md['deduction_type']);
+            switch ($type) {
+                case 'cashadvance':
+                    $manualBuckets['cashadvance'] += $amt;
+                    break;
+                case 'loan':
+                    $manualBuckets['loan'] += $amt;
+                    break;
+                case 'uniform':
+                case 'tools':
+                    $manualBuckets['uniform_tool'] += $amt;
+                    break;
+                case 'damage':
+                    $manualBuckets['damage'] += $amt;
+                    break;
+                default:
+                    $manualBuckets['other'] += $amt;
+                    break;
             }
-            if ($philhealth > 0) {
-                $contribLabels .= "PhilHealth\n";
-                $contribAmounts .= "P" . number_format($philhealth,2) . "\n";
-            }
-            if ($pagibig > 0) {
-                $contribLabels .= "Pag-IBIG\n";
-                $contribAmounts .= "P" . number_format($pagibig,2) . "\n";
-            }
-            $contribLabels = rtrim($contribLabels, "\n");
-            $contribAmounts = rtrim($contribAmounts, "\n");
-            
-            $this->pdf->MultiCell($w1, 6, $contribLabels, 1, 'L', false, 0);
-            $this->pdf->MultiCell($w1, 6, $contribAmounts, 1, 'R', false, 0);
         }
 
-        // --- Taxes column (only shown on end-of-month payroll when tax > 0) ---
-        $w2 = 55;
-        if ($tax > 0) {
-            $this->pdf->SetFont('dejavusans', 'B', 9);
-            $this->pdf->MultiCell($w2, 6, "Taxes (End of Month)", 1, 'L', true, 0);
-            $this->pdf->SetFont('dejavusans', '', 9);
-            $this->pdf->MultiCell($w2, 6, "BIR Withholding", 1, 'L', false, 0);
-            $this->pdf->MultiCell($w2, 6, "P" . number_format($tax,2), 1, 'R', false, 0);
+        $statutoryTotal = $sss + $philhealth + $pagibig + $tax;
+        if (empty($manualDeductions)) {
+            $fallbackOther = $totalDeductions - $statutoryTotal;
+            if ($fallbackOther < 0) {
+                $fallbackOther = 0.00;
+            }
+            $manualBuckets['other'] = $fallbackOther;
         }
 
-        // --- Summary column (right side) ---
-        $wSummary = 65;
-        $summaryX = 285 - $wSummary;
-        $this->pdf->SetXY($summaryX, $startY);
-        $this->pdf->SetFont('dejavusans', '', 9);
-        $this->pdf->SetFillColor(250,250,250);
-        $this->pdf->MultiCell($wSummary, 6, "Total Gross:   P" . number_format($record['gross_pay'],2), 1, 'L', true, 1);
-        $this->pdf->SetX($summaryX);
-        $this->pdf->MultiCell($wSummary, 6, "Total Deductions:   P" . number_format($totalDeductions,2), 1, 'L', false, 1);
-        $this->pdf->SetX($summaryX);
-        $this->pdf->SetFont('dejavusans', 'B', 12);
-        $this->pdf->MultiCell($wSummary, 8, "NET PAY:   P" . number_format($record['net_pay'],2), 1, 'C', true, 1);
+        $manualTotal = array_sum($manualBuckets);
 
-        $this->pdf->Ln(4);
-
-        // --- Other Deductions table with Type | Amount ---
-        $this->pdf->SetFont('dejavusans', 'B', 9);
-        $this->pdf->SetFillColor(245, 245, 245);
-        $this->pdf->Cell(0, 6, 'OTHER DEDUCTIONS', 0, 1, 'L', true);
-
-        // Table header
+        // Unified deductions table (statutory + other) always visible
         $cw = [155, 90]; // Type, Amount
         $this->pdf->SetFont('dejavusans', 'B', 8);
         $this->pdf->SetFillColor(240, 240, 240);
@@ -668,33 +645,42 @@ class PayrollPDFGenerator {
         $this->pdf->Cell($cw[1], 5, 'Amount', 1, 1, 'R', true);
 
         $this->pdf->SetFont('dejavusans', '', 8);
-        $otherTotal = 0;
-        if (!empty($manualDeductions)) {
-            foreach ($manualDeductions as $md) {
-                $mdAmount = max(0, abs(floatval($md['amount'])));
-                $otherTotal += $mdAmount;
-                $label = $deductionTypeLabels[$md['deduction_type']] ?? ucfirst($md['deduction_type']);
-                if (!empty($md['description'])) {
-                    $label .= ' - ' . mb_strimwidth($md['description'], 0, 30, '...');
-                }
+        $this->pdf->Cell($cw[0], 5, 'SSS', 1, 0, 'L');
+        $this->pdf->Cell($cw[1], 5, 'P' . number_format($sss, 2), 1, 1, 'R');
+        $this->pdf->Cell($cw[0], 5, 'PhilHealth', 1, 0, 'L');
+        $this->pdf->Cell($cw[1], 5, 'P' . number_format($philhealth, 2), 1, 1, 'R');
+        $this->pdf->Cell($cw[0], 5, 'Pag-IBIG', 1, 0, 'L');
+        $this->pdf->Cell($cw[1], 5, 'P' . number_format($pagibig, 2), 1, 1, 'R');
+        $this->pdf->Cell($cw[0], 5, 'BIR Withholding', 1, 0, 'L');
+        $this->pdf->Cell($cw[1], 5, 'P' . number_format($tax, 2), 1, 1, 'R');
+        $this->pdf->Cell($cw[0], 5, 'Cash Advance', 1, 0, 'L');
+        $this->pdf->Cell($cw[1], 5, 'P' . number_format($manualBuckets['cashadvance'], 2), 1, 1, 'R');
+        $this->pdf->Cell($cw[0], 5, 'Loan', 1, 0, 'L');
+        $this->pdf->Cell($cw[1], 5, 'P' . number_format($manualBuckets['loan'], 2), 1, 1, 'R');
+        $this->pdf->Cell($cw[0], 5, 'Uniform / Tool', 1, 0, 'L');
+        $this->pdf->Cell($cw[1], 5, 'P' . number_format($manualBuckets['uniform_tool'], 2), 1, 1, 'R');
+        $this->pdf->Cell($cw[0], 5, 'Damage', 1, 0, 'L');
+        $this->pdf->Cell($cw[1], 5, 'P' . number_format($manualBuckets['damage'], 2), 1, 1, 'R');
+        $this->pdf->Cell($cw[0], 5, 'Other', 1, 0, 'L');
+        $this->pdf->Cell($cw[1], 5, 'P' . number_format($manualBuckets['other'], 2), 1, 1, 'R');
 
-                $this->pdf->Cell($cw[0], 5, $label, 1, 0, 'L');
-                $this->pdf->Cell($cw[1], 5, 'P' . number_format($mdAmount, 2), 1, 1, 'R');
-            }
-        } else {
-            // Fallback: compute lump from stored total
-            $otherTotal = $totalDeductions - ($sss + $philhealth + $pagibig + $tax);
-            if ($otherTotal < 0) $otherTotal = 0;
-            if ($otherTotal > 0) {
-                $this->pdf->Cell($cw[0], 5, 'Other', 1, 0, 'L');
-                $this->pdf->Cell($cw[1], 5, 'P' . number_format($otherTotal, 2), 1, 1, 'R');
-            } else {
-                $this->pdf->SetFont('dejavusans', '', 8);
-                $this->pdf->Cell(array_sum($cw), 5, 'None', 1, 1, 'C');
-            }
-        }
+        $this->pdf->SetFont('dejavusans', 'B', 8);
+        $this->pdf->Cell($cw[0], 5, 'Manual Deductions Total', 1, 0, 'L');
+        $this->pdf->Cell($cw[1], 5, 'P' . number_format($manualTotal, 2), 1, 1, 'R');
+        $this->pdf->Cell($cw[0], 5, 'Total Deductions', 1, 0, 'L');
+        $this->pdf->Cell($cw[1], 5, 'P' . number_format($totalDeductions, 2), 1, 1, 'R');
+        $this->pdf->Cell($cw[0], 6, 'NET PAY', 1, 0, 'L');
+        $this->pdf->Cell($cw[1], 6, 'P' . number_format($record['net_pay'], 2), 1, 1, 'R');
 
-        $this->pdf->Ln(6);
+        $this->pdf->Ln(2);
+        $this->pdf->SetFont('dejavusans', '', 8);
+        $periodStr = !empty($record['period_label'])
+            ? $record['period_label']
+            : date('M d, Y', strtotime($record['period_start'])) . ' - ' . date('M d, Y', strtotime($record['period_end']));
+        $releaseStr = date('M d, Y', strtotime($record['period_end'] . ' +1 day'));
+        $this->pdf->Cell(0, 5, 'Payroll Period: ' . $periodStr, 0, 1, 'L');
+        $this->pdf->Cell(0, 5, 'Release: ' . $releaseStr, 0, 1, 'L');
+        $this->pdf->Ln(4);
     }
     
     /**
