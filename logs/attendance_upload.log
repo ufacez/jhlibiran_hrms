@@ -1,0 +1,3 @@
+[2026-03-25 21:39:39] ATT API: method=POST action_raw=upload_excuse POST_keys=action,id,description FILE_keys=excuse_file
+[2026-03-25 21:41:41] ATT API: method=POST action_raw=upload_excuse POST_keys=action,id,description FILE_keys=excuse_file
+[2026-03-25 21:41:41] UPLOAD_EXCUSE direct path: POST_keys=action,id,description FILES=excuse_file method=POST

@@ -33,6 +33,7 @@ function prepareAttendanceDataset(period = '7') {
 
     if (data.length > 0) {
         data.forEach(item => {
+            if (!item || !item.day_label) return;
             labels.push(item.day_label);
             presentData.push(parseInt(item.present_count || 0));
             absentData.push(parseInt(item.absent_count || 0));
@@ -69,7 +70,7 @@ function initAttendanceChart(defaultPeriod = '7') {
                 data: presentData,
                 borderColor: '#27ae60',
                 backgroundColor: 'rgba(39, 174, 96, 0.1)',
-                tension: 0.4,
+                tension: 0,
                 fill: true,
                 borderWidth: 3,
                 pointRadius: 5,
@@ -82,7 +83,7 @@ function initAttendanceChart(defaultPeriod = '7') {
                 data: absentData,
                 borderColor: '#e74c3c',
                 backgroundColor: 'rgba(231, 76, 60, 0.1)',
-                tension: 0.4,
+                tension: 0,
                 fill: true,
                 borderWidth: 3,
                 pointRadius: 5,
@@ -95,7 +96,7 @@ function initAttendanceChart(defaultPeriod = '7') {
                 data: onLeaveData,
                 borderColor: '#f39c12',
                 backgroundColor: 'rgba(243, 156, 18, 0.12)',
-                tension: 0.4,
+                tension: 0,
                 fill: true,
                 borderWidth: 3,
                 pointRadius: 5,

@@ -30,8 +30,24 @@ $flash = getFlashMessage();
 // Helper: fetch attendance trend for the last N days (inclusive of today)
 function fetchAttendanceTrend($db, $days) {
     $days = max(1, (int)$days);
-    $startDate = (new DateTime())->modify('-' . ($days - 1) . ' days')->format('Y-m-d');
+    $startDateObj = (new DateTime())->modify('-' . ($days - 1) . ' days');
+    $startDate = $startDateObj->format('Y-m-d');
+
+    // Pre-seed all days with zero counts so 90-day view doesn't collapse to the last 30 days of data
+    $seed = [];
+    for ($i = 0; $i < $days; $i++) {
+        $d = (new DateTime($startDate))->modify('+' . $i . ' days');
+        $key = $d->format('Y-m-d');
+        $seed[$key] = [
+            'day_label' => $d->format('M d (D)'),
+            'present_count' => 0,
+            'absent_count' => 0,
+            'on_leave_count' => 0,
+        ];
+    }
+
     $stmt = $db->prepare("SELECT 
+                        DATE(attendance_date) as day_key,
                         DATE_FORMAT(attendance_date, '%b %d (%a)') as day_label,
                         COUNT(CASE WHEN status IN ('present', 'late', 'overtime') THEN 1 END) as present_count,
                         COUNT(CASE WHEN status = 'absent' THEN 1 END) as absent_count,
@@ -39,10 +55,22 @@ function fetchAttendanceTrend($db, $days) {
                         FROM attendance
                         WHERE attendance_date >= ?
                         AND is_archived = FALSE
-                        GROUP BY attendance_date
+                        GROUP BY DATE(attendance_date)
                         ORDER BY attendance_date ASC");
     $stmt->execute([$startDate]);
-    return $stmt->fetchAll();
+    $rows = $stmt->fetchAll();
+
+    foreach ($rows as $row) {
+        $k = $row['day_key'];
+        if (isset($seed[$k])) {
+            $seed[$k]['present_count'] = (int)$row['present_count'];
+            $seed[$k]['absent_count'] = (int)$row['absent_count'];
+            $seed[$k]['on_leave_count'] = (int)$row['on_leave_count'];
+        }
+    }
+
+    // Return in chronological order
+    return array_values($seed);
 }
 
 // Fetch dashboard statistics
@@ -110,8 +138,8 @@ try {
     $attendance_trend_90 = fetchAttendanceTrend($db, 90);
     
     // Recent Activity (from unified audit_trail — only Super Admin/Admin actions)
-    // Audit trail pagination (dashboard preview: 10 latest)
-    $auditLimit = 10;
+    // Audit trail pagination (dashboard preview: 5 latest)
+    $auditLimit = 5;
     $sql = "SELECT 
                 at.*,
                 COALESCE(

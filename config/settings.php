@@ -70,7 +70,7 @@ define('MAX_PAGINATION_LINKS', 5);
 // ============================================
 // FILE UPLOAD SETTINGS
 // ============================================
-define('MAX_FILE_SIZE', 5242880); // 5MB in bytes
+define('MAX_FILE_SIZE', 20971520); // 20MB in bytes
 define('ALLOWED_IMAGE_TYPES', ['jpg', 'jpeg', 'png', 'gif']);
 define('PROFILE_IMAGE_MAX_WIDTH', 500);
 define('PROFILE_IMAGE_MAX_HEIGHT', 500);

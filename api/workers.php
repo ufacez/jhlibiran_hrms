@@ -40,6 +40,165 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && empty($_POST)) {
     }
 }
 
+// Bulk upload workers via CSV (field: full_name)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'bulk_upload') {
+    $permissions = getAdminPermissions($db);
+    if (!($permissions['can_add_workers'] ?? false)) {
+        echo json_encode(['success' => false, 'message' => 'Permission denied']);
+        exit;
+    }
+
+    if (!isset($_FILES['file']) || $_FILES['file']['error'] !== UPLOAD_ERR_OK) {
+        echo json_encode(['success' => false, 'message' => 'Please upload a valid CSV file']);
+        exit;
+    }
+
+    $tmpName = $_FILES['file']['tmp_name'];
+    $handle = fopen($tmpName, 'r');
+    if (!$handle) {
+        echo json_encode(['success' => false, 'message' => 'Could not read uploaded file']);
+        exit;
+    }
+
+    $header = fgetcsv($handle);
+    if (!$header) {
+        echo json_encode(['success' => false, 'message' => 'CSV appears to be empty']);
+        fclose($handle);
+        exit;
+    }
+
+    // Map headers (case-insensitive)
+    $headerMap = [];
+    foreach ($header as $idx => $col) {
+        $key = strtolower(trim($col));
+        $headerMap[$key] = $idx;
+    }
+
+    if (!isset($headerMap['full_name'])) {
+        echo json_encode(['success' => false, 'message' => 'CSV must have header full_name']);
+        fclose($handle);
+        exit;
+    }
+
+    // Prepare counters
+    $results = [
+        'imported' => 0,
+        'failed' => []
+    ];
+
+    $existingCount = (int)$db->query("SELECT COUNT(*) FROM workers")->fetchColumn();
+    $nextNumber = $existingCount + 1;
+
+    while (($row = fgetcsv($handle)) !== false) {
+        $fullName = trim($row[$headerMap['full_name']] ?? '');
+        $currAddress = isset($headerMap['current_address']) ? trim($row[$headerMap['current_address']] ?? '') : '';
+        $currProvince = isset($headerMap['current_province']) ? trim($row[$headerMap['current_province']] ?? '') : '';
+        $currCity = isset($headerMap['current_city']) ? trim($row[$headerMap['current_city']] ?? '') : '';
+        $currBarangay = isset($headerMap['current_barangay']) ? trim($row[$headerMap['current_barangay']] ?? '') : '';
+        $emgName = isset($headerMap['emergency_contact_name']) ? trim($row[$headerMap['emergency_contact_name']] ?? '') : '';
+        $emgPhone = isset($headerMap['emergency_contact_phone']) ? trim($row[$headerMap['emergency_contact_phone']] ?? '') : '';
+        $emgRel = isset($headerMap['emergency_contact_relationship']) ? trim($row[$headerMap['emergency_contact_relationship']] ?? '') : '';
+
+        if ($fullName === '') {
+            $results['failed'][] = ['row' => $row, 'reason' => 'Missing full_name'];
+            continue;
+        }
+
+        // Split name (last token as last name, rest as first)
+        $parts = preg_split('/\s+/', $fullName);
+        $lastName = array_pop($parts);
+        $firstName = trim(implode(' ', $parts)) ?: $lastName;
+
+        $workerCode = 'WKR-' . str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
+
+        // Ensure unique worker_code (defensive in case counts changed mid-import)
+        $chk = $db->prepare("SELECT COUNT(*) FROM workers WHERE worker_code = ?");
+        while (true) {
+            $chk->execute([$workerCode]);
+            if ((int)$chk->fetchColumn() === 0) break;
+            $nextNumber++;
+            $workerCode = 'WKR-' . str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
+        }
+
+        try {
+            $db->beginTransaction();
+
+            $defaultEmailBase = strtolower(preg_replace('/[^a-zA-Z0-9]/', '', $workerCode));
+            $emailCandidate = $defaultEmailBase . '@tracksite.com';
+            $emailIndex = 1;
+            $emailStmt = $db->prepare("SELECT COUNT(*) FROM users WHERE email = ?");
+            while (true) {
+                $emailStmt->execute([$emailCandidate]);
+                if ((int)$emailStmt->fetchColumn() === 0) break;
+                $emailCandidate = $defaultEmailBase . $emailIndex . '@tracksite.com';
+                $emailIndex++;
+            }
+
+            $defaultPassword = 'tracksite-' . strtolower($lastName ?: $workerCode);
+            $hashedPassword = password_hash($defaultPassword, defined('PASSWORD_HASH_ALGO') ? PASSWORD_HASH_ALGO : PASSWORD_DEFAULT);
+
+            $uStmt = $db->prepare("INSERT INTO users (username, password, email, user_level, status) VALUES (?, ?, ?, 'worker', 'active')");
+            $uStmt->execute([$emailCandidate, $hashedPassword, $emailCandidate]);
+            $userId = $db->lastInsertId();
+
+            $addresses = json_encode([
+                'current' => [
+                    'address' => $currAddress,
+                    'province' => $currProvince,
+                    'city' => $currCity,
+                    'barangay' => $currBarangay
+                ],
+                'permanent' => ['address' => '', 'province' => '', 'city' => '', 'barangay' => '']
+            ]);
+
+            $idsData = json_encode([
+                'primary' => ['type' => '', 'number' => ''],
+                'additional' => []
+            ]);
+
+            $wStmt = $db->prepare("INSERT INTO workers (
+                user_id, worker_code, first_name, middle_name, last_name, position, worker_type, phone,
+                addresses, date_of_birth, gender, emergency_contact_name, emergency_contact_phone,
+                emergency_contact_relationship, date_hired, employment_status, employment_type, daily_rate, hourly_rate,
+                experience_years, sss_number, philhealth_number, pagibig_number, tin_number,
+                identification_data, work_type_id
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+
+            $cleanEmgPhone = $emgPhone !== '' ? preg_replace('/[^0-9+]/', '', $emgPhone) : '';
+
+            $wStmt->execute([
+                $userId, $workerCode, $firstName, '', $lastName, 'Worker', 'Imported', '',
+                $addresses, null, 'unspecified', $emgName, $cleanEmgPhone,
+                $emgRel, date('Y-m-d'), 'project_based', 0, null,
+                0, '', '', '', '',
+                $idsData, null
+            ]);
+
+            $workerId = $db->lastInsertId();
+            logActivity($db, getCurrentUserId(), 'bulk_add_worker', 'workers', $workerId,
+                       "Bulk added worker: {$firstName} {$lastName} ({$workerCode})");
+
+            $db->commit();
+            $results['imported']++;
+            $nextNumber++;
+        } catch (Exception $e) {
+            if ($db->inTransaction()) {
+                $db->rollBack();
+            }
+            $results['failed'][] = ['row' => $row, 'reason' => $e->getMessage()];
+        }
+    }
+
+    fclose($handle);
+
+    echo json_encode([
+        'success' => true,
+        'imported' => $results['imported'],
+        'failed' => $results['failed']
+    ]);
+    exit;
+}
+
 if ($action === 'view' && isset($_GET['id'])) {
     $worker_id = intval($_GET['id']);
     

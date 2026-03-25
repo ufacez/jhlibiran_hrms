@@ -84,6 +84,7 @@ $flash = getFlashMessage();
 $classification_filter = isset($_GET['classification']) ? sanitizeString($_GET['classification']) : '';
 $work_type_filter = isset($_GET['work_type']) ? sanitizeString($_GET['work_type']) : '';
 $status_filter = isset($_GET['status']) ? sanitizeString($_GET['status']) : '';
+$employment_type_filter = isset($_GET['employment_type']) ? sanitizeString($_GET['employment_type']) : '';
 
 $search_query = isset($_GET['search']) ? sanitizeString($_GET['search']) : '';
 $project_filter = isset($_GET['project']) ? intval($_GET['project']) : 0;
@@ -136,6 +137,13 @@ if (!empty($status_filter)) {
     $params[] = $status_filter;
     $count_sql .= " AND w.employment_status = ?";
     $count_params[] = $status_filter;
+}
+
+if (!empty($employment_type_filter)) {
+    $sql .= " AND w.employment_type = ?";
+    $params[] = $employment_type_filter;
+    $count_sql .= " AND w.employment_type = ?";
+    $count_params[] = $employment_type_filter;
 }
 
 
@@ -217,9 +225,9 @@ try {
     <link rel="stylesheet" href="<?php echo CSS_URL; ?>/buttons.css">
     <link rel="stylesheet" href="<?php echo CSS_URL; ?>/payroll.css">
     <style>
-        /* Workers page: 4 filter groups + actions */
-        .filter-row-4 { grid-template-columns: repeat(4, 1fr) auto; }
-        @media (max-width: 900px) { .filter-row-4 { grid-template-columns: 1fr 1fr; } }
+        /* Workers page: filter groups + actions */
+        .filter-row-4 { grid-template-columns: repeat(5, 1fr) auto; }
+        @media (max-width: 1100px) { .filter-row-4 { grid-template-columns: repeat(3, 1fr); } }
         @media (max-width: 768px) { .filter-row-4 { grid-template-columns: 1fr; } }
 
         /* Enhanced Modal Styles */
@@ -250,6 +258,96 @@ try {
         .worker-detail-section h4 i {
             color: #DAA520;
         }
+
+        .header-actions {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .btn-bulk-upload {
+            padding: 10px 16px;
+            background: #fff;
+            border: 1.5px solid #DAA520;
+            color: #1a1a1a;
+            border-radius: 10px;
+            font-weight: 700;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+
+        .btn-bulk-upload:hover {
+            background: #fff8e1;
+            box-shadow: 0 4px 12px rgba(218, 165, 32, 0.25);
+        }
+
+        .bulk-modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.45);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            padding: 20px;
+        }
+
+        .bulk-modal {
+            background: #fff;
+            border-radius: 12px;
+            padding: 22px;
+            max-width: 560px;
+            width: 100%;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+        }
+
+        .bulk-modal h3 {
+            margin: 0 0 6px 0;
+        }
+
+        .bulk-modal p {
+            margin: 0 0 12px 0;
+            color: #555;
+            line-height: 1.5;
+        }
+
+        .bulk-sample {
+            background: #f8f9fa;
+            border: 1px dashed #d1d1d1;
+            border-radius: 8px;
+            padding: 10px;
+            font-family: monospace;
+            font-size: 12px;
+            line-height: 1.4;
+            margin: 10px 0 14px 0;
+            white-space: pre;
+            overflow-x: auto;
+            max-height: 180px;
+            display: block;
+        }
+
+        .bulk-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 12px;
+        }
+
+        .bulk-status {
+            font-size: 13px;
+            margin-top: 10px;
+            color: #555;
+        }
+
+        .bulk-status.success { color: #2e7d32; }
+        .bulk-status.error { color: #c62828; }
+        .bulk-status.warning { color: #ef6c00; }
         
         .detail-grid {
             display: grid;
@@ -340,9 +438,14 @@ try {
                         <p class="subtitle">Manage construction workers and their information</p>
                     </div>
                     <?php if ($permissions['can_add_workers']): ?>
-                    <button class="btn btn-add-worker" onclick="window.location.href='add.php'">
-                        <i class="fas fa-plus"></i> Add New Worker
-                    </button>
+                    <div class="header-actions">
+                        <button class="btn btn-bulk-upload" type="button" onclick="openBulkUploadModal()">
+                            <i class="fas fa-file-upload"></i> Bulk Upload CSV
+                        </button>
+                        <button class="btn btn-add-worker" onclick="window.location.href='add.php'">
+                            <i class="fas fa-plus"></i> Add New Worker
+                        </button>
+                    </div>
                     <?php endif; ?>
                 </div>
                 
@@ -392,6 +495,14 @@ try {
                                     <option value="on_leave" <?php echo $status_filter === 'on_leave' ? 'selected' : ''; ?>>On Leave</option>
                                     <option value="blacklisted" <?php echo $status_filter === 'blacklisted' ? 'selected' : ''; ?>>Blacklisted</option>
                                     <option value="terminated" <?php echo $status_filter === 'terminated' ? 'selected' : ''; ?>>Terminated</option>
+                                </select>
+                            </div>
+                            <div class="filter-group">
+                                <label>Employment Type</label>
+                                <select name="employment_type" id="employmentTypeFilter">
+                                    <option value="">All Types</option>
+                                    <option value="regular" <?php echo $employment_type_filter === 'regular' ? 'selected' : ''; ?>>Regular</option>
+                                    <option value="project_based" <?php echo $employment_type_filter === 'project_based' ? 'selected' : ''; ?>>Project-Based</option>
                                 </select>
                             </div>
                             
@@ -552,6 +663,41 @@ try {
         </div>
     </div>
     
+    <!-- Bulk upload modal -->
+    <div class="bulk-modal-overlay" id="bulkUploadModal">
+        <div class="bulk-modal">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                <div>
+                    <h3>Bulk Upload Workers</h3>
+                    <p>Upload a CSV file to add multiple workers at once. Make sure to follow the template format for successful import. You can download a sample template below.</p>
+                </div>
+                <button type="button" onclick="closeBulkUploadModal()" style="background:transparent;border:none;font-size:18px;cursor:pointer;color:#666;">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="bulk-sample">full_name,current_address,current_province,current_city,current_barangay,emergency_contact_name,emergency_contact_phone,emergency_contact_relationship
+Juan Dela Cruz,123 Mabuhay St,Laguna,Calamba,Brgy Uno,Anna Cruz,09123456789,Sister
+Maria Santos,45 Rizal Ave,NCR,Manila,Brgy Dos,Pedro Santos,09987654321,Husband</div>
+            <div style="display:flex;gap:10px;align-items:center;margin-bottom:8px;flex-wrap:wrap;">
+                <input type="file" id="bulkCsvInput" accept=".csv" style="flex:1; min-width:240px;">
+                <button type="button" class="btn btn-secondary" onclick="downloadBulkTemplate()" style="background:#f5f5f5;border:1px solid #ccc;color:#333;">
+                    <i class="fas fa-download"></i> Download Template
+                </button>
+            </div>
+            <div class="bulk-actions">
+                <div style="flex:1;">
+                    <div id="bulkUploadStatus" class="bulk-status"></div>
+                </div>
+                <div style="display:flex;gap:10px;">
+                    <button type="button" class="btn btn-secondary" onclick="closeBulkUploadModal()" style="background:#f0f0f0;border:1px solid #ccc;color:#555;">Cancel</button>
+                    <button type="button" class="btn btn-add-worker" onclick="submitBulkUpload()" style="padding:10px 18px;">
+                        <i class="fas fa-cloud-upload-alt"></i> Upload CSV
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Batch action bar -->
     <div class="worker-batch-bar" id="workerBatchBar">
         <span id="workerBatchCount" style="color:#fff;font-size:14px;">0 selected</span>
@@ -584,6 +730,93 @@ try {
     <script src="<?php echo JS_URL; ?>/dashboard.js"></script>
     <script src="<?php echo JS_URL; ?>/workers.js"></script>
     <script>
+        function openBulkUploadModal() {
+            const modal = document.getElementById('bulkUploadModal');
+            const statusEl = document.getElementById('bulkUploadStatus');
+            const fileInput = document.getElementById('bulkCsvInput');
+            if (statusEl) statusEl.textContent = '';
+            if (fileInput) fileInput.value = '';
+            if (modal) modal.style.display = 'flex';
+        }
+
+        function closeBulkUploadModal() {
+            const modal = document.getElementById('bulkUploadModal');
+            if (modal) modal.style.display = 'none';
+        }
+
+        function downloadBulkTemplate() {
+            const rows = [
+                'full_name,current_address,current_province,current_city,current_barangay,emergency_contact_name,emergency_contact_phone,emergency_contact_relationship',
+                'Juan Dela Cruz,123 Mabuhay St,Laguna,Calamba,Brgy. Uno,Anna Cruz,09123456789,Sister',
+                'Maria Santos,45 Rizal Ave,NCR,Manila,Brgy. Dos,Pedro Santos,09987654321,Husband'
+            ];
+            const blob = new Blob([rows.join('\n')], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'workers_template.csv';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        async function submitBulkUpload() {
+            const fileInput = document.getElementById('bulkCsvInput');
+            const statusEl = document.getElementById('bulkUploadStatus');
+
+            if (!fileInput || !fileInput.files.length) {
+                alert('Please choose a CSV file first.');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('action', 'bulk_upload');
+            formData.append('file', fileInput.files[0]);
+
+            if (statusEl) {
+                statusEl.textContent = 'Uploading...';
+                statusEl.className = 'bulk-status';
+            }
+
+            try {
+                const response = await fetch('../../../api/workers.php', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+
+                if (!data.success) {
+                    if (statusEl) {
+                        statusEl.textContent = data.message || 'Upload failed';
+                        statusEl.classList.add('error');
+                    }
+                    return;
+                }
+
+                let message = `Imported ${data.imported} worker(s).`;
+                if (data.failed && data.failed.length) {
+                    message += ` ${data.failed.length} row(s) failed.`;
+                    const sample = data.failed.slice(0, 3).map(f => f.reason || 'Unknown error').join(' | ');
+                    message += sample ? ` Sample: ${sample}` : '';
+                }
+
+                if (statusEl) {
+                    statusEl.textContent = message;
+                    statusEl.classList.add(data.failed && data.failed.length ? 'warning' : 'success');
+                }
+
+                if (data.imported > 0) {
+                    setTimeout(() => window.location.reload(), 900);
+                }
+            } catch (err) {
+                if (statusEl) {
+                    statusEl.textContent = 'Upload failed. Please try again.';
+                    statusEl.classList.add('error');
+                }
+            }
+        }
+
         // Enhanced view worker function
         function viewWorker(workerId) {
             showLoading('Loading worker details...');

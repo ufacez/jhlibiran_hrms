@@ -379,6 +379,13 @@ $baseQueryString = http_build_query(array_filter($queryParams, function($v) {
                                                         title="View Details">
                                                     <i class="fas fa-eye"></i>
                                                 </button>
+                                                <?php if ($user_level === 'super_admin' && $record['status'] === 'late'): ?>
+                                                <button class="action-btn btn-edit" 
+                                                        onclick="openExcuseModal(<?php echo $record['attendance_id']; ?>)"
+                                                        title="Upload Late Slip">
+                                                    <i class="fas fa-file-upload"></i>
+                                                </button>
+                                                <?php endif; ?>
                                                 <?php if ($permissions['can_delete_attendance'] ?? false): ?>
                                                 <button class="action-btn btn-archive" 
                                                         onclick="archiveAttendance(this, <?php echo $record['attendance_id']; ?>, '<?php echo htmlspecialchars(addslashes($record['first_name'] . ' ' . $record['last_name'])); ?>')"
@@ -465,6 +472,36 @@ $baseQueryString = http_build_query(array_filter($queryParams, function($v) {
                     <button class="btn btn-secondary" onclick="closeModal('editModal')">Cancel</button>
                     <button class="btn btn-primary" id="editSaveBtn" onclick="saveEdit()">
                         <i class="fas fa-save"></i> Save Changes
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Upload Excuse Modal -->
+    <div id="excuseModal" class="modal">
+        <div class="modal-content" style="max-width: 520px;">
+            <div class="modal-header">
+                <h2><i class="fas fa-file-upload"></i> Upload Late Slip</h2>
+                <button class="modal-close" onclick="closeModal('excuseModal')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="excuseAttendanceId">
+                <div class="filter-group">
+                    <label><i class="fas fa-image"></i> Late Slip (image/PDF)</label>
+                    <input type="file" id="excuseFile" accept=".jpg,.jpeg,.png,.gif,.pdf" style="padding: 8px 0;">
+                    <small id="excuseExisting" style="display:block;color:#666;margin-top:6px;"></small>
+                </div>
+                <div class="filter-group">
+                    <label><i class="fas fa-align-left"></i> Description</label>
+                    <textarea id="excuseDescription" rows="3" placeholder="Reason for late arrival" style="padding: 8px 10px; border: 1px solid #ddd; border-radius: 6px; width: 100%; resize: vertical;"></textarea>
+                </div>
+                <div style="display: flex; gap: 10px; margin-top: 20px; justify-content: flex-end;">
+                    <button class="btn btn-secondary" onclick="closeModal('excuseModal')">Cancel</button>
+                    <button class="btn btn-primary" id="excuseSaveBtn" onclick="submitExcuse()">
+                        <i class="fas fa-save"></i> Upload
                     </button>
                 </div>
             </div>
@@ -607,6 +644,17 @@ $baseQueryString = http_build_query(array_filter($queryParams, function($v) {
                                 <label style="font-size: 11px; color: #666; text-transform: uppercase; font-weight: 600; display: block; margin-bottom: 5px;">Status</label>
                                 <span class="status-badge status-${attendance.status}">${attendance.status}</span>
                             </div>
+                            ${attendance.excuse_file_url ? `
+                            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; grid-column: 1 / -1; display: grid; grid-template-columns: 2fr 1fr; gap: 10px; align-items: center;">
+                                <div>
+                                    <label style="font-size: 11px; color: #666; text-transform: uppercase; font-weight: 600; display: block; margin-bottom: 5px;">Late Slip</label>
+                                    <span style="font-size: 14px; color: #1a1a1a; font-weight: 500;">${attendance.excuse_description || 'No description provided'}</span>
+                                </div>
+                                <a href="${attendance.excuse_file_url}" target="_blank" class="btn btn-primary" style="justify-self: end;">
+                                    <i class="fas fa-file-download"></i> View File
+                                </a>
+                            </div>
+                            ` : ''}
                             ${attendance.notes ? `
                             <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; grid-column: 1 / -1;">
                                 <label style="font-size: 11px; color: #666; text-transform: uppercase; font-weight: 600; display: block; margin-bottom: 5px;">Notes</label>
@@ -644,11 +692,15 @@ $baseQueryString = http_build_query(array_filter($queryParams, function($v) {
     window.onclick = function(event) {
         const viewModal = document.getElementById('viewModal');
         const editModal = document.getElementById('editModal');
+        const excuseModal = document.getElementById('excuseModal');
         if (event.target == viewModal) {
             viewModal.classList.remove('show');
         }
         if (event.target == editModal) {
             editModal.classList.remove('show');
+        }
+        if (event.target == excuseModal) {
+            excuseModal.classList.remove('show');
         }
     }
 
@@ -714,7 +766,8 @@ $baseQueryString = http_build_query(array_filter($queryParams, function($v) {
         formData.append('notes', notes);
         formData.append('status', timeOut ? '' : 'present');
 
-        fetch('<?php echo BASE_URL; ?>/api/attendance.php', { method: 'POST', body: formData })
+        // Add action in query too so API can read it even if multipart field is dropped by PHP limits
+        fetch('<?php echo BASE_URL; ?>/api/attendance.php?action=upload_excuse', { method: 'POST', body: formData, credentials: 'same-origin' })
             .then(r => r.json())
             .then(data => {
                 btn.disabled = false;
@@ -731,6 +784,86 @@ $baseQueryString = http_build_query(array_filter($queryParams, function($v) {
                 btn.disabled = false;
                 btn.innerHTML = '<i class="fas fa-save"></i> Save Changes';
                 showAlert('Failed to update attendance', 'error');
+            });
+    }
+
+    // Late slip upload modal handling
+    function openExcuseModal(attendanceId) {
+        document.getElementById('excuseAttendanceId').value = attendanceId;
+        document.getElementById('excuseDescription').value = '';
+        document.getElementById('excuseFile').value = '';
+        document.getElementById('excuseExisting').textContent = '';
+        document.getElementById('excuseSaveBtn').disabled = false;
+        document.getElementById('excuseSaveBtn').innerHTML = '<i class="fas fa-save"></i> Upload';
+
+        // Prefill with existing data if any
+        fetch('<?php echo BASE_URL; ?>/api/attendance.php?action=get&id=' + attendanceId)
+            .then(r => r.json())
+            .then(data => {
+                if (data.success && data.data.excuse_description) {
+                    document.getElementById('excuseDescription').value = data.data.excuse_description;
+                }
+                if (data.success && data.data.excuse_file_url) {
+                    const link = data.data.excuse_file_url;
+                    const label = data.data.excuse_original_name || 'View existing slip';
+                    document.getElementById('excuseExisting').innerHTML = `<a href="${link}" target="_blank" style="color:#007bff;">${label}</a>`;
+                }
+            })
+            .catch(() => {});
+
+        document.getElementById('excuseModal').classList.add('show');
+    }
+
+    function submitExcuse() {
+        const attendanceId = document.getElementById('excuseAttendanceId').value;
+        const description = document.getElementById('excuseDescription').value.trim();
+        const fileInput = document.getElementById('excuseFile');
+        const file = fileInput.files[0];
+
+        if (!file) {
+            showAlert('Please select an image or PDF late slip to upload.', 'error');
+            return;
+        }
+
+        const btn = document.getElementById('excuseSaveBtn');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading...';
+
+        const formData = new FormData();
+        formData.append('action', 'upload_excuse');
+        formData.append('id', attendanceId);
+        formData.append('description', description);
+        formData.append('excuse_file', file);
+
+        // Add action in query string and include credentials to keep session
+        fetch('<?php echo BASE_URL; ?>/api/attendance.php?action=upload_excuse', { method: 'POST', body: formData, credentials: 'same-origin' })
+            .then(async r => {
+                const text = await r.text();
+                let data;
+                try {
+                    data = JSON.parse(text);
+                } catch (e) {
+                    data = { success: false, message: text || `HTTP ${r.status}` };
+                }
+
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-save"></i> Upload';
+
+                if (r.ok && data.success) {
+                    closeModal('excuseModal');
+                    showAlert('Late slip uploaded successfully.', 'success');
+                    setTimeout(() => window.location.reload(), 1000);
+                } else {
+                    const msg = data.message || `Upload failed (HTTP ${r.status})`;
+                    showAlert(msg, 'error');
+                    console.error('Upload error response:', text);
+                }
+            })
+            .catch(err => {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-save"></i> Upload';
+                showAlert('Failed to upload late slip', 'error');
+                console.error('Upload exception:', err);
             });
     }
     
@@ -801,6 +934,8 @@ $baseQueryString = http_build_query(array_filter($queryParams, function($v) {
     window.viewAttendance = viewAttendance;
     window.editAttendance = editAttendance;
     window.saveEdit = saveEdit;
+    window.openExcuseModal = openExcuseModal;
+    window.submitExcuse = submitExcuse;
     
     // Add CSS animations
     const style = document.createElement('style');

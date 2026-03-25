@@ -16,6 +16,33 @@ require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../includes/attendance_calculator.php';
 require_once __DIR__ . '/../includes/audit_trail.php';
 
+// Ensure excuse table exists before storing uploads
+function ensureAttendanceExcuseTable(PDO $db): void {
+    static $checked = false;
+    if ($checked) {
+        return;
+    }
+
+    $sql = "CREATE TABLE IF NOT EXISTS attendance_excuses (
+                excuse_id INT AUTO_INCREMENT PRIMARY KEY,
+                attendance_id INT NOT NULL UNIQUE,
+                description TEXT NULL,
+                file_name VARCHAR(255) NOT NULL,
+                original_name VARCHAR(255) DEFAULT NULL,
+                uploaded_by INT NOT NULL,
+                uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                CONSTRAINT fk_att_exc_attendance FOREIGN KEY (attendance_id) REFERENCES attendance(attendance_id) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+
+    try {
+        $db->exec($sql);
+    } catch (Throwable $e) {
+        error_log('Failed to ensure attendance_excuses table: ' . $e->getMessage());
+    }
+
+    $checked = true;
+}
+
 // Set JSON header
 header('Content-Type: application/json');
 
@@ -30,10 +57,114 @@ $user_id = getCurrentUserId();
 // Set audit context for DB triggers
 ensureAuditContext($db);
 
+// Make sure excuse storage table exists for fetch and upload flows
+ensureAttendanceExcuseTable($db);
+
 // Handle different actions
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $action = $_POST['action'] ?? '';
+    // Accept action from POST or query string to be resilient to multipart edge cases
+    $action = $_POST['action'] ?? ($_GET['action'] ?? '');
+    if (!is_string($action)) {
+        $action = '';
+    }
+    $action = strtolower(trim($action));
+
+    // Fallback: if action is missing but a late slip file is present, assume upload_excuse
+    if ($action === '' && !empty($_FILES['excuse_file'])) {
+        $action = 'upload_excuse';
+    }
+
+    if ($action === '') {
+        http_response_code(400);
+        jsonError('Invalid action');
+    }
     
+    if ($action === 'upload_excuse') {
+        try {
+            // Restrict to super admins to avoid misuse
+            if (!isSuperAdmin()) {
+                http_response_code(403);
+                jsonError('Unauthorized access. Admin privileges required.');
+            }
+
+            $attendance_id = isset($_POST['id']) ? intval($_POST['id']) : 0;
+            $description = isset($_POST['description']) ? sanitizeString($_POST['description']) : '';
+
+            if ($attendance_id <= 0) {
+                http_response_code(400);
+                jsonError('Invalid attendance ID');
+            }
+
+            // Validate target record and make sure it is marked late
+            $stmt = $db->prepare("SELECT attendance_id, status FROM attendance WHERE attendance_id = ?");
+            $stmt->execute([$attendance_id]);
+            $attendanceRow = $stmt->fetch();
+
+            if (!$attendanceRow) {
+                http_response_code(404);
+                jsonError('Attendance record not found');
+            }
+
+            if ($attendanceRow['status'] !== 'late') {
+                http_response_code(400);
+                jsonError('Excuse uploads are only allowed for late records.');
+            }
+
+            ensureAttendanceExcuseTable($db);
+
+            $allowed_types = array_merge(ALLOWED_IMAGE_TYPES, ['pdf']);
+            $upload_dir = __DIR__ . '/../uploads/attendance_excuses';
+
+            if (!isset($_FILES['excuse_file'])) {
+                http_response_code(400);
+                jsonError('No file uploaded.');
+            }
+
+            $upload = uploadFile($_FILES['excuse_file'], $upload_dir, $allowed_types);
+            if (!$upload['success']) {
+                http_response_code(400);
+                jsonError($upload['message']);
+            }
+
+            // Remove old file if present
+            $stmt = $db->prepare("SELECT file_name FROM attendance_excuses WHERE attendance_id = ?");
+            $stmt->execute([$attendance_id]);
+            $existingExcuse = $stmt->fetch();
+
+            if ($existingExcuse && !empty($existingExcuse['file_name'])) {
+                $old_path = $upload_dir . '/' . $existingExcuse['file_name'];
+                deleteFile($old_path);
+            }
+
+            if ($existingExcuse) {
+                $stmt = $db->prepare("UPDATE attendance_excuses
+                                           SET description = ?, file_name = ?, original_name = ?, uploaded_by = ?, uploaded_at = NOW()
+                                           WHERE attendance_id = ?");
+                $stmt->execute([$description, $upload['filename'], $_FILES['excuse_file']['name'], $user_id, $attendance_id]);
+            } else {
+                $stmt = $db->prepare("INSERT INTO attendance_excuses (attendance_id, description, file_name, original_name, uploaded_by)
+                                           VALUES (?, ?, ?, ?, ?)");
+                $stmt->execute([$attendance_id, $description, $upload['filename'], $_FILES['excuse_file']['name'], $user_id]);
+            }
+
+            $file_url = BASE_URL . '/uploads/attendance_excuses/' . $upload['filename'];
+
+            logActivity($db, $user_id, 'upload_attendance_excuse', 'attendance', $attendance_id,
+                'Uploaded late slip for attendance #' . $attendance_id);
+
+            http_response_code(200);
+            jsonSuccess('Excuse uploaded successfully', [
+                'file_url' => $file_url,
+                'description' => $description,
+                'original_name' => $_FILES['excuse_file']['name']
+            ]);
+            exit;
+        } catch (Exception $e) {
+            http_response_code(500);
+            jsonError('Failed to upload excuse');
+        }
+    }
+
     try {
         switch ($action) {
             case 'archive':
@@ -547,7 +678,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                      COALESCE(ds.start_time, s.start_time) AS sched_start, 
                                      COALESCE(ds.end_time, s.end_time) AS sched_end,
                                      CASE WHEN ds.daily_schedule_id IS NOT NULL THEN 'daily' ELSE 'weekly' END AS sched_source,
-                                     u.username as verified_by_name
+                                     u.username as verified_by_name,
+                                     ae.description AS excuse_description,
+                                     ae.file_name AS excuse_file,
+                                     ae.original_name AS excuse_original_name,
+                                     ae.uploaded_at AS excuse_uploaded_at
                                      FROM attendance a
                                      JOIN workers w ON a.worker_id = w.worker_id
                                      LEFT JOIN worker_classifications wc ON w.classification_id = wc.classification_id
@@ -562,6 +697,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                          AND s.is_active = 1
                                          AND ds.daily_schedule_id IS NULL
                                      LEFT JOIN users u ON a.verified_by = u.user_id
+                                     LEFT JOIN attendance_excuses ae ON ae.attendance_id = a.attendance_id
                                      WHERE a.attendance_id = ?");
                 $stmt->execute([$attendance_id]);
                 $attendance = $stmt->fetch();
@@ -569,6 +705,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if (!$attendance) {
                     http_response_code(404);
                     jsonError('Attendance record not found');
+                }
+
+                if (!empty($attendance['excuse_file'])) {
+                    $attendance['excuse_file_url'] = BASE_URL . '/uploads/attendance_excuses/' . $attendance['excuse_file'];
+                } else {
+                    $attendance['excuse_file_url'] = null;
                 }
                 
                 http_response_code(200);
@@ -692,7 +834,66 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     
 } else {
-    http_response_code(405);
-    jsonError('Invalid request method. Only GET and POST are allowed.');
+    // Allow a read-only GET of attendance details via action=get
+    $action = $_GET['action'] ?? '';
+    if ($action === 'get') {
+        $_POST = [];
+        // Re-run the same switch via POST block logic would be large; just proxy
+        try {
+            $attendance_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
+            if ($attendance_id <= 0) {
+                http_response_code(400);
+                jsonError('Invalid attendance ID');
+            }
+            $day_of_week_expr = "LOWER(DAYNAME(a.attendance_date))";
+            $stmt = $db->prepare("SELECT a.*, w.worker_code, w.first_name, w.last_name, w.position,
+                                     COALESCE(wc.classification_name, wct.classification_name) AS classification_name,
+                                     wt.work_type_name,
+                                     COALESCE(ds.start_time, s.start_time) AS sched_start, 
+                                     COALESCE(ds.end_time, s.end_time) AS sched_end,
+                                     CASE WHEN ds.daily_schedule_id IS NOT NULL THEN 'daily' ELSE 'weekly' END AS sched_source,
+                                     u.username as verified_by_name,
+                                     ae.description AS excuse_description,
+                                     ae.file_name AS excuse_file,
+                                     ae.original_name AS excuse_original_name,
+                                     ae.uploaded_at AS excuse_uploaded_at
+                                     FROM attendance a
+                                     JOIN workers w ON a.worker_id = w.worker_id
+                                     LEFT JOIN worker_classifications wc ON w.classification_id = wc.classification_id
+                                     LEFT JOIN work_types wt ON w.work_type_id = wt.work_type_id
+                                     LEFT JOIN worker_classifications wct ON wt.classification_id = wct.classification_id
+                                     LEFT JOIN daily_schedules ds ON ds.worker_id = a.worker_id
+                                         AND ds.schedule_date = a.attendance_date
+                                         AND ds.is_active = 1
+                                         AND ds.is_rest_day = 0
+                                     LEFT JOIN schedules s ON s.worker_id = a.worker_id
+                                         AND s.day_of_week = {$day_of_week_expr}
+                                         AND s.is_active = 1
+                                         AND ds.daily_schedule_id IS NULL
+                                     LEFT JOIN users u ON a.verified_by = u.user_id
+                                     LEFT JOIN attendance_excuses ae ON ae.attendance_id = a.attendance_id
+                                     WHERE a.attendance_id = ?");
+            $stmt->execute([$attendance_id]);
+            $attendance = $stmt->fetch();
+            if (!$attendance) {
+                http_response_code(404);
+                jsonError('Attendance record not found');
+            }
+            if (!empty($attendance['excuse_file'])) {
+                $attendance['excuse_file_url'] = BASE_URL . '/uploads/attendance_excuses/' . $attendance['excuse_file'];
+            } else {
+                $attendance['excuse_file_url'] = null;
+            }
+            http_response_code(200);
+            jsonSuccess('Attendance record retrieved', $attendance);
+        } catch (Exception $e) {
+            error_log('Attendance API GET error: ' . $e->getMessage());
+            http_response_code(500);
+            jsonError('An error occurred. Please try again.');
+        }
+    } else {
+        http_response_code(405);
+        jsonError('Invalid request method. Only GET and POST are allowed.');
+    }
 }
 ?>
