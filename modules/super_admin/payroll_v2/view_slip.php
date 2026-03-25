@@ -95,12 +95,12 @@ $regularHolidayRate = $settings['regular_holiday_multiplier'] ?? 2.00; // 200% f
 $restDayRate = $settings['rest_day_multiplier'] ?? 1.30; // 130% for rest days
 
 // Use the stored deduction values from payroll_records (already calculated by PayrollCalculator)
-$sssWeekly = floatval($record['sss_contribution']);
-$philhealthWeekly = floatval($record['philhealth_contribution']);
-$pagibigWeekly = floatval($record['pagibig_contribution']);
-$taxWeekly = floatval($record['tax_withholding']);
+$sssWeekly = max(0, abs(floatval($record['sss_contribution'])));
+$philhealthWeekly = max(0, abs(floatval($record['philhealth_contribution'])));
+$pagibigWeekly = max(0, abs(floatval($record['pagibig_contribution'])));
+$taxWeekly = max(0, abs(floatval($record['tax_withholding'])));
 
-$totalDeductions = floatval($record['total_deductions']);
+$totalDeductions = max(0, abs(floatval($record['total_deductions'])));
 $netPay = floatval($record['net_pay']);
 
 // Fetch itemized manual deductions for this worker that were active during this payroll
@@ -165,11 +165,11 @@ try {
   try {
       $calcPayroll = $pc->generatePayroll($record['worker_id'], $record['period_start'], $record['period_end']);
       // Use the fresh calculation values (respects end-of-month logic)
-      $sssWeekly = floatval($calcPayroll['deductions']['sss'] ?? 0);
-      $philhealthWeekly = floatval($calcPayroll['deductions']['philhealth'] ?? 0);
-      $pagibigWeekly = floatval($calcPayroll['deductions']['pagibig'] ?? 0);
-      $taxWeekly = floatval($calcPayroll['deductions']['tax'] ?? 0);
-      $totalDeductions = floatval($calcPayroll['deductions']['total'] ?? $totalDeductions);
+      $sssWeekly = max(0, abs(floatval($calcPayroll['deductions']['sss'] ?? 0)));
+      $philhealthWeekly = max(0, abs(floatval($calcPayroll['deductions']['philhealth'] ?? 0)));
+      $pagibigWeekly = max(0, abs(floatval($calcPayroll['deductions']['pagibig'] ?? 0)));
+      $taxWeekly = max(0, abs(floatval($calcPayroll['deductions']['tax'] ?? 0)));
+      $totalDeductions = max(0, abs(floatval($calcPayroll['deductions']['total'] ?? $totalDeductions)));
       $netPay = floatval($calcPayroll['net_pay'] ?? $netPay);
   } catch (Exception $e) {
       $calcPayroll = null;
@@ -384,13 +384,13 @@ try {
                 <table class="compact" style="width:100%">
                   <tbody>
                     <?php if ($sssWeekly > 0): ?>
-                    <tr><td>SSS</td><td class="right">-₱<?php echo number_format($sssWeekly,2); ?></td></tr>
+                    <tr><td>SSS</td><td class="right">₱<?php echo number_format($sssWeekly,2); ?></td></tr>
                     <?php endif; ?>
                     <?php if ($philhealthWeekly > 0): ?>
-                    <tr><td>PhilHealth</td><td class="right">-₱<?php echo number_format($philhealthWeekly,2); ?></td></tr>
+                    <tr><td>PhilHealth</td><td class="right">₱<?php echo number_format($philhealthWeekly,2); ?></td></tr>
                     <?php endif; ?>
                     <?php if ($pagibigWeekly > 0): ?>
-                    <tr><td>Pag-IBIG</td><td class="right">-₱<?php echo number_format($pagibigWeekly,2); ?></td></tr>
+                    <tr><td>Pag-IBIG</td><td class="right">₱<?php echo number_format($pagibigWeekly,2); ?></td></tr>
                     <?php endif; ?>
                   </tbody>
                 </table>
@@ -407,7 +407,7 @@ try {
                 <div class="table-label">Taxes (End of Month)</div>
                 <table class="compact" style="width:100%">
                   <tbody>
-                    <tr><td>BIR Withholding</td><td class="right">-₱<?php echo number_format($taxWeekly,2); ?></td></tr>
+                    <tr><td>BIR Withholding</td><td class="right">₱<?php echo number_format($taxWeekly,2); ?></td></tr>
                   </tbody>
                 </table>
               </div>
@@ -427,7 +427,7 @@ try {
                       $otherTotal = 0;
                       if (!empty($manualDeductions)):
                         foreach ($manualDeductions as $md):
-                          $mdAmount = floatval($md['amount']);
+                          $mdAmount = max(0, abs(floatval($md['amount'])));
                           $otherTotal += $mdAmount;
                           $mdLabel = $deductionTypeLabels[$md['deduction_type']] ?? ucfirst($md['deduction_type']);
                           if (!empty($md['description'])) {
@@ -436,7 +436,7 @@ try {
                     ?>
                     <tr>
                       <td style="padding:4px"><?php echo $mdLabel; ?></td>
-                      <td class="right" style="padding:4px">-₱<?php echo number_format($mdAmount,2); ?></td>
+                      <td class="right" style="padding:4px">₱<?php echo number_format($mdAmount,2); ?></td>
                     </tr>
                     <?php
                         endforeach;
@@ -446,7 +446,7 @@ try {
                         if ($otherTotal < 0) $otherTotal = 0.00;
                         if ($otherTotal > 0):
                     ?>
-                    <tr><td>Other</td><td class="right">-₱<?php echo number_format($otherTotal,2); ?></td></tr>
+                    <tr><td>Other</td><td class="right">₱<?php echo number_format($otherTotal,2); ?></td></tr>
                     <?php
                         endif;
                       endif;
@@ -466,7 +466,7 @@ try {
               <table style="width:100%;border-collapse:collapse;font-size:13px">
                 <tbody>
                   <tr><td style="padding:6px 4px">Total Gross</td><td style="padding:6px 4px;text-align:right">₱<?php echo number_format($record['gross_pay'],2); ?></td></tr>
-                  <tr><td style="padding:6px 4px">Total Deductions</td><td style="padding:6px 4px;text-align:right">-₱<?php echo number_format($totalDeductions,2); ?></td></tr>
+                  <tr><td style="padding:6px 4px">Total Deductions</td><td style="padding:6px 4px;text-align:right">₱<?php echo number_format($totalDeductions,2); ?></td></tr>
                   <tr style="font-weight:900;font-size:16px;border-top:1px solid #eee"><td style="padding:8px 4px">Net Pay</td><td style="padding:8px 4px;text-align:right">₱<?php echo number_format($netPay,2); ?></td></tr>
                 </tbody>
               </table>

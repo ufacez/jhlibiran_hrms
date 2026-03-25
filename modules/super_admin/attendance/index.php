@@ -395,17 +395,17 @@ $baseQueryString = http_build_query(array_filter($queryParams, function($v) {
                         </table>
                     </div>
                     <?php if ($total_pages > 1): ?>
-                    <div class="pagination">
+                    <div class="pagination-bar">
                         <?php 
                             $prev_page = max(1, $page - 1);
                             $next_page = min($total_pages, $page + 1);
                             $qs_prefix = $baseQueryString ? $baseQueryString . '&' : '';
                         ?>
-                        <a class="pagination-btn <?php echo $page <= 1 ? 'disabled' : ''; ?>" href="?<?php echo $qs_prefix . 'page=' . $prev_page; ?>">
+                        <a class="page-btn <?php echo $page <= 1 ? 'disabled' : ''; ?>" href="?<?php echo $qs_prefix . 'page=' . $prev_page; ?>">
                             <i class="fas fa-chevron-left"></i> Prev
                         </a>
-                        <span class="pagination-info">Page <?php echo $page; ?> of <?php echo $total_pages; ?></span>
-                        <a class="pagination-btn <?php echo $page >= $total_pages ? 'disabled' : ''; ?>" href="?<?php echo $qs_prefix . 'page=' . $next_page; ?>">
+                        <span class="page-info">Page <?php echo $page; ?> of <?php echo $total_pages; ?></span>
+                        <a class="page-btn <?php echo $page >= $total_pages ? 'disabled' : ''; ?>" href="?<?php echo $qs_prefix . 'page=' . $next_page; ?>">
                             Next <i class="fas fa-chevron-right"></i>
                         </a>
                     </div>

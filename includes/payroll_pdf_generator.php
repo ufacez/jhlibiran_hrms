@@ -543,11 +543,11 @@ class PayrollPDFGenerator {
         $this->pdf->Cell(0, 6, 'DEDUCTIONS', 0, 1, 'L', true);
 
         // Prepare statutory values
-        $sss = (float)($record['sss_contribution'] ?? 0);
-        $philhealth = (float)($record['philhealth_contribution'] ?? 0);
-        $pagibig = (float)($record['pagibig_contribution'] ?? 0);
-        $tax = (float)($record['tax_withholding'] ?? 0);
-        $totalDeductions = (float)($record['total_deductions'] ?? 0);
+        $sss = max(0, abs((float)($record['sss_contribution'] ?? 0)));
+        $philhealth = max(0, abs((float)($record['philhealth_contribution'] ?? 0)));
+        $pagibig = max(0, abs((float)($record['pagibig_contribution'] ?? 0)));
+        $tax = max(0, abs((float)($record['tax_withholding'] ?? 0)));
+        $totalDeductions = max(0, abs((float)($record['total_deductions'] ?? 0)));
 
         // Fetch itemized manual deductions with date and payroll period
         $manualDeductions = [];
@@ -648,7 +648,7 @@ class PayrollPDFGenerator {
         $this->pdf->SetFillColor(250,250,250);
         $this->pdf->MultiCell($wSummary, 6, "Total Gross:   P" . number_format($record['gross_pay'],2), 1, 'L', true, 1);
         $this->pdf->SetX($summaryX);
-        $this->pdf->MultiCell($wSummary, 6, "Total Deductions:   -P" . number_format($totalDeductions,2), 1, 'L', false, 1);
+        $this->pdf->MultiCell($wSummary, 6, "Total Deductions:   P" . number_format($totalDeductions,2), 1, 'L', false, 1);
         $this->pdf->SetX($summaryX);
         $this->pdf->SetFont('dejavusans', 'B', 12);
         $this->pdf->MultiCell($wSummary, 8, "NET PAY:   P" . number_format($record['net_pay'],2), 1, 'C', true, 1);
@@ -671,7 +671,7 @@ class PayrollPDFGenerator {
         $otherTotal = 0;
         if (!empty($manualDeductions)) {
             foreach ($manualDeductions as $md) {
-                $mdAmount = floatval($md['amount']);
+                $mdAmount = max(0, abs(floatval($md['amount'])));
                 $otherTotal += $mdAmount;
                 $label = $deductionTypeLabels[$md['deduction_type']] ?? ucfirst($md['deduction_type']);
                 if (!empty($md['description'])) {
@@ -679,7 +679,7 @@ class PayrollPDFGenerator {
                 }
 
                 $this->pdf->Cell($cw[0], 5, $label, 1, 0, 'L');
-                $this->pdf->Cell($cw[1], 5, '-P' . number_format($mdAmount, 2), 1, 1, 'R');
+                $this->pdf->Cell($cw[1], 5, 'P' . number_format($mdAmount, 2), 1, 1, 'R');
             }
         } else {
             // Fallback: compute lump from stored total
@@ -687,7 +687,7 @@ class PayrollPDFGenerator {
             if ($otherTotal < 0) $otherTotal = 0;
             if ($otherTotal > 0) {
                 $this->pdf->Cell($cw[0], 5, 'Other', 1, 0, 'L');
-                $this->pdf->Cell($cw[1], 5, '-P' . number_format($otherTotal, 2), 1, 1, 'R');
+                $this->pdf->Cell($cw[1], 5, 'P' . number_format($otherTotal, 2), 1, 1, 'R');
             } else {
                 $this->pdf->SetFont('dejavusans', '', 8);
                 $this->pdf->Cell(array_sum($cw), 5, 'None', 1, 1, 'C');

@@ -33,6 +33,11 @@ $filter_period = isset($_GET['period']) ? intval($_GET['period']) : 0;
 $filter_project = isset($_GET['project']) ? intval($_GET['project']) : 0;
 $filter_status = $_GET['status'] ?? '';
 
+// Pagination
+$per_page = 10;
+$page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+$offset = ($page - 1) * $per_page;
+
 if (!$filter_period || !$filter_project) {
     header('Location: payroll_slips.php');
     exit;
@@ -70,9 +75,33 @@ try {
     exit;
 }
 
-// Build query - strictly filtered to this project and period only
-$query = "
-    SELECT pr.record_id, pr.period_id, pr.worker_id, pr.project_id, 
+// Build base query - strictly filtered to this project and period only
+$baseQuery = " FROM payroll_records pr
+    JOIN payroll_periods p ON pr.period_id = p.period_id
+    JOIN workers w ON pr.worker_id = w.worker_id
+    LEFT JOIN work_types wt ON w.work_type_id = wt.work_type_id
+    LEFT JOIN worker_classifications wc ON wt.classification_id = wc.classification_id
+    LEFT JOIN projects proj ON pr.project_id = proj.project_id
+    WHERE pr.period_id = ? AND COALESCE(pr.project_id, 0) = ?";
+$params = [$filter_period, $filter_project];
+
+if (!empty($filter_status)) {
+    $baseQuery .= " AND pr.status = ?";
+    $params[] = $filter_status;
+}
+
+$orderBy = " ORDER BY w.last_name ASC, w.first_name ASC";
+
+$total_records = 0;
+try {
+    // Count total
+    $countSql = "SELECT COUNT(*)" . $baseQuery;
+    $stmt = $pdo->prepare($countSql);
+    $stmt->execute($params);
+    $total_records = (int)$stmt->fetchColumn();
+
+    // Fetch page data
+    $dataSql = "SELECT pr.record_id, pr.period_id, pr.worker_id, pr.project_id,
            pr.gross_pay, pr.net_pay, pr.total_deductions, pr.status, pr.payment_date,
            pr.regular_hours, pr.overtime_hours,
            p.period_start, p.period_end,
@@ -80,40 +109,42 @@ $query = "
            COALESCE(wc.classification_name, '') AS classification_name,
            COALESCE(wt.work_type_name, '') AS work_type_name,
            proj.project_name
-    FROM payroll_records pr
-    JOIN payroll_periods p ON pr.period_id = p.period_id
-    JOIN workers w ON pr.worker_id = w.worker_id
-    LEFT JOIN work_types wt ON w.work_type_id = wt.work_type_id
-    LEFT JOIN worker_classifications wc ON wt.classification_id = wc.classification_id
-    LEFT JOIN projects proj ON pr.project_id = proj.project_id
-    WHERE pr.period_id = ? AND COALESCE(pr.project_id, 0) = ?
-";
-$params = [$filter_period, $filter_project];
+    " . $baseQuery . $orderBy . " LIMIT ? OFFSET ?";
 
-if (!empty($filter_status)) {
-    $query .= " AND pr.status = ?";
-    $params[] = $filter_status;
-}
-
-$query .= " ORDER BY w.last_name ASC, w.first_name ASC";
-
-try {
-    $stmt = $pdo->prepare($query);
-    $stmt->execute($params);
+    $paramsWithLimit = array_merge($params, [$per_page, $offset]);
+    $stmt = $pdo->prepare($dataSql);
+    $stmt->execute($paramsWithLimit);
     $payrollRecords = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (Exception $e) {
     $payrollRecords = [];
+    $total_records = 0;
     $errorMessage = 'Error loading payroll records: ' . $e->getMessage();
 }
 
+$total_pages = max(1, (int)ceil($total_records / $per_page));
+if ($page > $total_pages) {
+    $page = $total_pages;
+    $offset = ($page - 1) * $per_page;
+}
+$start_record = $total_records ? ($offset + 1) : 0;
+$end_record = min($offset + $per_page, $total_records);
+
 // Summary totals
-$totalGross = 0;
-$totalDeductions = 0;
-$totalNet = 0;
-foreach ($payrollRecords as $r) {
-    $totalGross += floatval($r['gross_pay']);
-    $totalDeductions += floatval($r['total_deductions']);
-    $totalNet += floatval($r['net_pay']);
+$pageGross = 0;
+$pageDeductions = 0;
+$pageNet = 0;
+foreach ($payrollRecords as $idx => $r) {
+    $cleanGross = floatval($r['gross_pay']);
+    $cleanDeduct = max(0, abs(floatval($r['total_deductions'])));
+    $cleanNet = floatval($r['net_pay']);
+
+    $pageGross += $cleanGross;
+    $pageDeductions += $cleanDeduct;
+    $pageNet += $cleanNet;
+
+    $payrollRecords[$idx]['gross_pay'] = $cleanGross;
+    $payrollRecords[$idx]['total_deductions'] = $cleanDeduct;
+    $payrollRecords[$idx]['net_pay'] = $cleanNet;
 }
 
 $pageTitle = htmlspecialchars($project['project_name']) . ' - Payroll Slips';
@@ -419,7 +450,7 @@ $pageTitle = htmlspecialchars($project['project_name']) . ' - Payroll Slips';
                     </h2>
                     <div class="meta">
                         <span><i class="fas fa-calendar-week"></i> <?php echo date('M d', strtotime($period['period_start'])); ?> - <?php echo date('M d, Y', strtotime($period['period_end'])); ?></span>
-                        <span><i class="fas fa-users"></i> <?php echo count($payrollRecords); ?> worker<?php echo count($payrollRecords) !== 1 ? 's' : ''; ?></span>
+                        <span><i class="fas fa-users"></i> Showing <?php echo $start_record; ?>-<?php echo $end_record; ?> of <?php echo $total_records; ?> worker<?php echo $total_records !== 1 ? 's' : ''; ?></span>
                         <?php if (!empty($project['location'])): ?>
                         <span><i class="fas fa-map-marker-alt"></i> <?php echo htmlspecialchars($project['location']); ?></span>
                         <?php endif; ?>
@@ -430,20 +461,20 @@ $pageTitle = htmlspecialchars($project['project_name']) . ' - Payroll Slips';
                 <!-- Summary Cards -->
                 <div class="summary-row">
                     <div class="summary-card">
-                        <div class="label">Workers</div>
+                        <div class="label">Workers (page)</div>
                         <div class="value"><?php echo count($payrollRecords); ?></div>
                     </div>
                     <div class="summary-card">
-                        <div class="label">Total Gross</div>
-                        <div class="value">₱<?php echo number_format($totalGross, 2); ?></div>
+                        <div class="label">Gross (page)</div>
+                        <div class="value">₱<?php echo number_format($pageGross, 2); ?></div>
                     </div>
                     <div class="summary-card">
-                        <div class="label">Total Deductions</div>
-                        <div class="value red">₱<?php echo number_format($totalDeductions, 2); ?></div>
+                        <div class="label">Deductions (page)</div>
+                        <div class="value red">₱<?php echo number_format($pageDeductions, 2); ?></div>
                     </div>
                     <div class="summary-card">
-                        <div class="label">Total Net Pay</div>
-                        <div class="value gold">₱<?php echo number_format($totalNet, 2); ?></div>
+                        <div class="label">Net Pay (page)</div>
+                        <div class="value gold">₱<?php echo number_format($pageNet, 2); ?></div>
                     </div>
                 </div>
 
@@ -538,6 +569,26 @@ $pageTitle = htmlspecialchars($project['project_name']) . ' - Payroll Slips';
                                 </div>
                             </div>
                         <?php endforeach; ?>
+                        <?php if ($total_pages > 1): ?>
+                        <div class="pagination-bar" style="display:flex;justify-content:center;align-items:center;gap:12px;padding:16px 20px;border-top:1px solid #e0e0e0;">
+                            <?php
+                                $prev_page = max(1, $page - 1);
+                                $next_page = min($total_pages, $page + 1);
+                                $qs = $_GET;
+                                $qs['page'] = $prev_page;
+                                $prevLink = '?' . http_build_query($qs);
+                                $qs['page'] = $next_page;
+                                $nextLink = '?' . http_build_query($qs);
+                            ?>
+                            <a class="page-btn <?php echo $page <= 1 ? 'disabled' : ''; ?>" style="padding:8px 14px;border-radius:8px;border:2px solid #e0e0e0;background:#fff;color:#1a1a1a;font-weight:600;text-decoration:none;transition:all 0.2s ease;<?php echo $page <= 1 ? 'opacity:0.4;pointer-events:none;cursor:not-allowed;' : ''; ?>" href="<?php echo $prevLink; ?>">
+                                <i class="fas fa-chevron-left"></i> Prev
+                            </a>
+                            <span class="page-info" style="font-weight:600;color:#555;">Page <?php echo $page; ?> of <?php echo $total_pages; ?></span>
+                            <a class="page-btn <?php echo $page >= $total_pages ? 'disabled' : ''; ?>" style="padding:8px 14px;border-radius:8px;border:2px solid #e0e0e0;background:#fff;color:#1a1a1a;font-weight:600;text-decoration:none;transition:all 0.2s ease;<?php echo $page >= $total_pages ? 'opacity:0.4;pointer-events:none;cursor:not-allowed;' : ''; ?>" href="<?php echo $nextLink; ?>">
+                                Next <i class="fas fa-chevron-right"></i>
+                            </a>
+                        </div>
+                        <?php endif; ?>
                     <?php else: ?>
                         <div class="empty-state">
                             <i class="fas fa-inbox"></i>

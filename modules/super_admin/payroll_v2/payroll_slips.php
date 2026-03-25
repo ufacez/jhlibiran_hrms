@@ -27,6 +27,9 @@ $userLevel = getCurrentUserLevel();
 $canApprovePayroll = ($userLevel === 'super_admin') || hasPermission($db, 'can_approve_payroll');
 $canMarkPaid = ($userLevel === 'super_admin') || hasPermission($db, 'can_mark_paid');
 
+// Pagination (per-project)
+$per_page = 10;
+
 // Get filters from request
 $filter_worker = $_GET['worker'] ?? '';
 $filter_period = $_GET['period'] ?? '';
@@ -35,60 +38,125 @@ $filter_classification = $_GET['classification'] ?? '';
 $filter_role = $_GET['role'] ?? '';
 $filter_project = $_GET['project'] ?? '';
 
-// Build query
-$query = "
-        SELECT pr.record_id, pr.period_id, pr.worker_id, pr.project_id, pr.gross_pay, pr.net_pay, 
-            pr.total_deductions, pr.status, pr.payment_date,
-            p.period_start, p.period_end,
-            w.worker_id, w.first_name, w.last_name, w.worker_code, w.position, w.worker_type, w.classification_id,
-            proj.project_name
-        FROM payroll_records pr
-        JOIN payroll_periods p ON pr.period_id = p.period_id
-        JOIN workers w ON pr.worker_id = w.worker_id
-        LEFT JOIN projects proj ON pr.project_id = proj.project_id
-        WHERE 1=1
-";
+// Base query (shared for count + data)
+$baseQuery = " FROM payroll_records pr
+    JOIN payroll_periods p ON pr.period_id = p.period_id
+    JOIN workers w ON pr.worker_id = w.worker_id
+    LEFT JOIN projects proj ON pr.project_id = proj.project_id
+    WHERE 1=1";
 
 $params = [];
 
 if (!empty($filter_worker)) {
-    $query .= " AND pr.worker_id = ?";
+    $baseQuery .= " AND pr.worker_id = ?";
     $params[] = $filter_worker;
 }
 
 if (!empty($filter_period)) {
-    $query .= " AND pr.period_id = ?";
+    $baseQuery .= " AND pr.period_id = ?";
     $params[] = $filter_period;
 }
 
 if (!empty($filter_status)) {
-    $query .= " AND pr.status = ?";
+    $baseQuery .= " AND pr.status = ?";
     $params[] = $filter_status;
 }
 
 if (!empty($filter_classification)) {
-    $query .= " AND w.classification_id = ?";
+    $baseQuery .= " AND w.classification_id = ?";
     $params[] = $filter_classification;
 }
 
 if (!empty($filter_role)) {
-    $query .= " AND w.worker_type = ?";
+    $baseQuery .= " AND w.worker_type = ?";
     $params[] = $filter_role;
 }
 
 if (!empty($filter_project)) {
-    $query .= " AND pr.project_id = ?";
+    $baseQuery .= " AND pr.project_id = ?";
     $params[] = $filter_project;
 }
 
-$query .= " ORDER BY proj.project_name ASC, p.period_end DESC, w.first_name ASC";
+$order_sql = " ORDER BY proj.project_name ASC, p.period_end DESC, w.first_name ASC";
+
+// Helper to build per-project page links
+function buildProjectPageLink($projectKey, $pageNumber) {
+    $qs = $_GET;
+    unset($qs['page']); // legacy param unused now
+    $qs['proj_page_' . $projectKey] = $pageNumber;
+    return '?' . http_build_query($qs);
+}
+
+$projectData = [];
+$total_records = 0;
 
 try {
-    $stmt = $pdo->prepare($query);
+    // Count records per project to drive individual pagers
+    $countSql = "SELECT COALESCE(pr.project_id, 0) AS project_key, COALESCE(proj.project_name, 'No Project') AS project_name, COUNT(*) AS total" . $baseQuery . " GROUP BY project_key, project_name ORDER BY project_name ASC";
+    $stmt = $pdo->prepare($countSql);
     $stmt->execute($params);
-    $payrollRecords = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $projectCounts = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    foreach ($projectCounts as $pc) {
+        $projKey = $pc['project_key'];
+        $projName = $pc['project_name'];
+        $projTotal = (int)$pc['total'];
+        $total_records += $projTotal;
+
+        $projPageKey = 'proj_page_' . $projKey;
+        $projPage = isset($_GET[$projPageKey]) ? max(1, (int)$_GET[$projPageKey]) : 1;
+        $projTotalPages = max(1, (int)ceil($projTotal / $per_page));
+        if ($projPage > $projTotalPages) {
+            $projPage = $projTotalPages;
+        }
+        $projOffset = ($projPage - 1) * $per_page;
+
+        $dataSql = "SELECT pr.record_id, pr.period_id, pr.worker_id, pr.project_id, pr.gross_pay, pr.net_pay,
+                pr.total_deductions, pr.status, pr.payment_date,
+                p.period_start, p.period_end,
+                w.worker_id, w.first_name, w.last_name, w.worker_code, w.position, w.worker_type, w.classification_id,
+                proj.project_name
+            " . $baseQuery . " AND COALESCE(pr.project_id, 0) = ?" . $order_sql . " LIMIT ? OFFSET ?";
+
+        $stmtData = $pdo->prepare($dataSql);
+        $projParams = array_merge($params, [$projKey, $per_page, $projOffset]);
+        $stmtData->execute($projParams);
+        $records = $stmtData->fetchAll(PDO::FETCH_ASSOC);
+
+        $pageGross = 0;
+        $pageDeductions = 0;
+        $pageNet = 0;
+        foreach ($records as $idx => $rec) {
+            $cleanGross = floatval($rec['gross_pay']);
+            $cleanDeduct = max(0, abs(floatval($rec['total_deductions'])));
+            $cleanNet = floatval($rec['net_pay']);
+
+            $pageGross += $cleanGross;
+            $pageDeductions += $cleanDeduct;
+            $pageNet += $cleanNet;
+
+            $records[$idx]['gross_pay'] = $cleanGross;
+            $records[$idx]['total_deductions'] = $cleanDeduct;
+            $records[$idx]['net_pay'] = $cleanNet;
+        }
+
+        $projectData[$projKey] = [
+            'project_id' => $projKey,
+            'project_name' => $projName,
+            'records' => $records,
+            'total_records' => $projTotal,
+            'page' => $projPage,
+            'total_pages' => $projTotalPages,
+            'start_record' => $projTotal ? ($projOffset + 1) : 0,
+            'end_record' => min($projOffset + $per_page, $projTotal),
+            'page_total_gross' => $pageGross,
+            'page_total_deductions' => $pageDeductions,
+            'page_total_net' => $pageNet,
+        ];
+    }
 } catch (Exception $e) {
-    $payrollRecords = [];
+    $projectData = [];
+    $total_records = 0;
     $errorMessage = 'Error loading payroll records: ' . $e->getMessage();
 }
 
@@ -142,27 +210,11 @@ try {
     $projectsFilter = [];
 }
 
-// Group payroll records by project for display
-$groupedByProject = [];
-foreach ($payrollRecords as $record) {
-    $projName = $record['project_name'] ?? 'No Project';
-    $projId = $record['project_id'] ?? 0;
-    $key = $projId . '_' . $projName;
-    if (!isset($groupedByProject[$key])) {
-        $groupedByProject[$key] = [
-            'project_id' => $projId,
-            'project_name' => $projName,
-            'records' => [],
-            'total_gross' => 0,
-            'total_deductions' => 0,
-            'total_net' => 0,
-        ];
-    }
-    $groupedByProject[$key]['records'][] = $record;
-    $groupedByProject[$key]['total_gross'] += floatval($record['gross_pay']);
-    $groupedByProject[$key]['total_deductions'] += floatval($record['total_deductions']);
-    $groupedByProject[$key]['total_net'] += floatval($record['net_pay']);
-}
+$queryParams = $_GET;
+unset($queryParams['page']);
+$baseQueryString = http_build_query(array_filter($queryParams, function($v) {
+    return $v !== '' && $v !== null;
+}));
 
 $pageTitle = 'Payroll Slips';
 ?>
@@ -500,6 +552,43 @@ $pageTitle = 'Payroll Slips';
             margin-bottom: 15px;
         }
 
+        .pagination-bar {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 12px;
+            padding: 16px 20px;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .pagination-bar .page-btn {
+            padding: 8px 14px;
+            border-radius: 8px;
+            border: 2px solid #e0e0e0;
+            background: #fff;
+            color: #1a1a1a;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.2s ease;
+        }
+
+        .pagination-bar .page-btn:hover:not(.disabled) {
+            border-color: #DAA520;
+            color: #DAA520;
+            box-shadow: 0 2px 10px rgba(218, 165, 32, 0.15);
+        }
+
+        .pagination-bar .page-btn.disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+
+        .pagination-bar .page-info {
+            font-weight: 600;
+            color: #555;
+        }
+
         .header-actions .btn-back {
             padding: 10px 16px;
             background: #1a1a1a;
@@ -655,12 +744,12 @@ $pageTitle = 'Payroll Slips';
             
             <!-- Results Count -->
             <div class="results-count">
-                Found <?php echo count($payrollRecords); ?> payroll record<?php echo count($payrollRecords) !== 1 ? 's' : ''; ?>
+                Total payroll records: <?php echo $total_records; ?>. Each project shows up to <?php echo $per_page; ?> records per page.
             </div>
             
             <!-- Payroll List - Grouped by Project -->
-            <?php if (count($payrollRecords) > 0): ?>
-                <?php foreach ($groupedByProject as $groupKey => $group): ?>
+            <?php if ($total_records > 0): ?>
+                <?php foreach ($projectData as $projectKey => $group): ?>
                 <div class="project-group" style="margin-bottom: 25px;">
                     <!-- Project Header -->
                     <div class="project-group-header" style="background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%); color: white; padding: 14px 20px; border-radius: 8px 8px 0 0; display: flex; align-items: center; justify-content: space-between;">
@@ -669,10 +758,10 @@ $pageTitle = 'Payroll Slips';
                             <div>
                                 <div style="font-size: 16px; font-weight: 700;"><?php echo htmlspecialchars($group['project_name']); ?></div>
                                 <div style="font-size: 12px; color: #aaa; margin-top: 2px;">
-                                    <?php echo count($group['records']); ?> worker<?php echo count($group['records']) !== 1 ? 's' : ''; ?>
-                                    &bull; Gross: ₱<?php echo number_format($group['total_gross'], 2); ?>
-                                    &bull; Deductions: ₱<?php echo number_format($group['total_deductions'], 2); ?>
-                                    &bull; <span style="color: #DAA520; font-weight: 600;">Net: ₱<?php echo number_format($group['total_net'], 2); ?></span>
+                                    Showing <?php echo $group['start_record']; ?>-<?php echo $group['end_record']; ?> of <?php echo $group['total_records']; ?> records
+                                    &bull; Gross: ₱<?php echo number_format($group['page_total_gross'], 2); ?>
+                                    &bull; Deductions: ₱<?php echo number_format($group['page_total_deductions'], 2); ?>
+                                    &bull; <span style="color: #DAA520; font-weight: 600;">Net: ₱<?php echo number_format($group['page_total_net'], 2); ?></span>
                                 </div>
                             </div>
                         </div>
@@ -754,6 +843,22 @@ $pageTitle = 'Payroll Slips';
                                 </div>
                             </div>
                         <?php endforeach; ?>
+
+                        <?php if ($group['total_pages'] > 1): ?>
+                        <div class="pagination-bar">
+                            <?php 
+                                $projPrev = max(1, $group['page'] - 1);
+                                $projNext = min($group['total_pages'], $group['page'] + 1);
+                            ?>
+                            <a class="page-btn <?php echo $group['page'] <= 1 ? 'disabled' : ''; ?>" href="<?php echo buildProjectPageLink($group['project_id'], $projPrev); ?>">
+                                <i class="fas fa-chevron-left"></i> Prev
+                            </a>
+                            <span class="page-info">Page <?php echo $group['page']; ?> of <?php echo $group['total_pages']; ?></span>
+                            <a class="page-btn <?php echo $group['page'] >= $group['total_pages'] ? 'disabled' : ''; ?>" href="<?php echo buildProjectPageLink($group['project_id'], $projNext); ?>">
+                                Next <i class="fas fa-chevron-right"></i>
+                            </a>
+                        </div>
+                        <?php endif; ?>
                     </div>
                 </div>
                 <?php endforeach; ?>

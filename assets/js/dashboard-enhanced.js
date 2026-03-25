@@ -6,6 +6,8 @@
  */
 
 // Wait for DOM and Chart.js to be ready
+let attendanceChartInstance = null;
+
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize charts
     initAttendanceChart();
@@ -19,25 +21,27 @@ document.addEventListener('DOMContentLoaded', function() {
 /**
  * Initialize Attendance Trend Chart
  */
-function initAttendanceChart() {
-    const ctx = document.getElementById('attendanceChart');
-    if (!ctx) return;
-    
-    // Prepare data from PHP
+function prepareAttendanceDataset(period = '7') {
+    const periodKey = String(period || '7');
+    const map = (typeof attendanceTrendDataMap !== 'undefined') ? attendanceTrendDataMap : {};
+    const data = map[periodKey] || [];
+
     const labels = [];
     const presentData = [];
     const absentData = [];
     const onLeaveData = [];
-    
-    if (typeof attendanceTrendData !== 'undefined' && attendanceTrendData.length > 0) {
-        attendanceTrendData.forEach(item => {
+
+    if (data.length > 0) {
+        data.forEach(item => {
             labels.push(item.day_label);
-            presentData.push(parseInt(item.present_count));
-            absentData.push(parseInt(item.absent_count));
+            presentData.push(parseInt(item.present_count || 0));
+            absentData.push(parseInt(item.absent_count || 0));
             onLeaveData.push(parseInt(item.on_leave_count || 0));
         });
-    } else {
-        // Default data if no data available
+    }
+
+    // Fallback when no data
+    if (labels.length === 0) {
         const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
         days.forEach(day => {
             labels.push(day);
@@ -46,8 +50,17 @@ function initAttendanceChart() {
             onLeaveData.push(0);
         });
     }
-    
-    new Chart(ctx, {
+
+    return { labels, presentData, absentData, onLeaveData, periodKey, hasData: data.length > 0 };
+}
+
+function initAttendanceChart(defaultPeriod = '7') {
+    const ctx = document.getElementById('attendanceChart');
+    if (!ctx) return;
+
+    const { labels, presentData, absentData, onLeaveData } = prepareAttendanceDataset(defaultPeriod);
+
+    attendanceChartInstance = new Chart(ctx, {
         type: 'line',
         data: {
             labels: labels,
@@ -171,6 +184,17 @@ function initAttendanceChart() {
  */
 function initFilterButtons() {
     const filterBtns = document.querySelectorAll('.filter-btn');
+    const defaultBtn = document.querySelector('.filter-btn.active');
+    const defaultPeriod = defaultBtn ? defaultBtn.getAttribute('data-period') : '7';
+    // Ensure initial chart matches active button
+    if (attendanceChartInstance) {
+        const { labels, presentData, absentData, onLeaveData } = prepareAttendanceDataset(defaultPeriod);
+        attendanceChartInstance.data.labels = labels;
+        attendanceChartInstance.data.datasets[0].data = presentData;
+        attendanceChartInstance.data.datasets[1].data = absentData;
+        attendanceChartInstance.data.datasets[2].data = onLeaveData;
+        attendanceChartInstance.update();
+    }
     
     filterBtns.forEach(btn => {
         btn.addEventListener('click', function() {
@@ -182,19 +206,7 @@ function initFilterButtons() {
             
             // Get period from data attribute
             const period = this.getAttribute('data-period');
-            
-            // TODO: Load data for selected period via AJAX
-            console.log('Loading data for period:', period + ' days');
-            
-            // Show loading indicator
-            showLoading('Loading attendance data...');
-            
-            // Simulate API call (replace with actual AJAX call)
-            setTimeout(() => {
-                hideLoading();
-                // Update chart with new data
-                // updateAttendanceChart(newData);
-            }, 500);
+            updateAttendanceChart(period);
         });
     });
 }
@@ -203,9 +215,17 @@ function initFilterButtons() {
  * Update attendance chart with new data
  * @param {Object} data - New data to display
  */
-function updateAttendanceChart(data) {
-    // TODO: Implement chart update logic
-    console.log('Updating chart with:', data);
+function updateAttendanceChart(period = '7') {
+    if (!attendanceChartInstance) return;
+    const { labels, presentData, absentData, onLeaveData, hasData, periodKey } = prepareAttendanceDataset(period);
+    if (!hasData) {
+        console.warn('No attendance data for period', periodKey);
+    }
+    attendanceChartInstance.data.labels = labels;
+    attendanceChartInstance.data.datasets[0].data = presentData;
+    attendanceChartInstance.data.datasets[1].data = absentData;
+    attendanceChartInstance.data.datasets[2].data = onLeaveData;
+    attendanceChartInstance.update('none');
 }
 
 /**

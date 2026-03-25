@@ -27,6 +27,24 @@ $full_name = $_SESSION['full_name'] ?? 'Administrator';
 // Get flash message
 $flash = getFlashMessage();
 
+// Helper: fetch attendance trend for the last N days (inclusive of today)
+function fetchAttendanceTrend($db, $days) {
+    $days = max(1, (int)$days);
+    $startDate = (new DateTime())->modify('-' . ($days - 1) . ' days')->format('Y-m-d');
+    $stmt = $db->prepare("SELECT 
+                        DATE_FORMAT(attendance_date, '%b %d (%a)') as day_label,
+                        COUNT(CASE WHEN status IN ('present', 'late', 'overtime') THEN 1 END) as present_count,
+                        COUNT(CASE WHEN status = 'absent' THEN 1 END) as absent_count,
+                        COUNT(CASE WHEN status IN ('on_leave','leave','on leave') THEN 1 END) as on_leave_count
+                        FROM attendance
+                        WHERE attendance_date >= ?
+                        AND is_archived = FALSE
+                        GROUP BY attendance_date
+                        ORDER BY attendance_date ASC");
+    $stmt->execute([$startDate]);
+    return $stmt->fetchAll();
+}
+
 // Fetch dashboard statistics
 try {
     // Total active workers (excluding archived)
@@ -86,20 +104,14 @@ try {
                         LIMIT 5");
     $today_schedules = $stmt->fetchAll();
     
-    // Attendance trend for last 7 days
-    $stmt = $db->query("SELECT 
-                        DATE_FORMAT(attendance_date, '%b %d (%a)') as day_label,
-                        COUNT(CASE WHEN status IN ('present', 'late', 'overtime') THEN 1 END) as present_count,
-                        COUNT(CASE WHEN status = 'absent' THEN 1 END) as absent_count,
-                        COUNT(CASE WHEN status IN ('on_leave','leave','on leave') THEN 1 END) as on_leave_count
-                        FROM attendance
-                        WHERE attendance_date >= DATE_SUB(CURDATE(), INTERVAL 6 DAY)
-                        AND is_archived = FALSE
-                        GROUP BY attendance_date
-                        ORDER BY attendance_date ASC");
-    $attendance_trend = $stmt->fetchAll();
+    // Attendance trends for selectable ranges
+    $attendance_trend_7 = fetchAttendanceTrend($db, 7);
+    $attendance_trend_30 = fetchAttendanceTrend($db, 30);
+    $attendance_trend_90 = fetchAttendanceTrend($db, 90);
     
     // Recent Activity (from unified audit_trail — only Super Admin/Admin actions)
+    // Audit trail pagination (dashboard preview: 10 latest)
+    $auditLimit = 10;
     $sql = "SELECT 
                 at.*,
                 COALESCE(
@@ -140,7 +152,7 @@ try {
             FROM audit_trail at
             WHERE at.user_level IN ('super_admin', 'admin')
             ORDER BY at.created_at DESC
-            LIMIT 5";
+            LIMIT {$auditLimit}";
     $stmt = $db->query($sql);
     $recent_activities = $stmt->fetchAll();
     
@@ -182,7 +194,7 @@ try {
     $month_payroll = 0;
     $recent_attendance = [];
     $today_schedules = [];
-    $attendance_trend = [];
+    $attendance_trend_7 = $attendance_trend_30 = $attendance_trend_90 = [];
     $recent_activities = [];
     $currentPeriodLabel = '';
     $payrollReleaseLabel = '';
@@ -312,6 +324,16 @@ function getEnhancedActivityDescription($activity) {
         <link rel="stylesheet" href="https://pro.fontawesome.com/releases/v5.10.0/css/all.css" />
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <style>
+            /* Compact recent activity section */
+            .activity-section .table-card { padding: 12px 14px; }
+            .activity-section .table-header { margin-bottom: 8px; }
+            .activity-section .activity-list { gap: 6px; }
+            .activity-section .activity-item { padding: 8px 10px; margin-bottom: 6px; }
+            .activity-section .activity-content { gap: 4px; }
+            .activity-section .activity-text { font-size: 13px; }
+            .activity-section .activity-meta { font-size: 12px; }
+        </style>
         <title>Super Admin Dashboard - <?php echo SYSTEM_NAME; ?></title>
         <link rel="stylesheet" href="<?php echo CSS_URL; ?>/dashboard.css">
         <link rel="stylesheet" href="<?php echo CSS_URL; ?>/dashboard-enhanced.css">
@@ -647,7 +669,11 @@ function getEnhancedActivityDescription($activity) {
     
     <!-- Pass PHP data to JavaScript -->
     <script>
-        const attendanceTrendData = <?php echo json_encode($attendance_trend); ?>;
+        const attendanceTrendDataMap = {
+            '7': <?php echo json_encode($attendance_trend_7); ?>,
+            '30': <?php echo json_encode($attendance_trend_30); ?>,
+            '90': <?php echo json_encode($attendance_trend_90); ?>
+        };
     </script>
     
     <!-- JavaScript -->

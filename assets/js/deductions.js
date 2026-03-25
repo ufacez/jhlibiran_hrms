@@ -133,6 +133,8 @@ function loadDeductions() {
                 const freqLabel = d.frequency === 'per_payroll' ? 'Per Payroll' : 'One-Time';
                 const dedDate = d.deduction_date ? formatDate(d.deduction_date) : '—';
 
+                const amountDisplay = Math.max(0, Math.abs(parseFloat(d.amount) || 0)).toLocaleString('en-PH', {minimumFractionDigits:2});
+
                 return `<tr>
                     <td>
                         <div class="worker-info">
@@ -144,7 +146,7 @@ function loadDeductions() {
                         </div>
                     </td>
                     <td><span class="type-badge ${d.deduction_type}">${typeLabel}</span></td>
-                    <td class="amount-cell">-₱${parseFloat(d.amount).toLocaleString('en-PH', {minimumFractionDigits:2})}</td>
+                    <td class="amount-cell">₱${amountDisplay}</td>
                     <td class="desc-cell" title="${escAttr(d.description || '')}">${esc(d.description || '—')}</td>
                     <td class="freq-cell">${freqLabel}</td>
                     <td class="date-cell">${dedDate}</td>
