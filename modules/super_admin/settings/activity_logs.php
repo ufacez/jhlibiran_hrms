@@ -25,7 +25,7 @@ $full_name = $_SESSION['full_name'] ?? 'Administrator';
 
 // Pagination
 $page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
-$per_page = 50;
+$per_page = 10;
 $offset = ($page - 1) * $per_page;
 
 // Filters
