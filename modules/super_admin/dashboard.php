@@ -88,9 +88,10 @@ try {
     
     // Attendance trend for last 7 days
     $stmt = $db->query("SELECT 
-                        DATE_FORMAT(attendance_date, '%a') as day_name,
+                        DATE_FORMAT(attendance_date, '%b %d (%a)') as day_label,
                         COUNT(CASE WHEN status IN ('present', 'late', 'overtime') THEN 1 END) as present_count,
-                        COUNT(CASE WHEN status = 'absent' THEN 1 END) as absent_count
+                        COUNT(CASE WHEN status = 'absent' THEN 1 END) as absent_count,
+                        COUNT(CASE WHEN status IN ('on_leave','leave','on leave') THEN 1 END) as on_leave_count
                         FROM attendance
                         WHERE attendance_date >= DATE_SUB(CURDATE(), INTERVAL 6 DAY)
                         AND is_archived = FALSE
@@ -139,7 +140,7 @@ try {
             FROM audit_trail at
             WHERE at.user_level IN ('super_admin', 'admin')
             ORDER BY at.created_at DESC
-            LIMIT 10";
+            LIMIT 5";
     $stmt = $db->query($sql);
     $recent_activities = $stmt->fetchAll();
     
@@ -371,20 +372,6 @@ function getEnhancedActivityDescription($activity) {
                                 </span>
                             </div>
                         </div>
-                        <div class="welcome-stats">
-                            <div class="welcome-stat">
-                                <span class="welcome-stat-value"><?php echo $attendance_rate; ?>%</span>
-                                <span class="welcome-stat-label">Attendance Rate</span>
-                            </div>
-                            <div class="welcome-stat">
-                                <span class="welcome-stat-value"><?php echo $total_workers; ?></span>
-                                <span class="welcome-stat-label">Active Workers</span>
-                            </div>
-                            <div class="welcome-stat">
-                                <span class="welcome-stat-value"><?php echo formatCurrency($month_payroll); ?></span>
-                                <span class="welcome-stat-label">This Month</span>
-                            </div>
-                        </div>
                     </div>
                 </div>
 
@@ -439,70 +426,6 @@ function getEnhancedActivityDescription($activity) {
                     </div>
                 </div>
 
-                <!-- Analytics Section -->
-                <div class="analytics-grid">
-                    <!-- Attendance Trend Chart -->
-                    <div class="chart-card">
-                        <div class="chart-header">
-                            <div class="chart-title">
-                                <i class="fas fa-chart-line"></i>
-                                Attendance Trend
-                            </div>
-                            <div class="chart-filter">
-                                <button class="filter-btn active" data-period="7">7 Days</button>
-                                <button class="filter-btn" data-period="30">30 Days</button>
-                                <button class="filter-btn" data-period="90">90 Days</button>
-                            </div>
-                        </div>
-                        <div class="chart-container">
-                            <canvas id="attendanceChart"></canvas>
-                        </div>
-                    </div>
-
-                    <!-- Worker Distribution -->
-                    <div class="chart-card">
-                        <div class="chart-header">
-                            <div class="chart-title">
-                                <i class="fas fa-users-cog"></i>
-                                Worker Status
-                            </div>
-                        </div>
-                        <div class="distribution-item">
-                            <div class="distribution-label">
-                                <div class="distribution-dot" style="background: #27ae60;"></div>
-                                <span>On Site</span>
-                            </div>
-                            <div>
-                                <span class="distribution-number"><?php echo $on_site_today; ?></span>
-                                <span class="distribution-percent"><?php echo $attendance_rate; ?>%</span>
-                            </div>
-                        </div>
-                        <div class="distribution-item">
-                            <div class="distribution-label">
-                                <div class="distribution-dot" style="background: #f39c12;"></div>
-                                <span>On Leave</span>
-                            </div>
-                            <div>
-                                <span class="distribution-number"><?php echo $on_leave; ?></span>
-                                <span class="distribution-percent"><?php echo $total_workers > 0 ? round(($on_leave / $total_workers) * 100) : 0; ?>%</span>
-                            </div>
-                        </div>
-                        <div class="distribution-item">
-                            <div class="distribution-label">
-                                <div class="distribution-dot" style="background: #e74c3c;"></div>
-                                <span>Absent</span>
-                            </div>
-                            <div>
-                                <span class="distribution-number"><?php echo $total_workers - $on_site_today - $on_leave; ?></span>
-                                <span class="distribution-percent"><?php echo $total_workers > 0 ? round((($total_workers - $on_site_today - $on_leave) / $total_workers) * 100) : 0; ?>%</span>
-                            </div>
-                        </div>
-                        <div style="margin-top: 20px;">
-                            <canvas id="statusChart"></canvas>
-                        </div>
-                    </div>
-                </div>
-
                 <!-- Quick Actions -->
                 <div class="quick-actions">
                     <div class="chart-title">
@@ -546,6 +469,30 @@ function getEnhancedActivityDescription($activity) {
                                 <div class="quick-action-desc">Analytics & insights</div>
                             </div>
                         </a>
+                    </div>
+                </div>
+
+                <!-- Analytics Section -->
+                <div class="analytics-grid">
+                    <div class="chart-card attendance-overview">
+                        <div class="chart-header">
+                            <div class="chart-title">
+                                <i class="fas fa-chart-line"></i>
+                                Attendance Overview
+                            </div>
+                            <div class="chart-filter">
+                                <button class="filter-btn active" data-period="7">7 Days</button>
+                                <button class="filter-btn" data-period="30">30 Days</button>
+                                <button class="filter-btn" data-period="90">90 Days</button>
+                            </div>
+                        </div>
+                        <div class="chart-body">
+                            <div class="chart-panel">
+                                <div class="chart-container">
+                                    <canvas id="attendanceChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -701,11 +648,6 @@ function getEnhancedActivityDescription($activity) {
     <!-- Pass PHP data to JavaScript -->
     <script>
         const attendanceTrendData = <?php echo json_encode($attendance_trend); ?>;
-        const workerStats = {
-            onSite: <?php echo $on_site_today; ?>,
-            onLeave: <?php echo $on_leave; ?>,
-            absent: <?php echo $total_workers - $on_site_today - $on_leave; ?>
-        };
     </script>
     
     <!-- JavaScript -->

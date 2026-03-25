@@ -88,21 +88,32 @@ $status_filter = isset($_GET['status']) ? sanitizeString($_GET['status']) : '';
 $search_query = isset($_GET['search']) ? sanitizeString($_GET['search']) : '';
 $project_filter = isset($_GET['project']) ? intval($_GET['project']) : 0;
 
+// Pagination
+$page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
+$per_page = 10;
+$offset = ($page - 1) * $per_page;
+
 // Build query
-$sql = "SELECT w.*, u.email, u.status as user_status, 
-           COALESCE(wcw.classification_name, wct.classification_name) AS classification_name, 
-           wt.work_type_name 
-    FROM workers w 
+$base_select = "FROM workers w 
     JOIN users u ON w.user_id = u.user_id 
     LEFT JOIN worker_classifications wcw ON w.classification_id = wcw.classification_id 
     LEFT JOIN work_types wt ON w.work_type_id = wt.work_type_id 
     LEFT JOIN worker_classifications wct ON wt.classification_id = wct.classification_id 
     WHERE w.is_archived = FALSE";
+
+$sql = "SELECT w.*, u.email, u.status as user_status, 
+           COALESCE(wcw.classification_name, wct.classification_name) AS classification_name, 
+           wt.work_type_name ".$base_select;
+
+$count_sql = "SELECT COUNT(*) " . $base_select;
+
 $params = [];
+$count_params = [];
 
 if ($project_filter > 0) {
     $sql .= " AND w.worker_id IN (SELECT pw.worker_id FROM project_workers pw WHERE pw.project_id = ? AND pw.is_active = 1)";
     $params[] = $project_filter;
+    $count_params[] = $project_filter;
 }
 
 if (!empty($classification_filter)) {
@@ -110,15 +121,21 @@ if (!empty($classification_filter)) {
     $sql .= " AND (w.classification_id = ? OR wt.classification_id = ?)";
     $params[] = $classification_filter;
     $params[] = $classification_filter;
+    $count_params[] = $classification_filter;
+    $count_params[] = $classification_filter;
 }
 if (!empty($work_type_filter)) {
     $sql .= " AND w.work_type_id = ?";
     $params[] = $work_type_filter;
+    $count_sql .= " AND w.work_type_id = ?";
+    $count_params[] = $work_type_filter;
 }
 
 if (!empty($status_filter)) {
     $sql .= " AND w.employment_status = ?";
     $params[] = $status_filter;
+    $count_sql .= " AND w.employment_status = ?";
+    $count_params[] = $status_filter;
 }
 
 
@@ -131,19 +148,36 @@ if (!empty($search_query)) {
     $params[] = $search_param;
     $params[] = $search_param;
     $params[] = $search_param;
+    $count_sql .= " AND (w.first_name LIKE ? OR w.last_name LIKE ? OR w.worker_code LIKE ? OR wt.work_type_name LIKE ? OR COALESCE(wcw.classification_name, wct.classification_name) LIKE ?)";
+    $count_params[] = $search_param;
+    $count_params[] = $search_param;
+    $count_params[] = $search_param;
+    $count_params[] = $search_param;
+    $count_params[] = $search_param;
 }
 
-$sql .= " ORDER BY w.created_at DESC";
+$sql .= " ORDER BY w.created_at DESC LIMIT ? OFFSET ?";
 
 try {
+    // Total count for pagination
+    $count_stmt = $db->prepare($count_sql);
+    $count_stmt->execute($count_params ?: $params);
+    $total_workers = (int)$count_stmt->fetchColumn();
+
+    // Paged data
+    $params_with_paging = $params;
+    $params_with_paging[] = $per_page;
+    $params_with_paging[] = $offset;
+
     $stmt = $db->prepare($sql);
-    $stmt->execute($params);
+    $stmt->execute($params_with_paging);
     $workers = $stmt->fetchAll();
-    $total_workers = count($workers);
+    $total_pages = $total_workers > 0 ? ceil($total_workers / $per_page) : 1;
 } catch (PDOException $e) {
     error_log("Worker Query Error: " . $e->getMessage());
     $workers = [];
     $total_workers = 0;
+    $total_pages = 1;
 }
 
 // Get unique classifications for filter
@@ -376,7 +410,11 @@ try {
                 <!-- Workers Table -->
                 <div class="workers-table-card">
                     <div class="table-info">
-                        <span>Showing <?php echo $total_workers; ?> of <?php echo $total_workers; ?> workers</span>
+                        <?php
+                            $showing_from = $total_workers > 0 ? $offset + 1 : 0;
+                            $showing_to = $offset + count($workers);
+                        ?>
+                        <span>Showing <?php echo $showing_from; ?>–<?php echo $showing_to; ?> of <?php echo $total_workers; ?> workers</span>
                     </div>
                     
                     <div class="table-wrapper">
@@ -480,6 +518,19 @@ try {
                             </tbody>
                         </table>
                     </div>
+                    <?php if ($total_pages > 1): ?>
+                    <div class="pagination-bar">
+                        <?php
+                            $query_no_page = $_GET;
+                            unset($query_no_page['page']);
+                            $base_query = http_build_query($query_no_page);
+                            $base_url = 'index.php' . ($base_query ? '?' . $base_query . '&' : '?');
+                        ?>
+                        <a class="page-btn <?php echo $page <= 1 ? 'disabled' : ''; ?>" href="<?php echo $page <= 1 ? '#' : $base_url . 'page=' . ($page - 1); ?>">Prev</a>
+                        <span class="page-info">Page <?php echo $page; ?> of <?php echo $total_pages; ?></span>
+                        <a class="page-btn <?php echo $page >= $total_pages ? 'disabled' : ''; ?>" href="<?php echo $page >= $total_pages ? '#' : $base_url . 'page=' . ($page + 1); ?>">Next</a>
+                    </div>
+                    <?php endif; ?>
                 </div>
                 
             </div>

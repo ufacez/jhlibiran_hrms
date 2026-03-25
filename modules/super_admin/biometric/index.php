@@ -22,6 +22,11 @@ requireAdminWithPermission($db, 'can_view_biometric', 'You do not have permissio
 $permissions = getAdminPermissions($db);
 $full_name = $_SESSION['full_name'] ?? 'Administrator';
 
+// Pagination
+$per_page = 10;
+$page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+$offset = ($page - 1) * $per_page;
+
 // Filters
 $search = $_GET['search'] ?? '';
 $status_filter = $_GET['status'] ?? '';
@@ -29,8 +34,55 @@ $project_filter = isset($_GET['project']) ? intval($_GET['project']) : 0;
 $classification_filter = $_GET['classification'] ?? '';
 $work_type_filter = $_GET['work_type'] ?? '';
 
-// Get workers with biometric info
-$sql = "SELECT 
+// Base query for reuse between count and data fetch
+$base_sql = "FROM workers w
+    LEFT JOIN face_encodings fe ON w.worker_id = fe.worker_id AND fe.is_active = 1
+    LEFT JOIN worker_classifications wc ON w.classification_id = wc.classification_id
+    LEFT JOIN work_types wt ON w.work_type_id = wt.work_type_id
+    LEFT JOIN worker_classifications wct ON wt.classification_id = wct.classification_id
+    WHERE w.is_archived = 0";
+
+$params = [];
+
+if ($project_filter > 0) {
+    $base_sql .= " AND w.worker_id IN (SELECT pw.worker_id FROM project_workers pw WHERE pw.project_id = ? AND pw.is_active = 1)";
+    $params[] = $project_filter;
+}
+
+if (!empty($classification_filter)) {
+    $base_sql .= " AND (w.classification_id = ? OR wt.classification_id = ?)";
+    $params[] = $classification_filter;
+    $params[] = $classification_filter;
+}
+
+if (!empty($work_type_filter)) {
+    $base_sql .= " AND w.work_type_id = ?";
+    $params[] = $work_type_filter;
+}
+
+if (!empty($search)) {
+    $base_sql .= " AND (w.first_name LIKE ? OR w.last_name LIKE ? OR w.worker_code LIKE ?)";
+    $s = "%{$search}%";
+    $params[] = $s;
+    $params[] = $s;
+    $params[] = $s;
+}
+
+if ($status_filter === 'registered') {
+    $base_sql .= " AND fe.encoding_id IS NOT NULL";
+} elseif ($status_filter === 'unregistered') {
+    $base_sql .= " AND fe.encoding_id IS NULL";
+}
+
+$order_sql = " ORDER BY fe.encoding_id IS NOT NULL DESC, w.last_name ASC, w.first_name ASC";
+
+try {
+    $count_sql = "SELECT COUNT(*) " . $base_sql;
+    $stmt = $db->prepare($count_sql);
+    $stmt->execute($params);
+    $total_workers = (int)$stmt->fetchColumn();
+
+    $data_sql = "SELECT 
             w.worker_id,
             w.worker_code,
             w.first_name,
@@ -48,54 +100,15 @@ $sql = "SELECT
             (SELECT MAX(a.attendance_date) FROM attendance a WHERE a.worker_id = w.worker_id AND a.is_archived = 0) AS last_attendance_date,
             (SELECT a.time_in FROM attendance a WHERE a.worker_id = w.worker_id AND a.attendance_date = CURDATE() AND a.is_archived = 0 LIMIT 1) AS today_time_in,
             (SELECT a.time_out FROM attendance a WHERE a.worker_id = w.worker_id AND a.attendance_date = CURDATE() AND a.is_archived = 0 LIMIT 1) AS today_time_out
-        FROM workers w
-        LEFT JOIN face_encodings fe ON w.worker_id = fe.worker_id AND fe.is_active = 1
-        LEFT JOIN worker_classifications wc ON w.classification_id = wc.classification_id
-        LEFT JOIN work_types wt ON w.work_type_id = wt.work_type_id
-        LEFT JOIN worker_classifications wct ON wt.classification_id = wct.classification_id
-        WHERE w.is_archived = 0";
+        " . $base_sql . $order_sql . " LIMIT {$per_page} OFFSET {$offset}";
 
-$params = [];
-
-if ($project_filter > 0) {
-    $sql .= " AND w.worker_id IN (SELECT pw.worker_id FROM project_workers pw WHERE pw.project_id = ? AND pw.is_active = 1)";
-    $params[] = $project_filter;
-}
-
-if (!empty($classification_filter)) {
-    $sql .= " AND (w.classification_id = ? OR wt.classification_id = ?)";
-    $params[] = $classification_filter;
-    $params[] = $classification_filter;
-}
-
-if (!empty($work_type_filter)) {
-    $sql .= " AND w.work_type_id = ?";
-    $params[] = $work_type_filter;
-}
-
-if (!empty($search)) {
-    $sql .= " AND (w.first_name LIKE ? OR w.last_name LIKE ? OR w.worker_code LIKE ?)";
-    $s = "%{$search}%";
-    $params[] = $s;
-    $params[] = $s;
-    $params[] = $s;
-}
-
-if ($status_filter === 'registered') {
-    $sql .= " AND fe.encoding_id IS NOT NULL";
-} elseif ($status_filter === 'unregistered') {
-    $sql .= " AND fe.encoding_id IS NULL";
-}
-
-$sql .= " ORDER BY fe.encoding_id IS NOT NULL DESC, w.last_name ASC, w.first_name ASC";
-
-try {
-    $stmt = $db->prepare($sql);
+    $stmt = $db->prepare($data_sql);
     $stmt->execute($params);
     $workers = $stmt->fetchAll();
 } catch (PDOException $e) {
     error_log("Biometric page error: " . $e->getMessage());
     $workers = [];
+    $total_workers = 0;
 }
 
 // Biometric audit trail (right panel)
@@ -143,6 +156,15 @@ try {
 } catch (PDOException $e) {
     $projects_list = [];
 }
+
+$total_pages = (int)ceil($total_workers / $per_page);
+$start_record = $total_workers ? ($offset + 1) : 0;
+$end_record = min($offset + $per_page, $total_workers);
+$queryParams = $_GET;
+unset($queryParams['page']);
+$baseQueryString = http_build_query(array_filter($queryParams, function($v) {
+    return $v !== '' && $v !== null;
+}));
 
 /**
  * Action badge helper (same as audit trail page)
@@ -515,7 +537,8 @@ function formatDateTime12hr($datetime) {
                     <!-- Workers Table -->
                     <div class="bio-table-card">
                         <div class="table-header-bar">
-                            <h2><i class="fas fa-list" style="color: #DAA520; margin-right: 6px;"></i> Registered Workers (<?php echo count($workers); ?>)</h2>
+                            <h2><i class="fas fa-list" style="color: #DAA520; margin-right: 6px;"></i> Registered Workers</h2>
+                            <span style="font-size:12px;color:#666;">Showing <?php echo $start_record ?: 0; ?>-<?php echo $end_record; ?> of <?php echo $total_workers; ?></span>
                         </div>
                         
                         <?php if (empty($workers)): ?>
@@ -619,6 +642,22 @@ function formatDateTime12hr($datetime) {
                             </tbody>
                         </table>
                         </div>
+                        <?php if ($total_pages > 1): ?>
+                        <div class="pagination" style="padding: 0 20px 16px;">
+                            <?php 
+                                $prev_page = max(1, $page - 1);
+                                $next_page = min($total_pages, $page + 1);
+                                $qs_prefix = $baseQueryString ? $baseQueryString . '&' : '';
+                            ?>
+                            <a class="pagination-btn <?php echo $page <= 1 ? 'disabled' : ''; ?>" href="?<?php echo $qs_prefix . 'page=' . $prev_page; ?>">
+                                <i class="fas fa-chevron-left"></i> Prev
+                            </a>
+                            <span class="pagination-info">Page <?php echo $page; ?> of <?php echo $total_pages; ?></span>
+                            <a class="pagination-btn <?php echo $page >= $total_pages ? 'disabled' : ''; ?>" href="?<?php echo $qs_prefix . 'page=' . $next_page; ?>">
+                                Next <i class="fas fa-chevron-right"></i>
+                            </a>
+                        </div>
+                        <?php endif; ?>
                         <?php endif; ?>
                     </div>
                     

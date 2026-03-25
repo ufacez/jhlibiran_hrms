@@ -9,7 +9,6 @@
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize charts
     initAttendanceChart();
-    initStatusChart();
     
     // Initialize filter buttons
     initFilterButtons();
@@ -28,12 +27,14 @@ function initAttendanceChart() {
     const labels = [];
     const presentData = [];
     const absentData = [];
+    const onLeaveData = [];
     
     if (typeof attendanceTrendData !== 'undefined' && attendanceTrendData.length > 0) {
         attendanceTrendData.forEach(item => {
-            labels.push(item.day_name);
+            labels.push(item.day_label);
             presentData.push(parseInt(item.present_count));
             absentData.push(parseInt(item.absent_count));
+            onLeaveData.push(parseInt(item.on_leave_count || 0));
         });
     } else {
         // Default data if no data available
@@ -42,6 +43,7 @@ function initAttendanceChart() {
             labels.push(day);
             presentData.push(0);
             absentData.push(0);
+            onLeaveData.push(0);
         });
     }
     
@@ -75,6 +77,19 @@ function initAttendanceChart() {
                 pointBackgroundColor: '#e74c3c',
                 pointBorderColor: '#fff',
                 pointBorderWidth: 2
+            }, {
+                label: 'On Leave',
+                data: onLeaveData,
+                borderColor: '#f39c12',
+                backgroundColor: 'rgba(243, 156, 18, 0.12)',
+                tension: 0.4,
+                fill: true,
+                borderWidth: 3,
+                pointRadius: 5,
+                pointHoverRadius: 7,
+                pointBackgroundColor: '#f39c12',
+                pointBorderColor: '#fff',
+                pointBorderWidth: 2
             }]
         },
         options: {
@@ -106,12 +121,11 @@ function initAttendanceChart() {
                     displayColors: true,
                     callbacks: {
                         label: function(context) {
-                            let label = context.dataset.label || '';
-                            if (label) {
-                                label += ': ';
-                            }
-                            label += context.parsed.y + ' workers';
-                            return label;
+                            const label = context.dataset.label ? context.dataset.label + ': ' : '';
+                            return label + context.parsed.y + ' workers';
+                        },
+                        title: function(context) {
+                            return context[0]?.label || '';
                         }
                     }
                 }
@@ -147,75 +161,6 @@ function initAttendanceChart() {
             interaction: {
                 intersect: false,
                 mode: 'index'
-            }
-        }
-    });
-}
-
-/**
- * Initialize Worker Status Doughnut Chart
- */
-function initStatusChart() {
-    const ctx = document.getElementById('statusChart');
-    if (!ctx) return;
-    
-    // Get data from PHP
-    let onSite = 0;
-    let onLeave = 0;
-    let absent = 0;
-    
-    if (typeof workerStats !== 'undefined') {
-        onSite = workerStats.onSite || 0;
-        onLeave = workerStats.onLeave || 0;
-        absent = workerStats.absent || 0;
-    }
-    
-    new Chart(ctx, {
-        type: 'doughnut',
-        data: {
-            labels: ['On Site', 'On Leave', 'Absent'],
-            datasets: [{
-                data: [onSite, onLeave, absent],
-                backgroundColor: ['#27ae60', '#f39c12', '#e74c3c'],
-                borderWidth: 0,
-                hoverOffset: 10
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    display: false
-                },
-                tooltip: {
-                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                    padding: 12,
-                    titleFont: {
-                        size: 14,
-                        weight: 'bold'
-                    },
-                    bodyFont: {
-                        size: 13
-                    },
-                    cornerRadius: 8,
-                    callbacks: {
-                        label: function(context) {
-                            let label = context.label || '';
-                            let value = context.parsed || 0;
-                            let total = context.dataset.data.reduce((a, b) => a + b, 0);
-                            let percentage = total > 0 ? Math.round((value / total) * 100) : 0;
-                            return label + ': ' + value + ' (' + percentage + '%)';
-                        }
-                    }
-                }
-            },
-            cutout: '70%',
-            animation: {
-                animateRotate: true,
-                animateScale: true,
-                duration: 1000,
-                easing: 'easeOutQuart'
             }
         }
     });

@@ -21,6 +21,11 @@ $permissions = getAdminPermissions($db);
 $full_name = $_SESSION['full_name'] ?? 'Administrator';
 $flash = getFlashMessage();
 
+// Pagination
+$per_page = 10;
+$page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+$offset = ($page - 1) * $per_page;
+
 // Get filter parameters
 $classification_filter = isset($_GET['classification']) ? sanitizeString($_GET['classification']) : '';
 $work_type_filter = isset($_GET['work_type']) ? sanitizeString($_GET['work_type']) : '';
@@ -33,12 +38,8 @@ $project_filter = isset($_GET['project']) ? intval($_GET['project']) : 0;
 
 $day_of_week_expr = "LOWER(DAYNAME(a.attendance_date))";
 
-$sql = "SELECT a.*, w.worker_code, w.first_name, w.last_name,
-           COALESCE(wc.classification_name, wct.classification_name) AS classification_name,
-           wt.work_type_name,
-           COALESCE(ds.start_time, s.start_time) AS sched_start, 
-           COALESCE(ds.end_time, s.end_time) AS sched_end
-    FROM attendance a
+// Base query for reuse between count and data fetch
+$base_sql = "FROM attendance a
         JOIN workers w ON a.worker_id = w.worker_id
         LEFT JOIN worker_classifications wc ON w.classification_id = wc.classification_id
         LEFT JOIN work_types wt ON w.work_type_id = wt.work_type_id
@@ -54,40 +55,50 @@ $sql = "SELECT a.*, w.worker_code, w.first_name, w.last_name,
         WHERE a.is_archived = FALSE AND w.is_archived = FALSE";
 
 if (!empty($date_to_filter)) {
-    $sql .= " AND a.attendance_date >= ? AND a.attendance_date <= ?";
+    $base_sql .= " AND a.attendance_date >= ? AND a.attendance_date <= ?";
     $params = [$date_filter, $date_to_filter];
 } else {
-    $sql .= " AND a.attendance_date = ?";
+    $base_sql .= " AND a.attendance_date = ?";
     $params = [$date_filter];
 }
 
 if ($project_filter > 0) {
-    $sql .= " AND w.worker_id IN (SELECT pw.worker_id FROM project_workers pw WHERE pw.project_id = ? AND pw.is_active = 1)";
+    $base_sql .= " AND w.worker_id IN (SELECT pw.worker_id FROM project_workers pw WHERE pw.project_id = ? AND pw.is_active = 1)";
     $params[] = $project_filter;
 }
 if (!empty($classification_filter)) {
     // Match worker's classification OR the classification assigned to their work type
-    $sql .= " AND (w.classification_id = ? OR wt.classification_id = ?)";
+    $base_sql .= " AND (w.classification_id = ? OR wt.classification_id = ?)";
     $params[] = $classification_filter;
     $params[] = $classification_filter;
 }
 if (!empty($work_type_filter)) {
-    $sql .= " AND w.work_type_id = ?";
+    $base_sql .= " AND w.work_type_id = ?";
     $params[] = $work_type_filter;
 }
 
 if (!empty($status_filter)) {
-    $sql .= " AND a.status = ?";
+    $base_sql .= " AND a.status = ?";
     $params[] = $status_filter;
 }
 
-$sql .= " ORDER BY a.time_in ASC";
+$order_sql = " ORDER BY a.time_in ASC";
 
 try {
-    $stmt = $db->prepare($sql);
+    $count_sql = "SELECT COUNT(*) " . $base_sql;
+    $stmt = $db->prepare($count_sql);
+    $stmt->execute($params);
+    $total_records = (int)$stmt->fetchColumn();
+
+    $data_sql = "SELECT a.*, w.worker_code, w.first_name, w.last_name,
+           COALESCE(wc.classification_name, wct.classification_name) AS classification_name,
+           wt.work_type_name,
+           COALESCE(ds.start_time, s.start_time) AS sched_start, 
+           COALESCE(ds.end_time, s.end_time) AS sched_end " . $base_sql . $order_sql . " LIMIT {$per_page} OFFSET {$offset}";
+
+    $stmt = $db->prepare($data_sql);
     $stmt->execute($params);
     $attendance_records = $stmt->fetchAll();
-    $total_records = count($attendance_records);
 } catch (PDOException $e) {
     error_log("Attendance Query Error: " . $e->getMessage());
     $attendance_records = [];
@@ -135,6 +146,15 @@ try {
 } catch (PDOException $e) {
     $total_workers_today = 0;
 }
+
+$total_pages = (int)ceil($total_records / $per_page);
+$start_record = $total_records ? ($offset + 1) : 0;
+$end_record = min($offset + $per_page, $total_records);
+$queryParams = $_GET;
+unset($queryParams['page']);
+$baseQueryString = http_build_query(array_filter($queryParams, function($v) {
+    return $v !== '' && $v !== null;
+}));
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -265,7 +285,7 @@ try {
                 <!-- Attendance Table -->
                 <div class="workers-table-card">
                     <div class="table-info">
-                        <span>Showing <?php echo $total_records; ?> of <?php echo $total_workers_today; ?> workers</span>
+                        <span>Showing <?php echo $start_record ?: 0; ?>-<?php echo $end_record; ?> of <?php echo $total_records; ?> records (<?php echo $total_workers_today; ?> workers)</span>
                         <div style="display: flex; gap: 10px; align-items: center;">
                             <button class="btn btn-export" onclick="exportAttendance()">
                                 <i class="fas fa-download"></i> Export
@@ -374,6 +394,22 @@ try {
                             </tbody>
                         </table>
                     </div>
+                    <?php if ($total_pages > 1): ?>
+                    <div class="pagination">
+                        <?php 
+                            $prev_page = max(1, $page - 1);
+                            $next_page = min($total_pages, $page + 1);
+                            $qs_prefix = $baseQueryString ? $baseQueryString . '&' : '';
+                        ?>
+                        <a class="pagination-btn <?php echo $page <= 1 ? 'disabled' : ''; ?>" href="?<?php echo $qs_prefix . 'page=' . $prev_page; ?>">
+                            <i class="fas fa-chevron-left"></i> Prev
+                        </a>
+                        <span class="pagination-info">Page <?php echo $page; ?> of <?php echo $total_pages; ?></span>
+                        <a class="pagination-btn <?php echo $page >= $total_pages ? 'disabled' : ''; ?>" href="?<?php echo $qs_prefix . 'page=' . $next_page; ?>">
+                            Next <i class="fas fa-chevron-right"></i>
+                        </a>
+                    </div>
+                    <?php endif; ?>
                 </div>
                 
             </div><!-- /.workers-content -->

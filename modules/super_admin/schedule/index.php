@@ -26,6 +26,11 @@ $pdo = getDBConnection();
 $full_name = $_SESSION['full_name'] ?? 'Administrator';
 $flash = getFlashMessage();
 
+// Pagination
+$per_page = 10;
+$page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+$offset = ($page - 1) * $per_page;
+
 // Filters
 $worker_filter = isset($_GET['worker']) ? intval($_GET['worker']) : 0;
 $status_filter = isset($_GET['status']) ? sanitizeString($_GET['status']) : 'all';
@@ -64,32 +69,41 @@ $month_names = [
     9 => 'September', 10 => 'October', 11 => 'November', 12 => 'December'
 ];
 
-// ─── STEP 1: Get distinct workers ───
-$workerSql = "SELECT DISTINCT w.worker_id, w.worker_code, w.first_name, w.last_name, w.position
-              FROM workers w";
+// ─── STEP 1: Get distinct workers (paginated) ───
+$workerSelect = "SELECT DISTINCT w.worker_id, w.worker_code, w.first_name, w.last_name, w.position";
+$workerFrom = " FROM workers w";
 $workerParams = [];
 
 if ($project_filter > 0) {
-    $workerSql .= " JOIN project_workers pw ON w.worker_id = pw.worker_id AND pw.project_id = ? AND pw.is_active = 1";
+    $workerFrom .= " JOIN project_workers pw ON w.worker_id = pw.worker_id AND pw.project_id = ? AND pw.is_active = 1";
     $workerParams[] = $project_filter;
 }
 
-$workerSql .= " WHERE w.employment_status = 'active' AND w.is_archived = FALSE";
+$workerWhere = " WHERE w.employment_status = 'active' AND w.is_archived = FALSE";
 
 if ($worker_filter > 0) {
-    $workerSql .= " AND w.worker_id = ?";
+    $workerWhere .= " AND w.worker_id = ?";
     $workerParams[] = $worker_filter;
 }
 
-$workerSql .= " ORDER BY w.first_name, w.last_name";
+$workerOrder = " ORDER BY w.first_name, w.last_name";
 
 try {
-    $stmt = $pdo->prepare($workerSql);
+    $countSql = "SELECT COUNT(DISTINCT w.worker_id)" . $workerFrom . $workerWhere;
+    $stmt = $pdo->prepare($countSql);
     $stmt->execute($workerParams);
+    $total_workers = (int)$stmt->fetchColumn();
+
+    $workerSql = $workerSelect . $workerFrom . $workerWhere . $workerOrder . " LIMIT ? OFFSET ?";
+    $workerParamsWithLimit = array_merge($workerParams, [$per_page, $offset]);
+
+    $stmt = $pdo->prepare($workerSql);
+    $stmt->execute($workerParamsWithLimit);
     $workers = $stmt->fetchAll();
 } catch (PDOException $e) {
     error_log("Schedule Worker Query: " . $e->getMessage());
     $workers = [];
+    $total_workers = 0;
 }
 
 // ─── STEP 2: For each worker, fetch their daily schedules for this month ───
@@ -141,6 +155,15 @@ try {
 } catch (PDOException $e) {
     $allProjects = [];
 }
+
+$total_pages = (int)ceil($total_workers / $per_page);
+$start_record = $total_workers ? ($offset + 1) : 0;
+$end_record = min($offset + $per_page, $total_workers);
+$queryParams = $_GET;
+unset($queryParams['page']);
+$baseQueryString = http_build_query(array_filter($queryParams, function($v) {
+    return $v !== '' && $v !== null;
+}));
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -476,7 +499,7 @@ try {
             <!-- ── Monthly Calendar Table ── -->
             <div class="schedule-table-card">
                 <div class="table-info">
-                    <span>Showing <?php echo count($workers); ?> worker<?php echo count($workers) !== 1 ? 's' : ''; ?> &mdash; <?php echo $month_names[$filter_month] . ' ' . $filter_year; ?> (<?php echo $days_in_month; ?> days)</span>
+                    <span>Showing <?php echo $start_record ?: 0; ?>-<?php echo $end_record; ?> of <?php echo $total_workers; ?> workers &mdash; <?php echo $month_names[$filter_month] . ' ' . $filter_year; ?> (<?php echo $days_in_month; ?> days)</span>
                 </div>
 
                 <div class="table-wrapper">
